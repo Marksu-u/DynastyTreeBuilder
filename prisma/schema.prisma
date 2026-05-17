@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum DynastySetting {
+  FANTASY
+  SCI_FI
+  HISTORICAL
+  MODERN
+  HORROR
+  OTHER
+}
+
+enum CharacterRole {
+  HEIR
+  OPERATIVE
+  INFORMANT
+  SWORN_ENEMY
+  PATRIARCH
+  MATRIARCH
+  ALLY
+  RIVAL
+  ADVISOR
+  UNKNOWN
+  OTHER
+}
+
+enum CharacterStyle {
+  NOBLE
+  WARRIOR
+  MAGE
+  ROGUE
+  CLERIC
+  SCHOLAR
+  COMMONER
+  OTHER
+}
+
+enum CharacterGender {
+  MALE
+  FEMALE
+  NON_BINARY
+  UNKNOWN
+}
+
+enum RelationshipType {
+  BLOOD
+  ADOPTED
+  ALLY
+  ENEMY
+  MARRIED
+  BETROTHED
+  MENTOR
+  RIVAL
+  UNKNOWN
+}
+
+enum RelationshipTag {
+  ESTRANGED
+  LOVER
+  RELUCTANT_DEBTOR
+  BETRAYER
+  PROTECTOR
+  RIVAL_HEIR
+  SECRET_CHILD
+  SWORN_ENEMY
+  UNLIKELY_ALLY
+  REDEEMED
+  FALLEN
+  EXILED
+  DECEASED
+  MISSING
+  CORRUPTED
+  CONFLICTED
+  DEVOTED
+  MANIPULATIVE
+  GRIEVING
+  NEUTRAL
+}
+
+enum NameStyle {
+  FANTASY
+  SCI_FI
+  HISTORICAL
+  MODERN
+  HORROR
+  OTHER
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id         String   @id @default(cuid())
+  supabaseId String   @unique
+  email      String   @unique
+  username   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  dynasties       Dynasty[]
+  nameBankEntries CustomName[]
+
+  @@map("users")
+}
+
+model Dynasty {
+  id        String         @id @default(cuid())
+  name      String
+  slug      String         @unique
+  setting   DynastySetting @default(FANTASY)
+  isPublic  Boolean        @default(false)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  characters    Character[]
+  relationships Relationship[]
+
+  @@index([ownerId])
+  @@map("dynasties")
+}
+
+model Character {
+  id         String          @id @default(cuid())
+  name       String
+  alias      String?
+  role       CharacterRole   @default(UNKNOWN)
+  style      CharacterStyle  @default(OTHER)
+  gender     CharacterGender @default(UNKNOWN)
+  generation Int             @default(0)
+  isFounder  Boolean         @default(false)
+  isLost     Boolean         @default(false)
+  note       String?
+  posX       Float           @default(0)
+  posY       Float           @default(0)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  dynastyId String
+  dynasty   Dynasty @relation(fields: [dynastyId], references: [id], onDelete: Cascade)
+
+  relationsFrom Relationship[] @relation("RelationshipFrom")
+  relationsTo   Relationship[] @relation("RelationshipTo")
+
+  @@index([dynastyId])
+  @@map("characters")
+}
+
+model Relationship {
+  id        String           @id @default(cuid())
+  type      RelationshipType @default(UNKNOWN)
+  tag       RelationshipTag?
+  hook      String?
+  isMutual  Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  dynastyId String
+  dynasty   Dynasty @relation(fields: [dynastyId], references: [id], onDelete: Cascade)
+
+  fromId String
+  from   Character @relation("RelationshipFrom", fields: [fromId], references: [id], onDelete: Cascade)
+
+  toId String
+  to   Character @relation("RelationshipTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@index([dynastyId])
+  @@index([fromId])
+  @@index([toId])
+  @@map("relationships")
+}
+
+model CustomName {
+  id        String          @id @default(cuid())
+  name      String
+  style     NameStyle       @default(FANTASY)
+  gender    CharacterGender @default(UNKNOWN)
+  role      CharacterRole?
+  note      String?
+  createdAt DateTime        @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("custom_names")
+}
