@@ -38,6 +38,11 @@ export function TreeCanvas() {
   const editingEdgeId = useCanvasStore((s) => s.editingEdgeId);
   const setEditingEdgeId = useCanvasStore((s) => s.setEditingEdgeId);
   const gridVisible = useCanvasStore((s) => s.gridVisible);
+  const undo = useCanvasStore((s) => s.undo);
+  const redo = useCanvasStore((s) => s.redo);
+  const canUndo = useCanvasStore((s) => s.past.length > 0);
+  const canRedo = useCanvasStore((s) => s.future.length > 0);
+  const toggleGrid = useCanvasStore((s) => s.toggleGrid);
 
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
 
@@ -137,7 +142,15 @@ export function TreeCanvas() {
         />
       </ReactFlow>
 
-      <Toolbar onAddCharacter={() => setAddCharacterOpen(true)} />
+      <Toolbar
+          onAddCharacter={() => setAddCharacterOpen(true)}
+          gridVisible={gridVisible}
+          onToggleGrid={toggleGrid}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
+        />
 
       {nodes.length === 0 && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

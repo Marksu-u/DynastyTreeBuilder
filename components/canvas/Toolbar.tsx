@@ -1,21 +1,28 @@
 "use client";
 
-import { useReactFlow } from '@xyflow/react';
-import { Plus, Maximize2, Grid3X3, Undo2, Redo2 } from 'lucide-react';
-import { useCanvasStore } from '@/store/canvas';
+import { useReactFlow } from "@xyflow/react";
+import { Plus, Maximize2, Grid3X3, Undo2, Redo2 } from "lucide-react";
 
 interface Props {
   onAddCharacter: () => void;
+  gridVisible: boolean;
+  onToggleGrid: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
-export function Toolbar({ onAddCharacter }: Props) {
+export function Toolbar({
+  onAddCharacter,
+  gridVisible,
+  onToggleGrid,
+  canUndo = false,
+  canRedo = false,
+  onUndo,
+  onRedo,
+}: Props) {
   const { fitView } = useReactFlow();
-  const undo = useCanvasStore((s) => s.undo);
-  const redo = useCanvasStore((s) => s.redo);
-  const canUndo = useCanvasStore((s) => s.past.length > 0);
-  const canRedo = useCanvasStore((s) => s.future.length > 0);
-  const gridVisible = useCanvasStore((s) => s.gridVisible);
-  const toggleGrid = useCanvasStore((s) => s.toggleGrid);
 
   return (
     <div className="absolute left-4 top-4 z-10 flex items-center gap-0.5 rounded-lg border border-zinc-700 bg-zinc-900/95 p-1 shadow-lg backdrop-blur-sm">
@@ -38,13 +45,13 @@ export function Toolbar({ onAddCharacter }: Props) {
       </button>
 
       <button
-        onClick={toggleGrid}
+        onClick={onToggleGrid}
         className={[
-          'rounded p-1.5 transition-colors',
+          "rounded p-1.5 transition-colors",
           gridVisible
-            ? 'bg-zinc-800 text-zinc-200'
-            : 'text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300',
-        ].join(' ')}
+            ? "bg-zinc-800 text-zinc-200"
+            : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300",
+        ].join(" ")}
         title="Toggle grid"
       >
         <Grid3X3 size={14} />
@@ -53,8 +60,8 @@ export function Toolbar({ onAddCharacter }: Props) {
       <div className="mx-0.5 h-5 w-px bg-zinc-700" />
 
       <button
-        onClick={undo}
-        disabled={!canUndo}
+        onClick={onUndo}
+        disabled={!canUndo || !onUndo}
         className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-30"
         title="Undo"
       >
@@ -62,8 +69,8 @@ export function Toolbar({ onAddCharacter }: Props) {
       </button>
 
       <button
-        onClick={redo}
-        disabled={!canRedo}
+        onClick={onRedo}
+        disabled={!canRedo || !onRedo}
         className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-30"
         title="Redo"
       >
