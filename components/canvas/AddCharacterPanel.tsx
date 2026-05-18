@@ -1,0 +1,215 @@
+"use client";
+
+import { useState, useEffect } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
+import { X } from 'lucide-react';
+import type { CharacterData, CharacterRole, CharacterStyle, CharacterGender } from '@/types/canvas';
+import type { CharacterNodeType } from '@/store/canvas';
+
+const ROLES: { value: CharacterRole; label: string }[] = [
+  { value: 'HEIR',        label: 'Heir' },
+  { value: 'PATRIARCH',   label: 'Patriarch' },
+  { value: 'MATRIARCH',   label: 'Matriarch' },
+  { value: 'OPERATIVE',   label: 'Operative' },
+  { value: 'INFORMANT',   label: 'Informant' },
+  { value: 'SWORN_ENEMY', label: 'Sworn Enemy' },
+  { value: 'ALLY',        label: 'Ally' },
+  { value: 'RIVAL',       label: 'Rival' },
+  { value: 'ADVISOR',     label: 'Advisor' },
+  { value: 'UNKNOWN',     label: 'Unknown' },
+  { value: 'OTHER',       label: 'Other' },
+];
+
+const STYLES: { value: CharacterStyle; label: string }[] = [
+  { value: 'NOBLE',    label: 'Noble' },
+  { value: 'WARRIOR',  label: 'Warrior' },
+  { value: 'MAGE',     label: 'Mage' },
+  { value: 'ROGUE',    label: 'Rogue' },
+  { value: 'CLERIC',   label: 'Cleric' },
+  { value: 'SCHOLAR',  label: 'Scholar' },
+  { value: 'COMMONER', label: 'Commoner' },
+  { value: 'OTHER',    label: 'Other' },
+];
+
+const GENDERS: { value: CharacterGender; label: string }[] = [
+  { value: 'MALE',       label: 'Male' },
+  { value: 'FEMALE',     label: 'Female' },
+  { value: 'NON_BINARY', label: 'Non-binary' },
+  { value: 'UNKNOWN',    label: 'Unknown' },
+];
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  character?: CharacterNodeType;
+  onSubmit: (data: CharacterData) => void;
+  onDelete?: () => void;
+}
+
+const EMPTY: CharacterData = {
+  name: '', alias: '', role: 'UNKNOWN', style: 'OTHER',
+  gender: 'UNKNOWN', note: '', isFounder: false, isLost: false,
+};
+
+const INPUT =
+  'w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500';
+
+export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onDelete }: Props) {
+  const [form, setForm] = useState<CharacterData>(EMPTY);
+  const isEdit = !!character;
+
+  useEffect(() => {
+    if (open) setForm(character ? { ...character.data } : EMPTY);
+  }, [open, character]);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    onSubmit({
+      ...form,
+      name: form.name.trim(),
+      alias: form.alias?.trim() || undefined,
+      note: form.note?.trim() || undefined,
+    });
+    onOpenChange(false);
+  }
+
+  const set = <K extends keyof CharacterData>(key: K, value: CharacterData[K]) =>
+    setForm((f) => ({ ...f, [key]: value }));
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+          <div className="mb-5 flex items-center justify-between">
+            <Dialog.Title className="text-lg font-semibold text-zinc-100">
+              {isEdit ? 'Edit Character' : 'Add Character'}
+            </Dialog.Title>
+            <Dialog.Close className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200">
+              <X size={16} />
+            </Dialog.Close>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">Name *</label>
+              <input
+                type="text"
+                required
+                autoFocus
+                value={form.name}
+                onChange={(e) => set('name', e.target.value)}
+                placeholder="Character name"
+                className={INPUT}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">Alias / Epithet</label>
+              <input
+                type="text"
+                value={form.alias ?? ''}
+                onChange={(e) => set('alias', e.target.value)}
+                placeholder='e.g. "The Ruthless"'
+                className={INPUT}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-400">Role</label>
+                <select
+                  value={form.role}
+                  onChange={(e) => set('role', e.target.value as CharacterRole)}
+                  className={INPUT}
+                >
+                  {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-400">Style</label>
+                <select
+                  value={form.style}
+                  onChange={(e) => set('style', e.target.value as CharacterStyle)}
+                  className={INPUT}
+                >
+                  {STYLES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">Gender</label>
+              <select
+                value={form.gender}
+                onChange={(e) => set('gender', e.target.value as CharacterGender)}
+                className={INPUT}
+              >
+                {GENDERS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">Note</label>
+              <textarea
+                value={form.note ?? ''}
+                onChange={(e) => set('note', e.target.value)}
+                placeholder="Optional backstory or notes..."
+                rows={2}
+                className={INPUT + ' resize-none'}
+              />
+            </div>
+
+            <div className="flex gap-4">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-300">
+                <input
+                  type="checkbox"
+                  checked={form.isFounder}
+                  onChange={(e) => set('isFounder', e.target.checked)}
+                  className="rounded border-zinc-600 bg-zinc-800 accent-amber-500"
+                />
+                Founder
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-300">
+                <input
+                  type="checkbox"
+                  checked={form.isLost}
+                  onChange={(e) => set('isLost', e.target.checked)}
+                  className="rounded border-zinc-600 bg-zinc-800"
+                />
+                Lost / Deceased
+              </label>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              {isEdit && onDelete && (
+                <button
+                  type="button"
+                  onClick={() => { onDelete(); onOpenChange(false); }}
+                  className="rounded-md border border-red-700/50 px-3 py-2 text-sm text-red-400 transition-colors hover:border-red-600 hover:bg-red-900/20"
+                >
+                  Delete
+                </button>
+              )}
+              <div className="flex-1" />
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="rounded-md border border-zinc-700 px-3 py-2 text-sm text-zinc-400 transition-colors hover:text-zinc-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 transition-colors hover:bg-white"
+              >
+                {isEdit ? 'Save' : 'Add'}
+              </button>
+            </div>
+          </form>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
