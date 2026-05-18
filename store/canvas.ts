@@ -24,6 +24,7 @@ interface CanvasState {
   gridVisible: boolean;
   editingCharacterId: string | null;
   editingEdgeId: string | null;
+  isDirty: boolean;
 
   onNodesChange: (changes: NodeChange<CharacterNodeType>[]) => void;
   onEdgesChange: (changes: EdgeChange<RelationshipEdgeType>[]) => void;
@@ -41,6 +42,9 @@ interface CanvasState {
   toggleGrid: () => void;
   setEditingCharacterId: (id: string | null) => void;
   setEditingEdgeId: (id: string | null) => void;
+
+  initCanvas: (nodes: CharacterNodeType[], edges: RelationshipEdgeType[]) => void;
+  markClean: () => void;
 }
 
 const MAX_HISTORY = 50;
@@ -75,13 +79,24 @@ export const useCanvasStore = create<CanvasState>()(
       gridVisible: true,
       editingCharacterId: null,
       editingEdgeId: null,
+      isDirty: false,
 
       onNodesChange: (changes) => {
-        set({ nodes: applyNodeChanges(changes, get().nodes) as CharacterNodeType[] });
+        const hasPositionChange = changes.some(
+          (c) => c.type === 'position' || c.type === 'remove'
+        );
+        set({
+          nodes: applyNodeChanges(changes, get().nodes) as CharacterNodeType[],
+          ...(hasPositionChange ? { isDirty: true } : {}),
+        });
       },
 
       onEdgesChange: (changes) => {
-        set({ edges: applyEdgeChanges(changes, get().edges) as RelationshipEdgeType[] });
+        const hasRemoval = changes.some((c) => c.type === 'remove');
+        set({
+          edges: applyEdgeChanges(changes, get().edges) as RelationshipEdgeType[],
+          ...(hasRemoval ? { isDirty: true } : {}),
+        });
       },
 
       onConnect: (connection) => {
@@ -99,6 +114,7 @@ export const useCanvasStore = create<CanvasState>()(
           edges: [...state.edges, newEdge],
           past: [...state.past.slice(-(MAX_HISTORY - 1)), snap(state)],
           future: [],
+          isDirty: true,
         });
       },
 
@@ -119,6 +135,7 @@ export const useCanvasStore = create<CanvasState>()(
           nodes: [...state.nodes, newNode],
           past: [...state.past.slice(-(MAX_HISTORY - 1)), snap(state)],
           future: [],
+          isDirty: true,
         });
       },
 
@@ -131,6 +148,7 @@ export const useCanvasStore = create<CanvasState>()(
           past: [...state.past.slice(-(MAX_HISTORY - 1)), snap(state)],
           future: [],
           editingCharacterId: null,
+          isDirty: true,
         });
       },
 
@@ -142,6 +160,7 @@ export const useCanvasStore = create<CanvasState>()(
           past: [...state.past.slice(-(MAX_HISTORY - 1)), snap(state)],
           future: [],
           editingCharacterId: null,
+          isDirty: true,
         });
       },
 
@@ -154,6 +173,7 @@ export const useCanvasStore = create<CanvasState>()(
           past: [...state.past.slice(-(MAX_HISTORY - 1)), snap(state)],
           future: [],
           editingEdgeId: null,
+          isDirty: true,
         });
       },
 
@@ -164,6 +184,7 @@ export const useCanvasStore = create<CanvasState>()(
           past: [...state.past.slice(-(MAX_HISTORY - 1)), snap(state)],
           future: [],
           editingEdgeId: null,
+          isDirty: true,
         });
       },
 
@@ -195,6 +216,11 @@ export const useCanvasStore = create<CanvasState>()(
 
       setEditingCharacterId: (id) => set({ editingCharacterId: id }),
       setEditingEdgeId: (id) => set({ editingEdgeId: id }),
+
+      initCanvas: (nodes, edges) =>
+        set({ nodes, edges, past: [], future: [], isDirty: false }),
+
+      markClean: () => set({ isDirty: false }),
     }),
     {
       name: 'dynasty-tree-guest',
@@ -203,6 +229,7 @@ export const useCanvasStore = create<CanvasState>()(
         nodes: state.nodes,
         edges: state.edges,
         gridVisible: state.gridVisible,
+        // isDirty, past, future, editingCharacterId, editingEdgeId intentionally excluded
       }),
     }
   )

@@ -1,65 +1,75 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { listDynasties } from "@/app/actions/dynasty";
+import { CreateDynastyDialog } from "@/components/dashboard/CreateDynastyDialog";
 import { DynastyCard } from "@/components/dashboard/DynastyCard";
+import { signOut } from "@/app/actions/auth";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) redirect("/login");
 
-  const dbUser = await prisma.user.findUnique({
-    where: { supabaseId: user.id },
-    include: {
-      dynasties: {
-        orderBy: { updatedAt: "desc" },
-        include: { _count: { select: { characters: true } } },
-      },
-    },
-  });
-  if (!dbUser) redirect("/login");
+  const dynasties = await listDynasties();
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-8">
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-zinc-100">Your Dynasties</h1>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      <header className="border-b border-zinc-800 px-6 py-4">
+        <div className="mx-auto flex max-w-5xl items-center justify-between">
           <Link
-            href="/dashboard/new"
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+            href="/"
+            className="text-sm font-semibold tracking-tight text-zinc-100"
           >
-            New Dynasty
+            Dynasty Tree Builder
           </Link>
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-zinc-500">{user.email}</span>
+            <form action={signOut}>
+              <button
+                type="submit"
+                className="text-xs text-zinc-500 hover:text-zinc-300"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-5xl px-6 py-10">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Your Dynasties
+            </h1>
+            <p className="mt-1 text-sm text-zinc-500">
+              {dynasties.length === 0
+                ? "No dynasties yet — create your first one."
+                : `${dynasties.length} ${dynasties.length === 1 ? "dynasty" : "dynasties"}`}
+            </p>
+          </div>
+          <CreateDynastyDialog />
         </div>
 
-        {dbUser.dynasties.length === 0 ? (
-          <div className="rounded-lg border border-zinc-800 p-12 text-center">
-            <p className="text-lg font-medium text-zinc-400">No dynasties yet</p>
-            <p className="mt-1 text-sm text-zinc-600">
-              Create your first dynasty to get started
+        {dynasties.length === 0 ? (
+          <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-zinc-800">
+            <p className="text-sm text-zinc-600">
+              Click{" "}
+              <span className="text-zinc-400">New Dynasty</span> to get started
             </p>
-            <Link
-              href="/dashboard/new"
-              className="mt-4 inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
-            >
-              Create Dynasty
-            </Link>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {dbUser.dynasties.map((dynasty) => (
-              <DynastyCard
-                key={dynasty.id}
-                dynasty={dynasty}
-                characterCount={dynasty._count.characters}
-              />
+            {dynasties.map((d) => (
+              <DynastyCard key={d.id} dynasty={d} />
             ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

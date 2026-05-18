@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useTransition } from "react";
+import { Trash2, Users } from "lucide-react";
 import { deleteDynasty } from "@/app/actions/dynasty";
+import { toast } from "sonner";
 
 const SETTING_LABELS: Record<string, string> = {
   FANTASY: "Fantasy",
@@ -12,54 +15,59 @@ const SETTING_LABELS: Record<string, string> = {
   OTHER: "Other",
 };
 
-type Props = {
+interface Props {
   dynasty: {
     id: string;
     name: string;
     setting: string;
     updatedAt: Date;
+    _count: { characters: number };
   };
-  characterCount: number;
-};
+}
 
-export function DynastyCard({ dynasty, characterCount }: Props) {
+export function DynastyCard({ dynasty }: Props) {
+  const [isPending, startTransition] = useTransition();
+
+  function handleDelete() {
+    if (!confirm(`Delete "${dynasty.name}"? This cannot be undone.`)) return;
+    startTransition(async () => {
+      const result = await deleteDynasty(dynasty.id);
+      if (result.error) toast.error(result.error);
+      else toast.success(`"${dynasty.name}" deleted`);
+    });
+  }
+
   return (
-    <div className="flex flex-col rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-      <div className="mb-3 flex items-start justify-between gap-2">
-        <h2 className="text-base font-semibold leading-tight text-zinc-100">
+    <div className="group relative rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition-colors hover:border-zinc-700">
+      <Link href={`/dashboard/${dynasty.id}`} className="block">
+        <div className="mb-3 flex items-start justify-between">
+          <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
+            {SETTING_LABELS[dynasty.setting] ?? dynasty.setting}
+          </span>
+        </div>
+        <h2 className="mb-1 truncate text-base font-semibold text-zinc-100">
           {dynasty.name}
         </h2>
-        <span className="shrink-0 rounded bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">
-          {SETTING_LABELS[dynasty.setting] ?? dynasty.setting}
-        </span>
-      </div>
-      <p className="text-sm text-zinc-500">
-        {characterCount} {characterCount === 1 ? "character" : "characters"}
-      </p>
-      <p className="mt-0.5 text-xs text-zinc-600">
-        Updated {new Date(dynasty.updatedAt).toLocaleDateString()}
-      </p>
-      <div className="mt-4 flex gap-2">
-        <Link
-          href={`/dashboard/${dynasty.id}`}
-          className="flex-1 rounded-md bg-indigo-600 px-3 py-1.5 text-center text-sm font-medium text-white hover:bg-indigo-500"
-        >
-          Open
-        </Link>
-        <form action={deleteDynasty.bind(null, dynasty.id)}>
-          <button
-            type="submit"
-            className="rounded-md border border-zinc-700 px-3 py-1.5 text-sm text-zinc-400 hover:border-red-800 hover:text-red-400"
-            onClick={(e) => {
-              if (!confirm(`Delete "${dynasty.name}"? This cannot be undone.`)) {
-                e.preventDefault();
-              }
-            }}
-          >
-            Delete
-          </button>
-        </form>
-      </div>
+        <div className="flex items-center gap-1 text-xs text-zinc-500">
+          <Users className="h-3 w-3" />
+          <span>
+            {dynasty._count.characters}{" "}
+            {dynasty._count.characters === 1 ? "character" : "characters"}
+          </span>
+        </div>
+        <p className="mt-2 text-xs text-zinc-600">
+          Updated {new Date(dynasty.updatedAt).toLocaleDateString()}
+        </p>
+      </Link>
+
+      <button
+        onClick={handleDelete}
+        disabled={isPending}
+        className="absolute right-3 top-3 rounded p-1 text-zinc-700 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100 disabled:opacity-50"
+        aria-label="Delete dynasty"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
     </div>
   );
 }

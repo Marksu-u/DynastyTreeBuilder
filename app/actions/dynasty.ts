@@ -14,6 +14,24 @@ function makeSlug(name: string): string {
   return `${base}-${Date.now()}`;
 }
 
+export async function listDynasties() {
+  const user = await getAuthUser();
+  return prisma.dynasty.findMany({
+    where: { ownerId: user.id },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      setting: true,
+      isPublic: true,
+      createdAt: true,
+      updatedAt: true,
+      _count: { select: { characters: true } },
+    },
+  });
+}
+
 export async function createDynasty(
   _prevState: { error?: string } | null,
   formData: FormData
@@ -37,7 +55,10 @@ export async function createDynasty(
   redirect(`/dashboard/${dynasty.id}`);
 }
 
-export async function renameDynasty(id: string, name: string): Promise<{ error?: string }> {
+export async function renameDynasty(
+  id: string,
+  name: string
+): Promise<{ error?: string }> {
   const user = await getAuthUser();
   const trimmed = name.trim();
   if (!trimmed) return { error: "Name is required" };
@@ -52,13 +73,24 @@ export async function renameDynasty(id: string, name: string): Promise<{ error?:
   return {};
 }
 
-export async function deleteDynasty(id: string): Promise<void> {
+export async function deleteDynasty(id: string): Promise<{ error?: string }> {
   const user = await getAuthUser();
 
-  await prisma.dynasty.delete({
-    where: { id, ownerId: user.id },
-  });
+  try {
+    await prisma.dynasty.delete({
+      where: { id, ownerId: user.id },
+    });
+  } catch {
+    return { error: "Failed to delete dynasty" };
+  }
 
   revalidatePath("/dashboard");
-  redirect("/dashboard");
+  return {};
+}
+
+export async function getDynasty(dynastyId: string) {
+  const user = await getAuthUser();
+  return prisma.dynasty.findFirst({
+    where: { id: dynastyId, ownerId: user.id },
+  });
 }
