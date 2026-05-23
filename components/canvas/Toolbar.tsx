@@ -1,7 +1,7 @@
 "use client";
 
 import { useReactFlow } from "@xyflow/react";
-import { Plus, Maximize2, Grid3X3, Undo2, Redo2 } from "lucide-react";
+import { Plus, Maximize2, Grid3X3, Undo2, Redo2, BookOpen, Swords } from "lucide-react";
 
 interface Props {
   onAddCharacter: () => void;
@@ -11,6 +11,8 @@ interface Props {
   canRedo?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
+  activeSidebar?: 'names' | 'roles' | null;
+  onToggleSidebar?: (panel: 'names' | 'roles') => void;
 }
 
 export function Toolbar({
@@ -21,6 +23,8 @@ export function Toolbar({
   canRedo = false,
   onUndo,
   onRedo,
+  activeSidebar = null,
+  onToggleSidebar,
 }: Props) {
   const { fitView } = useReactFlow();
 
@@ -76,6 +80,36 @@ export function Toolbar({
       >
         <Redo2 size={14} />
       </button>
+
+      {onToggleSidebar && (
+        <>
+          <div className="mx-0.5 h-5 w-px bg-zinc-700" />
+          <button
+            onClick={() => onToggleSidebar('names')}
+            className={[
+              "rounded p-1.5 transition-colors",
+              activeSidebar === 'names'
+                ? "bg-zinc-800 text-zinc-200"
+                : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300",
+            ].join(" ")}
+            title="Name bank"
+          >
+            <BookOpen size={14} />
+          </button>
+          <button
+            onClick={() => onToggleSidebar('roles')}
+            className={[
+              "rounded p-1.5 transition-colors",
+              activeSidebar === 'roles'
+                ? "bg-zinc-800 text-zinc-200"
+                : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300",
+            ].join(" ")}
+            title="Role slots"
+          >
+            <Swords size={14} />
+          </button>
+        </>
+      )}
     </div>
   );
 }

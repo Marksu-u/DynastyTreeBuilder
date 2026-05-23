@@ -15,7 +15,9 @@ import { RelationshipEdge } from '@/components/canvas/RelationshipEdge';
 import { Toolbar } from '@/components/canvas/Toolbar';
 import { AddCharacterPanel } from '@/components/canvas/AddCharacterPanel';
 import { EditRelationshipPanel } from '@/components/canvas/EditRelationshipPanel';
-import type { CharacterData, RelationshipData } from '@/types/canvas';
+import { NameBank } from '@/components/name-bank/NameBank';
+import { RoleSlots } from '@/components/name-bank/RoleSlots';
+import type { CharacterData, CharacterRole, RelationshipData } from '@/types/canvas';
 import type { RelationshipEdgeType } from '@/store/canvas';
 
 // Defined outside component to avoid recreating on every render
@@ -45,6 +47,13 @@ export function TreeCanvas() {
   const toggleGrid = useCanvasStore((s) => s.toggleGrid);
 
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
+  const [sidebar, setSidebar] = useState<'names' | 'roles' | null>(null);
+
+  const usedNames = useCanvasStore((s) => s.nodes.map((n) => n.data.name));
+
+  const handleToggleSidebar = useCallback((panel: 'names' | 'roles') => {
+    setSidebar((current) => (current === panel ? null : panel));
+  }, []);
 
   const editingCharacter = useMemo(
     () => nodes.find((n) => n.id === editingCharacterId),
@@ -60,6 +69,14 @@ export function TreeCanvas() {
     (data: CharacterData) => {
       addCharacter(data);
       toast.success(`${data.name} added to the dynasty`);
+    },
+    [addCharacter]
+  );
+
+  const handleAddFromSidebar = useCallback(
+    (name: string, role: CharacterRole = 'UNKNOWN') => {
+      addCharacter({ name, role, style: 'OTHER', gender: 'UNKNOWN', isFounder: false, isLost: false });
+      toast.success(`${name} added to the dynasty`);
     },
     [addCharacter]
   );
@@ -110,7 +127,8 @@ export function TreeCanvas() {
   );
 
   return (
-    <div className="relative h-full w-full">
+    <div className="flex h-full w-full">
+      <div className="relative flex-1 min-w-0 h-full">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -150,6 +168,8 @@ export function TreeCanvas() {
           canRedo={canRedo}
           onUndo={undo}
           onRedo={redo}
+          activeSidebar={sidebar}
+          onToggleSidebar={handleToggleSidebar}
         />
 
       {nodes.length === 0 && (
@@ -192,6 +212,18 @@ export function TreeCanvas() {
           onSubmit={handleUpdateRelationship}
           onDelete={handleDeleteRelationship}
         />
+      )}
+      </div>
+
+      {sidebar === 'names' && (
+        <NameBank
+          usedNames={usedNames}
+          onAddToCanvas={(name) => handleAddFromSidebar(name)}
+          isLoggedIn={false}
+        />
+      )}
+      {sidebar === 'roles' && (
+        <RoleSlots onAddToCanvas={handleAddFromSidebar} />
       )}
     </div>
   );

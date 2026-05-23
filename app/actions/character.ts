@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { IdSchema, CharacterDataSchema, PositionSchema } from "@/lib/schemas";
 import type { CharacterData } from "@/types/canvas";
 
 export async function createCharacter(
@@ -10,26 +11,29 @@ export async function createCharacter(
   position: { x: number; y: number }
 ): Promise<{ id: string }> {
   const user = await getAuthUser();
+  const validId = IdSchema.parse(dynastyId);
+  const validData = CharacterDataSchema.parse(data);
+  const validPos = PositionSchema.parse(position);
 
   const dynasty = await prisma.dynasty.findFirst({
-    where: { id: dynastyId, ownerId: user.id },
+    where: { id: validId, ownerId: user.id },
     select: { id: true },
   });
   if (!dynasty) throw new Error("Dynasty not found");
 
   const character = await prisma.character.create({
     data: {
-      dynastyId,
-      name: data.name,
-      alias: data.alias,
-      role: data.role,
-      style: data.style,
-      gender: data.gender,
-      note: data.note,
-      isFounder: data.isFounder,
-      isLost: data.isLost,
-      posX: position.x,
-      posY: position.y,
+      dynastyId: validId,
+      name: validData.name,
+      alias: validData.alias,
+      role: validData.role,
+      style: validData.style,
+      gender: validData.gender,
+      note: validData.note,
+      isFounder: validData.isFounder,
+      isLost: validData.isLost,
+      posX: validPos.x,
+      posY: validPos.y,
     },
   });
 
@@ -42,18 +46,21 @@ export async function updateCharacter(
   data: Partial<CharacterData>
 ): Promise<void> {
   const user = await getAuthUser();
+  const validId = IdSchema.parse(id);
+  const validDynastyId = IdSchema.parse(dynastyId);
+  const validData = CharacterDataSchema.partial().parse(data);
 
   await prisma.character.update({
-    where: { id, dynasty: { id: dynastyId, ownerId: user.id } },
+    where: { id: validId, dynasty: { id: validDynastyId, ownerId: user.id } },
     data: {
-      name: data.name,
-      alias: data.alias,
-      role: data.role,
-      style: data.style,
-      gender: data.gender,
-      note: data.note,
-      isFounder: data.isFounder,
-      isLost: data.isLost,
+      name: validData.name,
+      alias: validData.alias,
+      role: validData.role,
+      style: validData.style,
+      gender: validData.gender,
+      note: validData.note,
+      isFounder: validData.isFounder,
+      isLost: validData.isLost,
     },
   });
 }
@@ -63,9 +70,11 @@ export async function deleteCharacter(
   dynastyId: string
 ): Promise<void> {
   const user = await getAuthUser();
+  const validId = IdSchema.parse(id);
+  const validDynastyId = IdSchema.parse(dynastyId);
 
   await prisma.character.delete({
-    where: { id, dynasty: { id: dynastyId, ownerId: user.id } },
+    where: { id: validId, dynasty: { id: validDynastyId, ownerId: user.id } },
   });
 }
 
@@ -76,9 +85,12 @@ export async function updatePosition(
   y: number
 ): Promise<void> {
   const user = await getAuthUser();
+  const validId = IdSchema.parse(id);
+  const validDynastyId = IdSchema.parse(dynastyId);
+  const validPos = PositionSchema.parse({ x, y });
 
   await prisma.character.update({
-    where: { id, dynasty: { id: dynastyId, ownerId: user.id } },
-    data: { posX: x, posY: y },
+    where: { id: validId, dynasty: { id: validDynastyId, ownerId: user.id } },
+    data: { posX: validPos.x, posY: validPos.y },
   });
 }

@@ -19,6 +19,8 @@ import { RelationshipEdge } from "./RelationshipEdge";
 import { Toolbar } from "./Toolbar";
 import { AddCharacterPanel } from "./AddCharacterPanel";
 import { EditRelationshipPanel } from "./EditRelationshipPanel";
+import { NameBank } from "@/components/name-bank/NameBank";
+import { RoleSlots } from "@/components/name-bank/RoleSlots";
 import {
   createCharacter,
   updateCharacter,
@@ -30,7 +32,7 @@ import {
   updateRelationship,
   deleteRelationship,
 } from "@/app/actions/relationship";
-import type { CharacterData, RelationshipData } from "@/types/canvas";
+import type { CharacterData, CharacterRole, RelationshipData } from "@/types/canvas";
 import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
 
 const nodeTypes = { character: CharacterNode } as const;
@@ -41,6 +43,7 @@ type Props = {
   dynastyName: string;
   initialNodes: CharacterNodeType[];
   initialEdges: RelationshipEdgeType[];
+  userId?: string;
 };
 
 export function DynastyCanvas({
@@ -48,6 +51,7 @@ export function DynastyCanvas({
   dynastyName,
   initialNodes,
   initialEdges,
+  userId,
 }: Props) {
   const [nodes, setNodes] = useState<CharacterNodeType[]>(initialNodes);
   const [edges, setEdges] = useState<RelationshipEdgeType[]>(initialEdges);
@@ -55,7 +59,14 @@ export function DynastyCanvas({
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
   const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null);
+  const [sidebar, setSidebar] = useState<'names' | 'roles' | null>(null);
   const positionTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const handleToggleSidebar = useCallback((panel: 'names' | 'roles') => {
+    setSidebar((current) => (current === panel ? null : panel));
+  }, []);
+
+  const usedNames = useMemo(() => nodes.map((n) => n.data.name), [nodes]);
 
   const editingCharacter = useMemo(
     () => nodes.find((n) => n.id === editingCharacterId),
@@ -219,8 +230,30 @@ export function DynastyCanvas({
     []
   );
 
+  const handleAddFromSidebar = useCallback(
+    async (name: string, role: CharacterRole = "UNKNOWN") => {
+      const data: CharacterData = {
+        name, role, style: "OTHER", gender: "UNKNOWN", isFounder: false, isLost: false,
+      };
+      const count = nodes.length;
+      const position = { x: 80 + (count % 4) * 240, y: 80 + Math.floor(count / 4) * 200 };
+      const tempId = crypto.randomUUID();
+      setNodes((nds) => [...nds, { id: tempId, type: "character", position, data }]);
+      try {
+        const { id } = await createCharacter(dynastyId, data, position);
+        setNodes((nds) => nds.map((n) => (n.id === tempId ? { ...n, id } : n)));
+        toast.success(`${name} added to the dynasty`);
+      } catch {
+        setNodes((nds) => nds.filter((n) => n.id !== tempId));
+        toast.error("Failed to save character");
+      }
+    },
+    [dynastyId, nodes.length] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   return (
-    <div className="relative h-full w-full">
+    <div className="flex h-full w-full">
+      <div className="relative flex-1 min-w-0 h-full">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -256,6 +289,8 @@ export function DynastyCanvas({
         onAddCharacter={() => setAddCharacterOpen(true)}
         gridVisible={gridVisible}
         onToggleGrid={() => setGridVisible((v) => !v)}
+        activeSidebar={sidebar}
+        onToggleSidebar={handleToggleSidebar}
       />
 
       {nodes.length === 0 && (
@@ -303,6 +338,18 @@ export function DynastyCanvas({
           onSubmit={handleUpdateRelationship}
           onDelete={handleDeleteRelationship}
         />
+      )}
+      </div>
+
+      {sidebar === 'names' && (
+        <NameBank
+          usedNames={usedNames}
+          onAddToCanvas={(name) => handleAddFromSidebar(name)}
+          isLoggedIn={!!userId}
+        />
+      )}
+      {sidebar === 'roles' && (
+        <RoleSlots onAddToCanvas={handleAddFromSidebar} />
       )}
     </div>
   );

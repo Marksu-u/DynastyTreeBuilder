@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { IdSchema, RelationshipDataSchema } from "@/lib/schemas";
 import type { RelationshipData } from "@/types/canvas";
 
 export async function createRelationship(
@@ -11,22 +12,26 @@ export async function createRelationship(
   data: RelationshipData
 ): Promise<{ id: string }> {
   const user = await getAuthUser();
+  const validDynastyId = IdSchema.parse(dynastyId);
+  const validFromId = IdSchema.parse(fromId);
+  const validToId = IdSchema.parse(toId);
+  const validData = RelationshipDataSchema.parse(data);
 
   const dynasty = await prisma.dynasty.findFirst({
-    where: { id: dynastyId, ownerId: user.id },
+    where: { id: validDynastyId, ownerId: user.id },
     select: { id: true },
   });
   if (!dynasty) throw new Error("Dynasty not found");
 
   const rel = await prisma.relationship.create({
     data: {
-      dynastyId,
-      fromId,
-      toId,
-      type: data.type,
-      tag: data.tag,
-      hook: data.hook,
-      isMutual: data.isMutual,
+      dynastyId: validDynastyId,
+      fromId: validFromId,
+      toId: validToId,
+      type: validData.type,
+      tag: validData.tag,
+      hook: validData.hook,
+      isMutual: validData.isMutual,
     },
   });
 
@@ -39,14 +44,17 @@ export async function updateRelationship(
   data: Partial<RelationshipData>
 ): Promise<void> {
   const user = await getAuthUser();
+  const validId = IdSchema.parse(id);
+  const validDynastyId = IdSchema.parse(dynastyId);
+  const validData = RelationshipDataSchema.partial().parse(data);
 
   await prisma.relationship.update({
-    where: { id, dynasty: { id: dynastyId, ownerId: user.id } },
+    where: { id: validId, dynasty: { id: validDynastyId, ownerId: user.id } },
     data: {
-      type: data.type,
-      tag: data.tag ?? null,
-      hook: data.hook,
-      isMutual: data.isMutual,
+      type: validData.type,
+      tag: validData.tag ?? null,
+      hook: validData.hook,
+      isMutual: validData.isMutual,
     },
   });
 }
@@ -56,8 +64,10 @@ export async function deleteRelationship(
   dynastyId: string
 ): Promise<void> {
   const user = await getAuthUser();
+  const validId = IdSchema.parse(id);
+  const validDynastyId = IdSchema.parse(dynastyId);
 
   await prisma.relationship.delete({
-    where: { id, dynasty: { id: dynastyId, ownerId: user.id } },
+    where: { id: validId, dynasty: { id: validDynastyId, ownerId: user.id } },
   });
 }
