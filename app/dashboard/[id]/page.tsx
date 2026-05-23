@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ReactFlowProvider } from "@xyflow/react";
 import Link from "next/link";
 import { DynastyCanvas } from "@/components/canvas/DynastyCanvas";
+import { DynastySettingsDialog } from "@/components/dashboard/DynastySettingsDialog";
 import "@xyflow/react/dist/style.css";
 import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
 import type {
@@ -79,6 +80,14 @@ export default async function DynastyPage({
         </Link>
         <span className="text-zinc-700">/</span>
         <span className="text-sm font-medium text-zinc-200">{dynasty.name}</span>
+        <div className="ml-auto">
+          <DynastySettingsDialog
+            dynastyId={dynasty.id}
+            initialName={dynasty.name}
+            initialSetting={dynasty.setting}
+            initialIsPublic={dynasty.isPublic}
+          />
+        </div>
       </header>
       <div className="flex-1 overflow-hidden">
         <ReactFlowProvider>
@@ -87,6 +96,7 @@ export default async function DynastyPage({
             dynastyName={dynasty.name}
             initialNodes={nodes}
             initialEdges={edges}
+            userId={dbUser.id}
           />
         </ReactFlowProvider>
       </div>

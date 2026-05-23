@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -23,20 +24,20 @@ export async function syncUser() {
 }
 
 export async function signInWithMagicLink(formData: FormData) {
-  const email = formData.get("email") as string;
-  const supabase = await createClient();
+  const parsed = z.string().email("Invalid email address").safeParse(
+    formData.get("email") as string
+  );
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
-    email,
+    email: parsed.data,
     options: {
       emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/api/auth/callback`,
     },
   });
 
-  if (error) {
-    return { error: error.message };
-  }
-
+  if (error) return { error: error.message };
   return { success: true };
 }
 

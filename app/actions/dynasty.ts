@@ -2,8 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import {
+  IdSchema,
+  DynastySettingSchema,
+  DynastySettingsSchema,
+} from "@/lib/schemas";
 
 function makeSlug(name: string): string {
   const base =
@@ -37,17 +43,22 @@ export async function createDynasty(
   formData: FormData
 ): Promise<{ error: string }> {
   const user = await getAuthUser();
-  const name = (formData.get("name") as string | null)?.trim() ?? "";
-  const setting = (formData.get("setting") as string | null) ?? "FANTASY";
 
-  if (!name) return { error: "Name is required" };
+  const nameResult = z.string().min(1, "Name is required").safeParse(
+    (formData.get("name") as string | null)?.trim() ?? ""
+  );
+  if (!nameResult.success) return { error: nameResult.error.issues[0].message };
+
+  const settingResult = DynastySettingSchema.safeParse(
+    formData.get("setting") ?? "FANTASY"
+  );
+  if (!settingResult.success) return { error: settingResult.error.issues[0].message };
 
   const dynasty = await prisma.dynasty.create({
     data: {
-      name,
-      slug: makeSlug(name),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setting: setting as any,
+      name: nameResult.data,
+      slug: makeSlug(nameResult.data),
+      setting: settingResult.data,
       ownerId: user.id,
     },
   });
@@ -60,25 +71,32 @@ export async function renameDynasty(
   name: string
 ): Promise<{ error?: string }> {
   const user = await getAuthUser();
-  const trimmed = name.trim();
-  if (!trimmed) return { error: "Name is required" };
+
+  const idResult = IdSchema.safeParse(id);
+  if (!idResult.success) return { error: idResult.error.issues[0].message };
+
+  const nameResult = z.string().min(1, "Name is required").safeParse(name.trim());
+  if (!nameResult.success) return { error: nameResult.error.issues[0].message };
 
   await prisma.dynasty.update({
-    where: { id, ownerId: user.id },
-    data: { name: trimmed },
+    where: { id: idResult.data, ownerId: user.id },
+    data: { name: nameResult.data },
   });
 
   revalidatePath("/dashboard");
-  revalidatePath(`/dashboard/${id}`);
+  revalidatePath(`/dashboard/${idResult.data}`);
   return {};
 }
 
 export async function deleteDynasty(id: string): Promise<{ error?: string }> {
   const user = await getAuthUser();
 
+  const idResult = IdSchema.safeParse(id);
+  if (!idResult.success) return { error: idResult.error.issues[0].message };
+
   try {
     await prisma.dynasty.delete({
-      where: { id, ownerId: user.id },
+      where: { id: idResult.data, ownerId: user.id },
     });
   } catch {
     return { error: "Failed to delete dynasty" };
@@ -88,9 +106,40 @@ export async function deleteDynasty(id: string): Promise<{ error?: string }> {
   return {};
 }
 
+export async function updateDynastySettings(
+  id: string,
+  data: { name?: string; setting?: string; isPublic?: boolean }
+): Promise<{ error?: string }> {
+  const user = await getAuthUser();
+
+  const idResult = IdSchema.safeParse(id);
+  if (!idResult.success) return { error: idResult.error.issues[0].message };
+
+  const parsed = DynastySettingsSchema.safeParse(data);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const update: Record<string, unknown> = {};
+  if (parsed.data.name !== undefined) update.name = parsed.data.name;
+  if (parsed.data.setting !== undefined) update.setting = parsed.data.setting;
+  if (parsed.data.isPublic !== undefined) update.isPublic = parsed.data.isPublic;
+
+  await prisma.dynasty.update({
+    where: { id: idResult.data, ownerId: user.id },
+    data: update,
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/dashboard/${idResult.data}`);
+  return {};
+}
+
 export async function getDynasty(dynastyId: string) {
   const user = await getAuthUser();
+
+  const idResult = IdSchema.safeParse(dynastyId);
+  if (!idResult.success) return null;
+
   return prisma.dynasty.findFirst({
-    where: { id: dynastyId, ownerId: user.id },
+    where: { id: idResult.data, ownerId: user.id },
   });
 }

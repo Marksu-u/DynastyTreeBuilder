@@ -1,3 +1,5 @@
+export type NameStyle = 'FANTASY' | 'SCI_FI' | 'HISTORICAL' | 'MODERN' | 'HORROR' | 'OTHER';
+
 export type CharacterRole =
   | 'HEIR'
   | 'OPERATIVE'
