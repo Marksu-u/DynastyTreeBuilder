@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, Star } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { toast } from "sonner";
 import { NAME_BANK } from "@/lib/name-bank";
 import { NameCard } from "./NameCard";
@@ -140,6 +141,13 @@ export function NameBank({ usedNames, onAddToCanvas, isLoggedIn }: Props) {
                 setCustomNames((prev) => [entry, ...prev])
               }
             />
+            {customNames.length === 0 && (
+              <EmptyState
+                icon={Star}
+                title="No custom names yet"
+                description="Add a name above to save it to your personal bank."
+              />
+            )}
           </div>
         )}
 

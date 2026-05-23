@@ -34,6 +34,8 @@ import {
 } from "@/app/actions/relationship";
 import type { CharacterData, CharacterRole, RelationshipData } from "@/types/canvas";
 import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
+import { Users } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 const nodeTypes = { character: CharacterNode } as const;
 const edgeTypes = { relationship: RelationshipEdge } as const;
@@ -294,17 +296,20 @@ export function DynastyCanvas({
       />
 
       {nodes.length === 0 && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-2xl font-semibold text-zinc-700">
-              {dynastyName} awaits
-            </p>
-            <p className="mt-1 text-sm text-zinc-600">
-              Click{" "}
-              <span className="text-zinc-500">Add Character</span> in the
-              toolbar to begin
-            </p>
-          </div>
+        <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/60">
+          <EmptyState
+            icon={Users}
+            title="Your canvas is empty"
+            description="Add your first character to start building the dynasty tree."
+            action={
+              <button
+                onClick={() => setAddCharacterOpen(true)}
+                className="rounded border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+              >
+                Add Character
+              </button>
+            }
+          />
         </div>
       )}
 
