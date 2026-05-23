@@ -1,11 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { ReactFlowProvider } from "@xyflow/react";
-import Link from "next/link";
-import { DynastyCanvas } from "@/components/canvas/DynastyCanvas";
-import { DynastySettingsDialog } from "@/components/dashboard/DynastySettingsDialog";
-import "@xyflow/react/dist/style.css";
+import { DynastyPageClient } from "@/components/canvas/DynastyPageClient";
 import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
 import type {
   CharacterRole,
@@ -70,36 +66,14 @@ export default async function DynastyPage({
   }));
 
   return (
-    <div className="flex h-screen flex-col bg-zinc-950">
-      <header className="flex h-12 shrink-0 items-center gap-3 border-b border-zinc-800 px-4">
-        <Link
-          href="/dashboard"
-          className="text-sm text-zinc-400 hover:text-zinc-200"
-        >
-          ← Dynasties
-        </Link>
-        <span className="text-zinc-700">/</span>
-        <span className="text-sm font-medium text-zinc-200">{dynasty.name}</span>
-        <div className="ml-auto">
-          <DynastySettingsDialog
-            dynastyId={dynasty.id}
-            initialName={dynasty.name}
-            initialSetting={dynasty.setting}
-            initialIsPublic={dynasty.isPublic}
-          />
-        </div>
-      </header>
-      <div className="flex-1 overflow-hidden">
-        <ReactFlowProvider>
-          <DynastyCanvas
-            dynastyId={dynasty.id}
-            dynastyName={dynasty.name}
-            initialNodes={nodes}
-            initialEdges={edges}
-            userId={dbUser.id}
-          />
-        </ReactFlowProvider>
-      </div>
-    </div>
+    <DynastyPageClient
+      dynastyId={dynasty.id}
+      dynastyName={dynasty.name}
+      initialSetting={dynasty.setting}
+      initialIsPublic={dynasty.isPublic}
+      initialNodes={nodes}
+      initialEdges={edges}
+      userId={dbUser.id}
+    />
   );
 }

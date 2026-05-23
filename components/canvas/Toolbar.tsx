@@ -1,7 +1,7 @@
 "use client";
 
 import { useReactFlow } from "@xyflow/react";
-import { Plus, Maximize2, Grid3X3, Undo2, Redo2, BookOpen, Swords } from "lucide-react";
+import { Plus, Maximize2, Grid3X3, Undo2, Redo2, BookOpen, Swords, Download } from "lucide-react";
 
 interface Props {
   onAddCharacter: () => void;
@@ -13,6 +13,7 @@ interface Props {
   onRedo?: () => void;
   activeSidebar?: 'names' | 'roles' | null;
   onToggleSidebar?: (panel: 'names' | 'roles') => void;
+  onExport?: () => void;
 }
 
 export function Toolbar({
@@ -25,6 +26,7 @@ export function Toolbar({
   onRedo,
   activeSidebar = null,
   onToggleSidebar,
+  onExport,
 }: Props) {
   const { fitView } = useReactFlow();
 
@@ -107,6 +109,19 @@ export function Toolbar({
             title="Role slots"
           >
             <Swords size={14} />
+          </button>
+        </>
+      )}
+
+      {onExport && (
+        <>
+          <div className="mx-0.5 h-5 w-px bg-zinc-700" />
+          <button
+            onClick={onExport}
+            className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+            title="Export as PNG"
+          >
+            <Download size={14} />
           </button>
         </>
       )}
