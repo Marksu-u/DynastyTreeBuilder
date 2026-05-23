@@ -82,7 +82,7 @@ export function TreeCanvas() {
     }
   }, [fitView]);
 
-  const usedNames = useCanvasStore((s) => s.nodes.map((n) => n.data.name));
+  const usedNames = useMemo(() => nodes.map((n) => n.data.name), [nodes]);
 
   const handleToggleSidebar = useCallback((panel: 'names' | 'roles') => {
     setSidebar((current) => (current === panel ? null : panel));
