@@ -5,6 +5,8 @@ import { listDynasties } from "@/app/actions/dynasty";
 import { CreateDynastyDialog } from "@/components/dashboard/CreateDynastyDialog";
 import { DynastyCard } from "@/components/dashboard/DynastyCard";
 import { signOut } from "@/app/actions/auth";
+import { Network } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -46,22 +48,22 @@ export default async function DashboardPage() {
             <h1 className="text-2xl font-bold tracking-tight">
               Your Dynasties
             </h1>
-            <p className="mt-1 text-sm text-zinc-500">
-              {dynasties.length === 0
-                ? "No dynasties yet — create your first one."
-                : `${dynasties.length} ${dynasties.length === 1 ? "dynasty" : "dynasties"}`}
-            </p>
+            {dynasties.length > 0 && (
+              <p className="mt-1 text-sm text-zinc-500">
+                {dynasties.length === 1 ? "1 dynasty" : `${dynasties.length} dynasties`}
+              </p>
+            )}
           </div>
           <CreateDynastyDialog />
         </div>
 
         {dynasties.length === 0 ? (
-          <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-zinc-800">
-            <p className="text-sm text-zinc-600">
-              Click{" "}
-              <span className="text-zinc-400">New Dynasty</span> to get started
-            </p>
-          </div>
+          <EmptyState
+            icon={Network}
+            title="No dynasties yet"
+            description="Create your first dynasty to start mapping your world."
+            action={<CreateDynastyDialog />}
+          />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {dynasties.map((d) => (
