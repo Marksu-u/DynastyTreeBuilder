@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import {
   ReactFlow,
   Background,
   BackgroundVariant,
   ConnectionMode,
   Controls,
+  useReactFlow,
 } from '@xyflow/react';
+import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
 import { useCanvasStore } from '@/store/canvas';
 import { CharacterNode } from '@/components/canvas/CharacterNode';
@@ -48,6 +50,37 @@ export function TreeCanvas() {
 
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [sidebar, setSidebar] = useState<'names' | 'roles' | null>(null);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { fitView } = useReactFlow();
+
+  const handleExport = useCallback(async () => {
+    await fitView({ duration: 0, padding: 0.15 });
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    const element = containerRef.current?.querySelector<HTMLElement>('.react-flow');
+    if (!element) return;
+
+    try {
+      const dataUrl = await toPng(element, {
+        backgroundColor: '#09090b',
+        filter: (node) => {
+          if (node instanceof Element && node.classList.contains('react-flow__panel')) {
+            return false;
+          }
+          return true;
+        },
+      });
+
+      const link = document.createElement('a');
+      link.download = 'dynasty-tree.png';
+      link.href = dataUrl;
+      link.click();
+      toast.success('Exported as PNG');
+    } catch {
+      toast.error('Export failed');
+    }
+  }, [fitView]);
 
   const usedNames = useCanvasStore((s) => s.nodes.map((n) => n.data.name));
 
@@ -128,7 +161,7 @@ export function TreeCanvas() {
 
   return (
     <div className="flex h-full w-full">
-      <div className="relative flex-1 min-w-0 h-full">
+      <div ref={containerRef} className="relative flex-1 min-w-0 h-full">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -170,6 +203,7 @@ export function TreeCanvas() {
           onRedo={redo}
           activeSidebar={sidebar}
           onToggleSidebar={handleToggleSidebar}
+          onExport={handleExport}
         />
 
       {nodes.length === 0 && (
