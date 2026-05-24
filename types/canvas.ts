@@ -70,6 +70,7 @@ export interface CharacterData extends Record<string, unknown> {
   isFounder: boolean;
   isLost: boolean;
   generation: number;
+  isReadOnly?: boolean;
 }
 
 export interface RelationshipData extends Record<string, unknown> {

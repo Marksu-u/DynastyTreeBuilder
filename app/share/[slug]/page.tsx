@@ -21,6 +21,23 @@ const SETTING_LABELS: Record<string, string> = {
   OTHER: "Other",
 };
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const dynasty = await prisma.dynasty.findUnique({
+    where: { slug },
+    select: { name: true, setting: true, isPublic: true },
+  });
+  if (!dynasty || !dynasty.isPublic) return {};
+  return {
+    title: `${dynasty.name} · Dynasty Tree Builder`,
+    description: `Explore the ${dynasty.name} family tree`,
+  };
+}
+
 export default async function SharePage({
   params,
 }: {
@@ -49,6 +66,7 @@ export default async function SharePage({
       isFounder: char.isFounder,
       isLost: char.isLost,
       generation: char.generation,
+      isReadOnly: true,
     },
   }));
 
