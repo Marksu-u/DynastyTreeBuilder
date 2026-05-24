@@ -78,6 +78,9 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
         >
           {ROLE_LABELS[data.role]}
         </span>
+        <span className="inline-flex items-center rounded border border-zinc-600/30 bg-zinc-700/40 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">
+          Gen {data.generation ?? 0}
+        </span>
         {data.isFounder && (
           <span className="text-[9px] font-medium uppercase tracking-wide text-amber-400">
             ◆ Founder
