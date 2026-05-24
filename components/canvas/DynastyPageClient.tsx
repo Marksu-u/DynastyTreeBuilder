@@ -1,11 +1,13 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import Link from "next/link";
 import { DynastyCanvas } from "./DynastyCanvas";
 import { DynastySettingsDialog } from "@/components/dashboard/DynastySettingsDialog";
 import { ExportButton } from "./ExportButton";
+import { exportDynasty } from "@/app/actions/dynasty";
+import { triggerJsonDownload } from "@/lib/export";
 import "@xyflow/react/dist/style.css";
 import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
 
@@ -30,6 +32,11 @@ export function DynastyPageClient({
 }: Props) {
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  const handleExportJson = useCallback(async () => {
+    const data = await exportDynasty(dynastyId);
+    triggerJsonDownload(data, `${dynastyName}.json`);
+  }, [dynastyId, dynastyName]);
+
   return (
     <ReactFlowProvider>
       <div className="flex h-screen flex-col bg-zinc-950">
@@ -43,7 +50,11 @@ export function DynastyPageClient({
           <span className="text-zinc-700">/</span>
           <span className="text-sm font-medium text-zinc-200">{dynastyName}</span>
           <div className="ml-auto flex items-center gap-2">
-            <ExportButton dynastyName={dynastyName} canvasRef={canvasRef} />
+            <ExportButton
+              dynastyName={dynastyName}
+              canvasRef={canvasRef}
+              onExportJson={handleExportJson}
+            />
             <DynastySettingsDialog
               dynastyId={dynastyId}
               initialName={dynastyName}

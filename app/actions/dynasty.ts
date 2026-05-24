@@ -10,6 +10,7 @@ import {
   DynastySettingSchema,
   DynastySettingsSchema,
 } from "@/lib/schemas";
+import type { DynastyExport } from "@/lib/schemas";
 
 function makeSlug(name: string): string {
   const base =
@@ -131,6 +132,52 @@ export async function updateDynastySettings(
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/${idResult.data}`);
   return {};
+}
+
+export async function exportDynasty(dynastyId: string): Promise<DynastyExport> {
+  const user = await getAuthUser();
+  const validId = IdSchema.parse(dynastyId);
+
+  const dynasty = await prisma.dynasty.findFirst({
+    where: { id: validId, ownerId: user.id },
+    include: {
+      characters: true,
+      relationships: true,
+    },
+  });
+  if (!dynasty) throw new Error("Dynasty not found");
+
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    dynasty: {
+      name: dynasty.name,
+      setting: dynasty.setting,
+      isPublic: dynasty.isPublic,
+    },
+    characters: dynasty.characters.map((c) => ({
+      id: c.id,
+      name: c.name,
+      alias: c.alias,
+      role: c.role,
+      style: c.style,
+      gender: c.gender,
+      note: c.note,
+      isFounder: c.isFounder,
+      isLost: c.isLost,
+      posX: c.posX,
+      posY: c.posY,
+    })),
+    relationships: dynasty.relationships.map((r) => ({
+      id: r.id,
+      fromId: r.fromId,
+      toId: r.toId,
+      type: r.type,
+      tag: r.tag ?? null,
+      hook: r.hook,
+      isMutual: r.isMutual,
+    })),
+  };
 }
 
 export async function getDynasty(dynastyId: string) {

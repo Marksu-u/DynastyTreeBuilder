@@ -70,3 +70,41 @@ export const CustomNameInputSchema = z.object({
   role: CharacterRoleSchema.optional(),
   note: z.string().trim().optional(),
 });
+
+export const DynastyExportSchema = z.object({
+  version: z.literal(1),
+  exportedAt: z.string(),
+  dynasty: z.object({
+    name: z.string(),
+    setting: DynastySettingSchema,
+    isPublic: z.boolean(),
+  }),
+  characters: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      alias: z.string().nullable(),
+      role: CharacterRoleSchema,
+      style: CharacterStyleSchema,
+      gender: CharacterGenderSchema,
+      note: z.string().nullable(),
+      isFounder: z.boolean(),
+      isLost: z.boolean(),
+      posX: z.number(),
+      posY: z.number(),
+    })
+  ),
+  relationships: z.array(
+    z.object({
+      id: z.string(),
+      fromId: z.string(),
+      toId: z.string(),
+      type: RelationshipTypeSchema,
+      tag: RelationshipTagSchema.nullable(),
+      hook: z.string().nullable(),
+      isMutual: z.boolean(),
+    })
+  ),
+});
+
+export type DynastyExport = z.infer<typeof DynastyExportSchema>;

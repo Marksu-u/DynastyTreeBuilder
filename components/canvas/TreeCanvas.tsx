@@ -11,6 +11,7 @@ import {
 } from '@xyflow/react';
 import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
+import { triggerJsonDownload } from '@/lib/export';
 import { useCanvasStore } from '@/store/canvas';
 import { CharacterNode } from '@/components/canvas/CharacterNode';
 import { RelationshipEdge } from '@/components/canvas/RelationshipEdge';
@@ -81,6 +82,45 @@ export function TreeCanvas() {
       toast.error('Export failed');
     }
   }, [fitView]);
+
+  const handleExportJson = useCallback(() => {
+    const { nodes: currentNodes, edges: currentEdges } = useCanvasStore.getState();
+
+    const data = {
+      version: 1 as const,
+      exportedAt: new Date().toISOString(),
+      dynasty: {
+        name: "My Dynasty",
+        setting: "FANTASY" as const,
+        isPublic: false,
+      },
+      characters: currentNodes.map((n) => ({
+        id: n.id,
+        name: n.data.name,
+        alias: n.data.alias ?? null,
+        role: n.data.role,
+        style: n.data.style,
+        gender: n.data.gender,
+        note: n.data.note ?? null,
+        isFounder: n.data.isFounder,
+        isLost: n.data.isLost,
+        posX: n.position.x,
+        posY: n.position.y,
+      })),
+      relationships: currentEdges.map((e) => ({
+        id: e.id,
+        fromId: e.source,
+        toId: e.target,
+        type: e.data?.type ?? 'UNKNOWN',
+        tag: e.data?.tag ?? null,
+        hook: e.data?.hook ?? null,
+        isMutual: e.data?.isMutual ?? false,
+      })),
+    };
+
+    triggerJsonDownload(data, 'dynasty-tree.json');
+    toast.success('Downloaded as JSON');
+  }, []);
 
   const usedNames = useMemo(() => nodes.map((n) => n.data.name), [nodes]);
 
@@ -204,6 +244,7 @@ export function TreeCanvas() {
           activeSidebar={sidebar}
           onToggleSidebar={handleToggleSidebar}
           onExport={handleExport}
+          onExportJson={handleExportJson}
         />
 
       {nodes.length === 0 && (
