@@ -32,6 +32,7 @@ export async function createCharacter(
       note: validData.note,
       isFounder: validData.isFounder,
       isLost: validData.isLost,
+      generation: validData.generation,
       posX: validPos.x,
       posY: validPos.y,
     },
@@ -61,6 +62,7 @@ export async function updateCharacter(
       note: validData.note,
       isFounder: validData.isFounder,
       isLost: validData.isLost,
+      generation: validData.generation,
     },
   });
 }
