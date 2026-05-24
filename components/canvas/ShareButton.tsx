@@ -14,7 +14,7 @@ export function ShareButton({ slug, isPublic }: Props) {
       toast("Make this dynasty public in Settings first");
       return;
     }
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
     navigator.clipboard.writeText(`${siteUrl}/share/${slug}`).then(() => {
       toast.success("Link copied!");
     }).catch(() => {
