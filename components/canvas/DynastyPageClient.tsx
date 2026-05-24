@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import Link from "next/link";
 import { DynastyCanvas } from "./DynastyCanvas";
@@ -34,6 +34,7 @@ export function DynastyPageClient({
   userId,
 }: Props) {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const [isPublic, setIsPublic] = useState(initialIsPublic);
 
   const handleExportJson = useCallback(async () => {
     const data = await exportDynasty(dynastyId);
@@ -58,12 +59,13 @@ export function DynastyPageClient({
               canvasRef={canvasRef}
               onExportJson={handleExportJson}
             />
-            <ShareButton slug={dynastySlug} isPublic={initialIsPublic} />
+            <ShareButton slug={dynastySlug} isPublic={isPublic} />
             <DynastySettingsDialog
               dynastyId={dynastyId}
               initialName={dynastyName}
               initialSetting={initialSetting}
               initialIsPublic={initialIsPublic}
+              onPublicChange={setIsPublic}
             />
           </div>
         </header>

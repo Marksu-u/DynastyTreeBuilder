@@ -17,6 +17,8 @@ export function ShareButton({ slug, isPublic }: Props) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
     navigator.clipboard.writeText(`${siteUrl}/share/${slug}`).then(() => {
       toast.success("Link copied!");
+    }).catch(() => {
+      toast.error("Could not copy — check clipboard permission");
     });
   }
 

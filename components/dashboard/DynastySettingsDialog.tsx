@@ -20,6 +20,7 @@ interface Props {
   initialName: string;
   initialSetting: string;
   initialIsPublic: boolean;
+  onPublicChange?: (v: boolean) => void;
 }
 
 export function DynastySettingsDialog({
@@ -27,6 +28,7 @@ export function DynastySettingsDialog({
   initialName,
   initialSetting,
   initialIsPublic,
+  onPublicChange,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(initialName);
@@ -54,6 +56,7 @@ export function DynastySettingsDialog({
         toast.error(result.error);
       } else {
         toast.success("Settings saved");
+        onPublicChange?.(isPublic);
         setOpen(false);
       }
     });
