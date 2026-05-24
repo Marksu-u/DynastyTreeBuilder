@@ -69,6 +69,7 @@ export interface CharacterData extends Record<string, unknown> {
   note?: string;
   isFounder: boolean;
   isLost: boolean;
+  generation: number;
 }
 
 export interface RelationshipData extends Record<string, unknown> {
