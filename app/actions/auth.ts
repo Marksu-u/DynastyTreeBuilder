@@ -10,14 +10,14 @@ export async function syncUser() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return;
+  if (!user || !user.email) return;
 
   await prisma.user.upsert({
     where: { supabaseId: user.id },
     update: {},
     create: {
       supabaseId: user.id,
-      email: user.email!,
+      email: user.email,
     },
   });
 }
