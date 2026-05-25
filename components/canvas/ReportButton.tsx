@@ -64,7 +64,7 @@ export function ReportButton({ shareSlug }: Props) {
             <Dialog.Title className="text-sm font-semibold text-zinc-100">
               Report this content
             </Dialog.Title>
-            <Dialog.Close className="text-zinc-500 hover:text-zinc-300">
+            <Dialog.Close className="text-zinc-500 hover:text-zinc-300" aria-label="Close">
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
