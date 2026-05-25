@@ -95,6 +95,7 @@ export default async function SharePage({
         <div className="flex-1 overflow-hidden">
           <ShareCanvas
             dynastyName={dynasty.name}
+            shareSlug={dynasty.slug}
             nodes={nodes}
             edges={edges}
           />
