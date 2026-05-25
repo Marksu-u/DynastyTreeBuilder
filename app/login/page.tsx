@@ -1,28 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { signInWithMagicLink } from "@/app/actions/auth";
+import { signInWithGoogle } from "@/app/actions/auth";
 
 export default function LoginPage() {
-  const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function handleSignIn() {
     setPending(true);
     setError(null);
 
-    const formData = new FormData(e.currentTarget);
-    const result = await signInWithMagicLink(formData);
+    const result = await signInWithGoogle();
 
     if (result?.error) {
       setError(result.error);
-    } else {
-      setSent(true);
+      setPending(false);
+    } else if (result?.url) {
+      window.location.href = result.url;
     }
-
-    setPending(false);
   }
 
   return (
@@ -37,33 +33,19 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {sent ? (
-          <div className="rounded-lg border border-zinc-700 bg-zinc-900 p-4 text-sm text-zinc-300">
-            Check your email — a magic link is on its way.
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <input
-              type="email"
-              name="email"
-              required
-              placeholder="you@example.com"
-              className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500"
-            />
+        <div className="space-y-3">
+          {error && (
+            <p className="text-xs text-red-400">{error}</p>
+          )}
 
-            {error && (
-              <p className="text-xs text-red-400">{error}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={pending}
-              className="w-full rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-white disabled:opacity-50"
-            >
-              {pending ? "Sending…" : "Send magic link"}
-            </button>
-          </form>
-        )}
+          <button
+            onClick={handleSignIn}
+            disabled={pending}
+            className="w-full rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-white disabled:opacity-50"
+          >
+            {pending ? "Redirecting…" : "Sign in with Google"}
+          </button>
+        </div>
 
         <p className="text-center text-xs text-zinc-500">
           No account needed to use the tool.{" "}
