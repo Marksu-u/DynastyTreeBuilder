@@ -48,6 +48,7 @@ export const CharacterDataSchema = z.object({
   note: z.string().optional(),
   isFounder: z.boolean(),
   isLost: z.boolean(),
+  generation: z.number().int().min(0),
 });
 
 export const RelationshipDataSchema = z.object({
@@ -90,6 +91,7 @@ export const DynastyExportSchema = z.object({
       note: z.string().nullable(),
       isFounder: z.boolean(),
       isLost: z.boolean(),
+      generation: z.number().int().min(0),
       posX: z.number(),
       posY: z.number(),
     })

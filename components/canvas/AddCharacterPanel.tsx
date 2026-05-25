@@ -49,6 +49,7 @@ interface Props {
 const EMPTY: CharacterData = {
   name: '', alias: '', role: 'UNKNOWN', style: 'OTHER',
   gender: 'UNKNOWN', note: '', isFounder: false, isLost: false,
+  generation: 0,
 };
 
 const INPUT =
@@ -137,6 +138,17 @@ export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onD
                   {STYLES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">Generation</label>
+              <input
+                type="number"
+                min={0}
+                value={form.generation}
+                onChange={(e) => set('generation', Math.max(0, parseInt(e.target.value) || 0))}
+                className={INPUT}
+              />
             </div>
 
             <div>

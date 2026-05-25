@@ -57,16 +57,18 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
             <p className="truncate text-[11px] italic text-zinc-400">"{data.alias}"</p>
           )}
         </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setEditingCharacterId(id);
-          }}
-          className="nodrag flex-shrink-0 rounded p-0.5 text-zinc-500 transition-colors hover:bg-zinc-700 hover:text-zinc-300"
-          title="Edit character"
-        >
-          <Pencil size={12} />
-        </button>
+        {!data.isReadOnly && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingCharacterId(id);
+            }}
+            className="nodrag flex-shrink-0 rounded p-0.5 text-zinc-500 transition-colors hover:bg-zinc-700 hover:text-zinc-300"
+            title="Edit character"
+          >
+            <Pencil size={12} />
+          </button>
+        )}
       </div>
 
       <div className="mt-2 flex items-center gap-1.5 flex-wrap">
@@ -77,6 +79,9 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
           ].join(' ')}
         >
           {ROLE_LABELS[data.role]}
+        </span>
+        <span className="inline-flex items-center rounded border border-zinc-600/30 bg-zinc-700/40 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">
+          Gen {data.generation ?? 0}
         </span>
         {data.isFounder && (
           <span className="text-[9px] font-medium uppercase tracking-wide text-amber-400">

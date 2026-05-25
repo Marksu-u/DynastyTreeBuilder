@@ -49,6 +49,7 @@ export default async function DynastyPage({
       note: char.note ?? undefined,
       isFounder: char.isFounder,
       isLost: char.isLost,
+      generation: char.generation,
     },
   }));
 
@@ -69,6 +70,7 @@ export default async function DynastyPage({
     <DynastyPageClient
       dynastyId={dynasty.id}
       dynastyName={dynasty.name}
+      dynastySlug={dynasty.slug}
       initialSetting={dynasty.setting}
       initialIsPublic={dynasty.isPublic}
       initialNodes={nodes}

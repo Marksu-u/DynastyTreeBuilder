@@ -148,7 +148,7 @@ export function TreeCanvas() {
 
   const handleAddFromSidebar = useCallback(
     (name: string, role: CharacterRole = 'UNKNOWN') => {
-      addCharacter({ name, role, style: 'OTHER', gender: 'UNKNOWN', isFounder: false, isLost: false });
+      addCharacter({ name, role, style: 'OTHER', gender: 'UNKNOWN', isFounder: false, isLost: false, generation: 0 });
       toast.success(`${name} added to the dynasty`);
     },
     [addCharacter]

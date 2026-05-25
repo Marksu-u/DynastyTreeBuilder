@@ -165,6 +165,7 @@ export async function exportDynasty(dynastyId: string): Promise<DynastyExport> {
       note: c.note,
       isFounder: c.isFounder,
       isLost: c.isLost,
+      generation: c.generation,
       posX: c.posX,
       posY: c.posY,
     })),
