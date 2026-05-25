@@ -93,6 +93,23 @@ enum NameStyle {
   OTHER
 }
 
+enum AppSource {
+  DYNASTY_TREE_BUILDER
+}
+
+enum ReportReason {
+  ILLEGAL_CONTENT
+  HATE_SPEECH
+  SPAM
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+}
+
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
@@ -192,4 +209,18 @@ model CustomName {
 
   @@index([userId])
   @@map("custom_names")
+}
+
+model Report {
+  id        String       @id @default(cuid())
+  source    AppSource
+  shareSlug String
+  reason    ReportReason
+  details   String?
+  status    ReportStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+
+  @@index([source])
+  @@index([status])
+  @@map("reports")
 }
