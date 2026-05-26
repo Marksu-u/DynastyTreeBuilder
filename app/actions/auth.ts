@@ -1,6 +1,5 @@
 "use server";
 
-import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -11,34 +10,35 @@ export async function syncUser() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return;
+  if (!user || !user.email) return;
 
   await prisma.user.upsert({
     where: { supabaseId: user.id },
     update: {},
     create: {
       supabaseId: user.id,
-      email: user.email!,
+      email: user.email,
     },
   });
 }
 
-export async function signInWithMagicLink(formData: FormData) {
-  const parsed = z.string().email("Invalid email address").safeParse(
-    formData.get("email") as string
-  );
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
-
+export async function signInWithGoogle() {
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithOtp({
-    email: parsed.data,
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/api/auth/callback`,
+      redirectTo: `${siteUrl}/api/auth/callback`,
+      skipBrowserRedirect: true,
     },
   });
 
-  if (error) return { error: error.message };
-  return { success: true };
+  if (error || !data.url) {
+    return { error: error?.message ?? "Failed to start Google sign-in" };
+  }
+
+  return { url: data.url };
 }
 
 export async function signOut() {

@@ -4,6 +4,7 @@ import { ReactFlow, Background, BackgroundVariant, Controls } from "@xyflow/reac
 import Link from "next/link";
 import { CharacterNode } from "./CharacterNode";
 import { RelationshipEdge } from "./RelationshipEdge";
+import { ReportButton } from "./ReportButton";
 import "@xyflow/react/dist/style.css";
 import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
 
@@ -12,11 +13,12 @@ const edgeTypes = { relationship: RelationshipEdge } as const;
 
 type Props = {
   dynastyName: string;
+  shareSlug: string;
   nodes: CharacterNodeType[];
   edges: RelationshipEdgeType[];
 };
 
-export function ShareCanvas({ dynastyName, nodes, edges }: Props) {
+export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
   return (
     <div className="relative h-full w-full">
       <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2">
@@ -28,6 +30,8 @@ export function ShareCanvas({ dynastyName, nodes, edges }: Props) {
           <Link href="/login" className="underline hover:text-zinc-200">
             Sign in to build your own →
           </Link>
+          <span className="text-zinc-700">·</span>
+          <ReportButton shareSlug={shareSlug} />
         </div>
       </div>
 
