@@ -21,6 +21,7 @@ import { AddCharacterPanel } from "./AddCharacterPanel";
 import { EditRelationshipPanel } from "./EditRelationshipPanel";
 import { NameBank } from "@/components/name-bank/NameBank";
 import { RoleSlots } from "@/components/name-bank/RoleSlots";
+import { RelationshipTagsPanel } from "@/components/name-bank/RelationshipTagsPanel";
 import {
   createCharacter,
   updateCharacter,
@@ -61,10 +62,10 @@ export function DynastyCanvas({
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
   const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null);
-  const [sidebar, setSidebar] = useState<'names' | 'roles' | null>(null);
+  const [sidebar, setSidebar] = useState<'names' | 'roles' | 'tags' | null>(null);
   const positionTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  const handleToggleSidebar = useCallback((panel: 'names' | 'roles') => {
+  const handleToggleSidebar = useCallback((panel: 'names' | 'roles' | 'tags') => {
     setSidebar((current) => (current === panel ? null : panel));
   }, []);
 
@@ -355,6 +356,9 @@ export function DynastyCanvas({
       )}
       {sidebar === 'roles' && (
         <RoleSlots onAddToCanvas={handleAddFromSidebar} />
+      )}
+      {sidebar === 'tags' && (
+        <RelationshipTagsPanel />
       )}
     </div>
   );
