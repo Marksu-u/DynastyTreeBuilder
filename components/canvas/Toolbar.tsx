@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import { useReactFlow } from "@xyflow/react";
 import {
   Plus, Maximize2, Grid3X3, Undo2, Redo2,
-  BookOpen, Swords, Download, ChevronDown,
+  BookOpen, Swords, Download, ChevronDown, Link2,
 } from "lucide-react";
 
 interface Props {
@@ -15,8 +15,8 @@ interface Props {
   canRedo?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
-  activeSidebar?: 'names' | 'roles' | null;
-  onToggleSidebar?: (panel: 'names' | 'roles') => void;
+  activeSidebar?: 'names' | 'roles' | 'tags' | null;
+  onToggleSidebar?: (panel: 'names' | 'roles' | 'tags') => void;
   onExport?: () => void;
   onExportJson?: () => void;
 }
@@ -131,6 +131,18 @@ export function Toolbar({
             title="Role slots"
           >
             <Swords size={14} />
+          </button>
+          <button
+            onClick={() => onToggleSidebar('tags')}
+            className={[
+              "rounded p-1.5 transition-colors",
+              activeSidebar === 'tags'
+                ? "bg-zinc-800 text-zinc-200"
+                : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300",
+            ].join(" ")}
+            title="Relationship tags"
+          >
+            <Link2 size={14} />
           </button>
         </>
       )}
