@@ -7,18 +7,20 @@ import {
   TONE_LABELS,
   TONE_ACCENT,
   TONE_BORDER,
+  RELATIONSHIP_TAGS,
   type TagDefinition,
   type TagTone,
 } from "@/lib/relationship-tags";
 
+const tones: TagTone[] = ['positive', 'negative', 'complex', 'neutral'];
+
 export function RelationshipTagsPanel() {
-  const tones: TagTone[] = ['positive', 'negative', 'complex', 'neutral'];
 
   return (
     <div className="flex h-full w-72 shrink-0 flex-col border-l border-zinc-800 bg-zinc-900">
       <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
         <span className="text-sm font-medium text-zinc-200">Relationship Tags</span>
-        <span className="text-xs text-zinc-500">20 tags</span>
+        <span className="text-xs text-zinc-500">{RELATIONSHIP_TAGS.length} tags</span>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -53,13 +55,15 @@ function TagCard({ definition }: { definition: TagDefinition }) {
 
   return (
     <div
-      className={`rounded-lg border border-zinc-700/50 border-l-2 ${TONE_BORDER[definition.tone]} bg-zinc-800/40 p-3 space-y-2`}
+      className={`rounded-lg border-y border-r border-zinc-700/50 border-l-2 ${TONE_BORDER[definition.tone]} bg-zinc-800/40 p-3 space-y-2`}
     >
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-medium text-zinc-100">{definition.label}</p>
         <button
+          type="button"
           onClick={handleCopy}
           className="mt-0.5 shrink-0 rounded p-0.5 text-zinc-500 transition-colors hover:text-zinc-200"
+          aria-label={`Copy "${definition.label}"`}
           title={`Copy "${definition.label}"`}
         >
           <Copy size={12} />
