@@ -20,6 +20,7 @@ import { AddCharacterPanel } from '@/components/canvas/AddCharacterPanel';
 import { EditRelationshipPanel } from '@/components/canvas/EditRelationshipPanel';
 import { NameBank } from '@/components/name-bank/NameBank';
 import { RoleSlots } from '@/components/name-bank/RoleSlots';
+import { RelationshipTagsPanel } from '@/components/name-bank/RelationshipTagsPanel';
 import type { CharacterData, CharacterRole, RelationshipData } from '@/types/canvas';
 import type { RelationshipEdgeType } from '@/store/canvas';
 
@@ -50,7 +51,7 @@ export function TreeCanvas() {
   const toggleGrid = useCanvasStore((s) => s.toggleGrid);
 
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
-  const [sidebar, setSidebar] = useState<'names' | 'roles' | null>(null);
+  const [sidebar, setSidebar] = useState<'names' | 'roles' | 'tags' | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const { fitView } = useReactFlow();
@@ -124,7 +125,7 @@ export function TreeCanvas() {
 
   const usedNames = useMemo(() => nodes.map((n) => n.data.name), [nodes]);
 
-  const handleToggleSidebar = useCallback((panel: 'names' | 'roles') => {
+  const handleToggleSidebar = useCallback((panel: 'names' | 'roles' | 'tags') => {
     setSidebar((current) => (current === panel ? null : panel));
   }, []);
 
@@ -299,6 +300,9 @@ export function TreeCanvas() {
       )}
       {sidebar === 'roles' && (
         <RoleSlots onAddToCanvas={handleAddFromSidebar} />
+      )}
+      {sidebar === 'tags' && (
+        <RelationshipTagsPanel />
       )}
     </div>
   );
