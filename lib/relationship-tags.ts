@@ -235,10 +235,10 @@ export const TONE_ACCENT: Record<TagTone, string> = {
 };
 
 export const TONE_BORDER: Record<TagTone, string> = {
-  positive: 'border-l-emerald-600',
-  negative: 'border-l-red-600',
-  complex: 'border-l-violet-600',
-  neutral: 'border-l-zinc-600',
+  positive: 'border-emerald-600',
+  negative: 'border-red-600',
+  complex: 'border-violet-600',
+  neutral: 'border-zinc-600',
 };
 
 export const TAGS_BY_TONE: Record<TagTone, TagDefinition[]> = {
