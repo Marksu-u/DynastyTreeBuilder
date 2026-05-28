@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
@@ -10,6 +11,21 @@ import type {
   RelationshipType,
   RelationshipTag,
 } from "@/types/canvas";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const dynasty = await prisma.dynasty.findFirst({
+    where: { id },
+    select: { name: true },
+  });
+  return {
+    title: dynasty?.name ?? "Dynasty Canvas",
+  };
+}
 
 export default async function DynastyPage({
   params,
