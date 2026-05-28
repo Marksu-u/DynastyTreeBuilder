@@ -12,6 +12,8 @@ import type {
   RelationshipTag,
 } from "@/types/canvas";
 
+export const revalidate = 60;
+
 const SETTING_LABELS: Record<string, string> = {
   FANTASY: "Fantasy",
   SCI_FI: "Sci-Fi",
