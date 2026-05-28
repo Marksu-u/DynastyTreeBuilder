@@ -84,6 +84,7 @@ export async function deleteCharacter(
   });
 }
 
+// Not rate limited — called on every drag-end (debounced 500ms), not a mutation vector
 export async function updatePosition(
   id: string,
   dynastyId: string,
