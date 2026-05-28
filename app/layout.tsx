@@ -14,8 +14,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dynasty Tree Builder",
-  description: "A free canvas tool for TTRPG dungeon masters to build dynasty trees with characters, relationships, and narrative tags.",
+  title: {
+    default: "Dynasty Tree Builder",
+    template: "%s · Dynasty Tree Builder",
+  },
+  description:
+    "A free canvas tool for TTRPG dungeon masters to build dynasty trees with characters, relationships, and narrative tags.",
+  openGraph: {
+    siteName: "Dynasty Tree Builder",
+    type: "website",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default function RootLayout({
