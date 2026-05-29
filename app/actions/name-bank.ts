@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { IdSchema, CustomNameInputSchema } from "@/lib/schemas";
 import type { CharacterRole, CharacterGender, NameStyle } from "@/types/canvas";
 
@@ -38,6 +39,7 @@ export async function addCustomName(data: {
   note?: string;
 }): Promise<{ id: string }> {
   const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
   const valid = CustomNameInputSchema.parse(data);
 
   const entry = await prisma.customName.create({
@@ -55,6 +57,7 @@ export async function addCustomName(data: {
 
 export async function deleteCustomName(id: string): Promise<void> {
   const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
   const validId = IdSchema.parse(id);
 
   await prisma.customName.delete({

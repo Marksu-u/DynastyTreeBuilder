@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { listDynasties } from "@/app/actions/dynasty";
 import { CreateDynastyDialog } from "@/components/dashboard/CreateDynastyDialog";
@@ -7,6 +8,10 @@ import { DynastyCard } from "@/components/dashboard/DynastyCard";
 import { signOut } from "@/app/actions/auth";
 import { Network } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
+
+export const metadata: Metadata = {
+  title: "Your Dynasties",
+};
 
 export default async function DashboardPage() {
   const supabase = await createClient();

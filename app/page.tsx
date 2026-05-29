@@ -1,4 +1,11 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: { absolute: "Dynasty Tree Builder" },
+  description:
+    "Build dynasty trees for your TTRPG campaigns. Map characters, relationships, and roles — free, no account needed.",
+};
 
 export default function LandingPage() {
   return (

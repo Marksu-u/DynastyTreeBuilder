@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { IdSchema, RelationshipDataSchema } from "@/lib/schemas";
 import type { RelationshipData } from "@/types/canvas";
 
@@ -12,6 +13,7 @@ export async function createRelationship(
   data: RelationshipData
 ): Promise<{ id: string }> {
   const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
   const validDynastyId = IdSchema.parse(dynastyId);
   const validFromId = IdSchema.parse(fromId);
   const validToId = IdSchema.parse(toId);
@@ -44,6 +46,7 @@ export async function updateRelationship(
   data: Partial<RelationshipData>
 ): Promise<void> {
   const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
   const validId = IdSchema.parse(id);
   const validDynastyId = IdSchema.parse(dynastyId);
   const validData = RelationshipDataSchema.partial().parse(data);
@@ -64,6 +67,7 @@ export async function deleteRelationship(
   dynastyId: string
 ): Promise<void> {
   const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
   const validId = IdSchema.parse(id);
   const validDynastyId = IdSchema.parse(dynastyId);
 

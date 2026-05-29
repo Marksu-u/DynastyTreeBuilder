@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import {
   IdSchema,
   DynastySettingSchema,
@@ -44,6 +45,7 @@ export async function createDynasty(
   formData: FormData
 ): Promise<{ error: string }> {
   const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) return { error: "Too many requests. Slow down." };
 
   const nameResult = z.string().min(1, "Name is required").safeParse(
     (formData.get("name") as string | null)?.trim() ?? ""
@@ -72,6 +74,7 @@ export async function renameDynasty(
   name: string
 ): Promise<{ error?: string }> {
   const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) return { error: "Too many requests. Slow down." };
 
   const idResult = IdSchema.safeParse(id);
   if (!idResult.success) return { error: idResult.error.issues[0].message };
@@ -91,6 +94,7 @@ export async function renameDynasty(
 
 export async function deleteDynasty(id: string): Promise<{ error?: string }> {
   const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) return { error: "Too many requests. Slow down." };
 
   const idResult = IdSchema.safeParse(id);
   if (!idResult.success) return { error: idResult.error.issues[0].message };
@@ -112,6 +116,7 @@ export async function updateDynastySettings(
   data: { name?: string; setting?: string; isPublic?: boolean }
 ): Promise<{ error?: string }> {
   const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) return { error: "Too many requests. Slow down." };
 
   const idResult = IdSchema.safeParse(id);
   if (!idResult.success) return { error: idResult.error.issues[0].message };

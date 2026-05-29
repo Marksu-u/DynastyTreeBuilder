@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { IdSchema, CharacterDataSchema, PositionSchema } from "@/lib/schemas";
 import type { CharacterData } from "@/types/canvas";
 
@@ -11,6 +12,7 @@ export async function createCharacter(
   position: { x: number; y: number }
 ): Promise<{ id: string }> {
   const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
   const validId = IdSchema.parse(dynastyId);
   const validData = CharacterDataSchema.parse(data);
   const validPos = PositionSchema.parse(position);
@@ -47,6 +49,7 @@ export async function updateCharacter(
   data: Partial<CharacterData>
 ): Promise<void> {
   const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
   const validId = IdSchema.parse(id);
   const validDynastyId = IdSchema.parse(dynastyId);
   const validData = CharacterDataSchema.partial().parse(data);
@@ -72,6 +75,7 @@ export async function deleteCharacter(
   dynastyId: string
 ): Promise<void> {
   const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
   const validId = IdSchema.parse(id);
   const validDynastyId = IdSchema.parse(dynastyId);
 
@@ -80,6 +84,7 @@ export async function deleteCharacter(
   });
 }
 
+// Not rate limited — called on every drag-end (debounced 500ms), not a mutation vector
 export async function updatePosition(
   id: string,
   dynastyId: string,
