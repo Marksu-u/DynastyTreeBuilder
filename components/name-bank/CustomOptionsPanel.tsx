@@ -10,10 +10,8 @@ import { updateCustomOption, deleteCustomOption } from "@/app/actions/custom-opt
 // ─── Kind display metadata ─────────────────────────────────────────────────────
 
 const KIND_SECTIONS: { kind: CatalogKind; label: string }[] = [
-  { kind: "CHARACTER_ROLE",    label: "Character Roles" },
   { kind: "CHARACTER_STYLE",   label: "Character Styles" },
   { kind: "RELATIONSHIP_TYPE", label: "Relationship Types" },
-  { kind: "RELATIONSHIP_TAG",  label: "Relationship Tags" },
 ];
 
 // ─── Main panel ───────────────────────────────────────────────────────────────
@@ -35,7 +33,7 @@ export function CustomOptionsPanel() {
             No custom options yet.
             <br />
             Use the&nbsp;<span className="text-zinc-500">+</span>&nbsp;button in the
-            character or relationship editors to create your own roles, styles, and tags.
+            character or relationship editors to create your own styles and types.
           </div>
         ) : (
           KIND_SECTIONS.map(({ kind, label }) =>

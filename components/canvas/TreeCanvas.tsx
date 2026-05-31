@@ -21,8 +21,6 @@ import { EditRelationshipPanel } from '@/components/canvas/EditRelationshipPanel
 import { CatalogProvider } from '@/components/canvas/CatalogProvider';
 import { CanvasContext } from '@/components/canvas/CanvasContext';
 import { NameBank } from '@/components/name-bank/NameBank';
-import { RoleSlots } from '@/components/name-bank/RoleSlots';
-import { RelationshipTagsPanel } from '@/components/name-bank/RelationshipTagsPanel';
 import type { CharacterData, RelationshipData } from '@/types/canvas';
 import type { RelationshipEdgeType } from '@/store/canvas';
 
@@ -101,12 +99,11 @@ function TreeCanvasInner() {
         id: n.id,
         name: n.data.name,
         alias: n.data.alias ?? null,
-        role: n.data.role,
+        flags: n.data.flags ?? [],
         style: n.data.style,
         gender: n.data.gender,
         note: n.data.note ?? null,
-        isFounder: n.data.isFounder,
-        isLost: n.data.isLost,
+        generation: n.data.generation ?? 0,
         posX: n.position.x,
         posY: n.position.y,
       })),
@@ -114,8 +111,7 @@ function TreeCanvasInner() {
         id: e.id,
         fromId: e.source,
         toId: e.target,
-        type: e.data?.type ?? 'UNKNOWN',
-        tag: e.data?.tag ?? null,
+        type: e.data?.type ?? 'PARENT',
         hook: e.data?.hook ?? null,
         isMutual: e.data?.isMutual ?? false,
       })),
@@ -150,8 +146,8 @@ function TreeCanvasInner() {
   );
 
   const handleAddFromSidebar = useCallback(
-    (name: string, role: string = 'UNKNOWN') => {
-      addCharacter({ name, role, style: 'OTHER', gender: 'UNKNOWN', isFounder: false, isLost: false, generation: 0 });
+    (name: string) => {
+      addCharacter({ name, flags: [], style: 'OTHER', gender: 'UNKNOWN', generation: 0 });
       toast.success(`${name} added to the dynasty`);
     },
     [addCharacter]
@@ -196,7 +192,7 @@ function TreeCanvasInner() {
       onConnect(connection);
       toast('Connection created — click the line to set its type', {
         duration: 3500,
-        description: 'Default type is Unknown',
+        description: 'Default type is Parent',
       });
     },
     [onConnect]
@@ -304,12 +300,6 @@ function TreeCanvasInner() {
           onAddToCanvas={(name) => handleAddFromSidebar(name)}
           isLoggedIn={false}
         />
-      )}
-      {sidebar === 'roles' && (
-        <RoleSlots onAddToCanvas={handleAddFromSidebar} />
-      )}
-      {sidebar === 'tags' && (
-        <RelationshipTagsPanel />
       )}
     </div>
     </CanvasContext.Provider>

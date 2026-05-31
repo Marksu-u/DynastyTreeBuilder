@@ -3,10 +3,8 @@
 import { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import type { RelationshipData } from '@/types/canvas';
+import type { RelationshipData, RelationshipType } from '@/types/canvas';
 import type { RelationshipEdgeType } from '@/store/canvas';
-import { CatalogSelect } from './CatalogSelect';
-import { DEFAULT_CATALOG } from '@/lib/catalog';
 
 interface Props {
   open: boolean;
@@ -14,21 +12,25 @@ interface Props {
   edge?: RelationshipEdgeType;
   onSubmit: (data: Partial<RelationshipData>) => void;
   onDelete?: () => void;
-  /** When true, enables custom-option creation via the "+" button */
   isLoggedIn?: boolean;
 }
 
-const EMPTY: RelationshipData = { type: 'UNKNOWN', isMutual: false };
+const TYPES: { value: RelationshipType; label: string; description: string }[] = [
+  { value: 'PARENT',  label: 'Parent / Child', description: 'Direct parent-child line' },
+  { value: 'SPOUSE',  label: 'Spouse',          description: 'Married or partnered' },
+  { value: 'ADOPTED', label: 'Adopted',         description: 'Brought in by choice' },
+];
+
+const EMPTY: RelationshipData = { type: 'PARENT', isMutual: false };
 
 const INPUT =
   'w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500';
 
-export function EditRelationshipPanel({ open, onOpenChange, edge, onSubmit, onDelete, isLoggedIn = false }: Props) {
+export function EditRelationshipPanel({ open, onOpenChange, edge, onSubmit, onDelete }: Props) {
   const [form, setForm] = useState<RelationshipData>(EMPTY);
-  const isCustomType = !DEFAULT_CATALOG.RELATIONSHIP_TYPE.some((t) => t.value === form.type);
 
   useEffect(() => {
-    if (open) setForm(edge?.data ? { ...edge.data } : EMPTY);
+    if (open) setForm(edge?.data ? { type: edge.data.type, hook: edge.data.hook, isMutual: edge.data.isMutual } : EMPTY);
   }, [open, edge]);
 
   function handleSubmit(e: React.FormEvent) {
@@ -55,13 +57,10 @@ export function EditRelationshipPanel({ open, onOpenChange, edge, onSubmit, onDe
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Structural Type — grid of built-in buttons + CatalogSelect for custom */}
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-zinc-400">
-                Structural Type
-              </label>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-400">Type</label>
               <div className="grid grid-cols-3 gap-1.5">
-                {DEFAULT_CATALOG.RELATIONSHIP_TYPE.map((t) => (
+                {TYPES.map((t) => (
                   <button
                     key={t.value}
                     type="button"
@@ -78,55 +77,14 @@ export function EditRelationshipPanel({ open, onOpenChange, edge, onSubmit, onDe
                   </button>
                 ))}
               </div>
-              {/* Custom type picker: always visible when logged in, or when a custom type is set */}
-              {(isLoggedIn || isCustomType) && (
-                <div className="mt-2">
-                  <CatalogSelect
-                    kind="RELATIONSHIP_TYPE"
-                    value={form.type}
-                    onChange={(v) => set('type', v)}
-                    canCreate={isLoggedIn}
-                    className={INPUT}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Narrative Tag — CatalogSelect for logged-in, plain select for guests */}
-            <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">
-                Narrative Tag
-              </label>
-              {isLoggedIn ? (
-                <CatalogSelect
-                  kind="RELATIONSHIP_TAG"
-                  value={form.tag ?? ''}
-                  onChange={(v) => set('tag', v || undefined)}
-                  canCreate={true}
-                  className={INPUT}
-                />
-              ) : (
-                <select
-                  value={form.tag ?? ''}
-                  onChange={(e) => set('tag', e.target.value || undefined)}
-                  className={INPUT}
-                >
-                  <option value="">— None —</option>
-                  {DEFAULT_CATALOG.RELATIONSHIP_TAG.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
-              )}
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">
-                Story Hook
-              </label>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">Story Hook</label>
               <textarea
                 value={form.hook ?? ''}
                 onChange={(e) => set('hook', e.target.value || undefined)}
-                placeholder="Custom narrative hook for this relationship..."
+                placeholder="Optional narrative note for this relationship..."
                 rows={2}
                 className={INPUT + ' resize-none'}
               />

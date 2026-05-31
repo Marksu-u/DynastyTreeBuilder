@@ -3,17 +3,23 @@
 import { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import type { CharacterData, CharacterGender } from '@/types/canvas';
+import type { CharacterData, CharacterFlag, CharacterGender } from '@/types/canvas';
 import type { CharacterNodeType } from '@/store/canvas';
 import { CatalogSelect } from './CatalogSelect';
-import { useCatalog } from './CatalogProvider';
 
-// Gender options stay fixed — CharacterGender is a closed enum (out of catalog scope)
 const GENDERS: { value: CharacterGender; label: string }[] = [
   { value: 'MALE',       label: 'Male' },
   { value: 'FEMALE',     label: 'Female' },
   { value: 'NON_BINARY', label: 'Non-binary' },
   { value: 'UNKNOWN',    label: 'Unknown' },
+];
+
+const CHARACTER_FLAGS: { value: CharacterFlag; label: string }[] = [
+  { value: 'FOUNDER',  label: 'Founder' },
+  { value: 'BASTARD',  label: 'Bastard' },
+  { value: 'ADOPTED',  label: 'Adopted' },
+  { value: 'EXILE',    label: 'Exile' },
+  { value: 'DECEASED', label: 'Deceased' },
 ];
 
 interface Props {
@@ -22,14 +28,12 @@ interface Props {
   character?: CharacterNodeType;
   onSubmit: (data: CharacterData) => void;
   onDelete?: () => void;
-  /** Pass true when inside a logged-in canvas (enables "+ Add custom" in selects) */
   isLoggedIn?: boolean;
 }
 
 const EMPTY: CharacterData = {
-  name: '', alias: '', role: 'UNKNOWN', style: 'OTHER',
-  gender: 'UNKNOWN', note: '', isFounder: false, isLost: false,
-  generation: 0,
+  name: '', alias: '', flags: [], style: 'OTHER',
+  gender: 'UNKNOWN', note: '', generation: 0,
 };
 
 const INPUT =
@@ -58,7 +62,14 @@ export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onD
   const set = <K extends keyof CharacterData>(key: K, value: CharacterData[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  const SELECT_CLS = INPUT;
+  function toggleFlag(flag: CharacterFlag) {
+    setForm((f) => ({
+      ...f,
+      flags: f.flags.includes(flag)
+        ? f.flags.filter((x) => x !== flag)
+        : [...f.flags, flag],
+    }));
+  }
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -78,9 +89,7 @@ export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onD
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-400">Name *</label>
               <input
-                type="text"
-                required
-                autoFocus
+                type="text" required autoFocus
                 value={form.name}
                 onChange={(e) => set('name', e.target.value)}
                 placeholder="Character name"
@@ -94,22 +103,12 @@ export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onD
                 type="text"
                 value={form.alias ?? ''}
                 onChange={(e) => set('alias', e.target.value)}
-                placeholder='e.g. "The Ruthless"'
+                placeholder='"The Ruthless"'
                 className={INPUT}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Role</label>
-                <CatalogSelect
-                  kind="CHARACTER_ROLE"
-                  value={form.role}
-                  onChange={(v) => set('role', v)}
-                  canCreate={isLoggedIn}
-                  className={SELECT_CLS}
-                />
-              </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-400">Style</label>
                 <CatalogSelect
@@ -117,16 +116,25 @@ export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onD
                   value={form.style}
                   onChange={(v) => set('style', v)}
                   canCreate={isLoggedIn}
-                  className={SELECT_CLS}
+                  className={INPUT}
                 />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-400">Gender</label>
+                <select
+                  value={form.gender}
+                  onChange={(e) => set('gender', e.target.value as CharacterGender)}
+                  className={INPUT}
+                >
+                  {GENDERS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                </select>
               </div>
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-400">Generation</label>
               <input
-                type="number"
-                min={0}
+                type="number" min={0}
                 value={form.generation}
                 onChange={(e) => set('generation', Math.max(0, parseInt(e.target.value) || 0))}
                 className={INPUT}
@@ -134,14 +142,20 @@ export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onD
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">Gender</label>
-              <select
-                value={form.gender}
-                onChange={(e) => set('gender', e.target.value as CharacterGender)}
-                className={INPUT}
-              >
-                {GENDERS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-              </select>
+              <label className="mb-2 block text-xs font-medium text-zinc-400">Status flags</label>
+              <div className="flex flex-wrap gap-2">
+                {CHARACTER_FLAGS.map(({ value, label }) => (
+                  <label key={value} className="flex cursor-pointer items-center gap-1.5 text-sm text-zinc-300">
+                    <input
+                      type="checkbox"
+                      checked={form.flags.includes(value)}
+                      onChange={() => toggleFlag(value)}
+                      className="rounded border-zinc-600 bg-zinc-800 accent-zinc-400"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
             </div>
 
             <div>
@@ -153,27 +167,6 @@ export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onD
                 rows={2}
                 className={INPUT + ' resize-none'}
               />
-            </div>
-
-            <div className="flex gap-4">
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-300">
-                <input
-                  type="checkbox"
-                  checked={form.isFounder}
-                  onChange={(e) => set('isFounder', e.target.checked)}
-                  className="rounded border-zinc-600 bg-zinc-800 accent-amber-500"
-                />
-                Founder
-              </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-300">
-                <input
-                  type="checkbox"
-                  checked={form.isLost}
-                  onChange={(e) => set('isLost', e.target.checked)}
-                  className="rounded border-zinc-600 bg-zinc-800"
-                />
-                Lost / Deceased
-              </label>
             </div>
 
             <div className="flex gap-2 pt-1">

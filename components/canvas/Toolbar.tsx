@@ -4,10 +4,10 @@ import { useRef, useState, useEffect } from "react";
 import { useReactFlow } from "@xyflow/react";
 import {
   Plus, Maximize2, Grid3X3, Undo2, Redo2,
-  BookOpen, Swords, Download, ChevronDown, Link2, Settings2,
+  BookOpen, Download, ChevronDown, Settings2,
 } from "lucide-react";
 
-export type SidebarPanel = 'names' | 'roles' | 'tags' | 'custom';
+export type SidebarPanel = 'names' | 'custom';
 
 interface Props {
   onAddCharacter: () => void;
@@ -124,30 +124,6 @@ export function Toolbar({
             title="Name bank"
           >
             <BookOpen size={14} />
-          </button>
-          <button
-            onClick={() => onToggleSidebar('roles')}
-            className={[
-              "rounded p-1.5 transition-colors",
-              activeSidebar === 'roles'
-                ? "bg-zinc-800 text-zinc-200"
-                : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300",
-            ].join(" ")}
-            title="Role slots"
-          >
-            <Swords size={14} />
-          </button>
-          <button
-            onClick={() => onToggleSidebar('tags')}
-            className={[
-              "rounded p-1.5 transition-colors",
-              activeSidebar === 'tags'
-                ? "bg-zinc-800 text-zinc-200"
-                : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300",
-            ].join(" ")}
-            title="Relationship tags"
-          >
-            <Link2 size={14} />
           </button>
           {showCustomOptions && (
             <button

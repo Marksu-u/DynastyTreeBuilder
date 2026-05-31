@@ -5,11 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { DynastyPageClient } from "@/components/canvas/DynastyPageClient";
 import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
 import type {
-  CharacterRole,
-  CharacterStyle,
+  CharacterFlag,
   CharacterGender,
   RelationshipType,
-  RelationshipTag,
 } from "@/types/canvas";
 
 export async function generateMetadata({
@@ -59,12 +57,10 @@ export default async function DynastyPage({
     data: {
       name: char.name,
       alias: char.alias ?? undefined,
-      role: char.role as CharacterRole,
-      style: char.style as CharacterStyle,
+      flags: (char as any).flags as CharacterFlag[],
+      style: char.style,
       gender: char.gender as CharacterGender,
       note: char.note ?? undefined,
-      isFounder: char.isFounder,
-      isLost: char.isLost,
       generation: char.generation,
     },
   }));
@@ -76,7 +72,6 @@ export default async function DynastyPage({
     target: rel.toId,
     data: {
       type: rel.type as RelationshipType,
-      tag: (rel.tag as RelationshipTag) ?? undefined,
       hook: rel.hook ?? undefined,
       isMutual: rel.isMutual,
     },

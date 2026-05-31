@@ -108,7 +108,7 @@ export const useCanvasStore = create<CanvasState>()(
           target: connection.target,
           sourceHandle: connection.sourceHandle,
           targetHandle: connection.targetHandle,
-          data: { type: 'UNKNOWN', isMutual: false },
+          data: { type: 'PARENT', isMutual: false },
         };
         set({
           edges: [...state.edges, newEdge],

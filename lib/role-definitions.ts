@@ -1,12 +1,10 @@
-import type { CharacterRole, RelationshipTag } from '@/types/canvas';
-
 export interface RoleDefinition {
-  role: CharacterRole;
+  role: string;
   label: string;
   description: string;
   group: 'within' | 'outside';
   hooks: [string, string];
-  tags: RelationshipTag[];
+  tags: string[];
 }
 
 export const ROLE_DEFINITIONS: RoleDefinition[] = [

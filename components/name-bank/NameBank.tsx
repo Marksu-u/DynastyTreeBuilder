@@ -162,7 +162,6 @@ export function NameBank({ usedNames, onAddToCanvas, isLoggedIn }: Props) {
               name={n.name}
               style={n.style}
               gender={n.gender}
-              role={n.role}
               note={n.note}
               isUsed={usedSet.has(n.name.toLowerCase())}
               isCustom={n.isCustom}

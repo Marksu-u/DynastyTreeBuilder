@@ -31,7 +31,6 @@ export async function createRelationship(
       fromId: validFromId,
       toId: validToId,
       type: validData.type,
-      tag: validData.tag,
       hook: validData.hook,
       isMutual: validData.isMutual,
     },
@@ -55,7 +54,6 @@ export async function updateRelationship(
     where: { id: validId, dynasty: { id: validDynastyId, ownerId: user.id } },
     data: {
       type: validData.type,
-      tag: validData.tag ?? null,
       hook: validData.hook,
       isMutual: validData.isMutual,
     },

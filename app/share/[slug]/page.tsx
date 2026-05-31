@@ -5,11 +5,9 @@ import { ShareCanvas } from "@/components/canvas/ShareCanvas";
 import "@xyflow/react/dist/style.css";
 import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
 import type {
-  CharacterRole,
-  CharacterStyle,
+  CharacterFlag,
   CharacterGender,
   RelationshipType,
-  RelationshipTag,
 } from "@/types/canvas";
 
 export const revalidate = 60;
@@ -61,12 +59,10 @@ export default async function SharePage({
     data: {
       name: char.name,
       alias: char.alias ?? undefined,
-      role: char.role as CharacterRole,
-      style: char.style as CharacterStyle,
+      flags: (char as any).flags as CharacterFlag[],
+      style: char.style,
       gender: char.gender as CharacterGender,
       note: char.note ?? undefined,
-      isFounder: char.isFounder,
-      isLost: char.isLost,
       generation: char.generation,
       isReadOnly: true,
     },
@@ -79,7 +75,6 @@ export default async function SharePage({
     target: rel.toId,
     data: {
       type: rel.type as RelationshipType,
-      tag: (rel.tag as RelationshipTag) ?? undefined,
       hook: rel.hook ?? undefined,
       isMutual: rel.isMutual,
     },

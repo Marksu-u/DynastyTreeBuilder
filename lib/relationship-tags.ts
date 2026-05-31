@@ -1,9 +1,7 @@
-import type { RelationshipTag } from '@/types/canvas';
-
 export type TagTone = 'positive' | 'negative' | 'complex' | 'neutral';
 
 export interface TagDefinition {
-  tag: RelationshipTag;
+  tag: string;
   label: string;
   tone: TagTone;
   description: string;

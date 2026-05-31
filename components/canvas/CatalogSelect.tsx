@@ -12,10 +12,8 @@ import { addCustomOption } from "@/app/actions/custom-options";
 // ─── Kind labels shown in the creation dialog ─────────────────────────────────
 
 const KIND_LABELS: Record<CatalogKind, string> = {
-  CHARACTER_ROLE: "role",
   CHARACTER_STYLE: "style",
   RELATIONSHIP_TYPE: "relationship type",
-  RELATIONSHIP_TAG: "tag",
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────

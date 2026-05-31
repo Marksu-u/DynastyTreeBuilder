@@ -21,8 +21,6 @@ import { AddCharacterPanel } from "./AddCharacterPanel";
 import { EditRelationshipPanel } from "./EditRelationshipPanel";
 import { NameBank } from "@/components/name-bank/NameBank";
 import { CanvasContext } from "./CanvasContext";
-import { RoleSlots } from "@/components/name-bank/RoleSlots";
-import { RelationshipTagsPanel } from "@/components/name-bank/RelationshipTagsPanel";
 import { CustomOptionsPanel } from "@/components/name-bank/CustomOptionsPanel";
 import {
   createCharacter,
@@ -117,13 +115,13 @@ export function DynastyCanvas({
         target: connection.target,
         sourceHandle: connection.sourceHandle,
         targetHandle: connection.targetHandle,
-        data: { type: "UNKNOWN", isMutual: false },
+        data: { type: "PARENT", isMutual: false },
       };
       setEdges((eds) => [...eds, newEdge]);
 
       try {
         const { id } = await createRelationship(dynastyId, connection.source, connection.target, {
-          type: "UNKNOWN",
+          type: "PARENT",
           isMutual: false,
         });
         setEdges((eds) => eds.map((e) => (e.id === tempId ? { ...e, id } : e)));
@@ -236,9 +234,9 @@ export function DynastyCanvas({
   );
 
   const handleAddFromSidebar = useCallback(
-    async (name: string, role: string = "UNKNOWN") => {
+    async (name: string) => {
       const data: CharacterData = {
-        name, role, style: "OTHER", gender: "UNKNOWN", isFounder: false, isLost: false, generation: 0,
+        name, flags: [], style: "OTHER", gender: "UNKNOWN", generation: 0,
       };
       const count = nodes.length;
       const position = { x: 80 + (count % 4) * 240, y: 80 + Math.floor(count / 4) * 200 };
@@ -363,12 +361,6 @@ export function DynastyCanvas({
           onAddToCanvas={(name) => handleAddFromSidebar(name)}
           isLoggedIn={isLoggedIn}
         />
-      )}
-      {sidebar === 'roles' && (
-        <RoleSlots onAddToCanvas={handleAddFromSidebar} />
-      )}
-      {sidebar === 'tags' && (
-        <RelationshipTagsPanel />
       )}
       {sidebar === 'custom' && isLoggedIn && (
         <CustomOptionsPanel />

@@ -4,14 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { IdSchema, CustomNameInputSchema } from "@/lib/schemas";
-import type { CharacterRole, CharacterGender, NameStyle } from "@/types/canvas";
+import type { CharacterGender, NameStyle } from "@/types/canvas";
 
 export type CustomNameEntry = {
   id: string;
   name: string;
   style: NameStyle;
   gender: CharacterGender;
-  role: CharacterRole | null;
   note: string | null;
 };
 
@@ -26,7 +25,6 @@ export async function getCustomNames(): Promise<CustomNameEntry[]> {
     name: n.name,
     style: n.style as NameStyle,
     gender: n.gender as CharacterGender,
-    role: (n.role as CharacterRole) ?? null,
     note: n.note,
   }));
 }
@@ -35,7 +33,6 @@ export async function addCustomName(data: {
   name: string;
   style: NameStyle;
   gender: CharacterGender;
-  role?: CharacterRole;
   note?: string;
 }): Promise<{ id: string }> {
   const user = await getAuthUser();
@@ -47,7 +44,6 @@ export async function addCustomName(data: {
       name: valid.name,
       style: valid.style,
       gender: valid.gender,
-      role: valid.role ?? null,
       note: valid.note?.trim() || null,
       userId: user.id,
     },

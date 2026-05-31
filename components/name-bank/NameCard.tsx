@@ -3,7 +3,6 @@
 import { toast } from "sonner";
 import { Copy, Plus, Star, Trash2 } from "lucide-react";
 import type { CharacterGender, NameStyle } from "@/types/canvas";
-import { resolveOption } from "@/lib/catalog";
 
 // NameStyle (genre: Fantasy / Sci-Fi / …) is a closed enum, not in the catalog
 const STYLE_LABELS: Record<NameStyle, string> = {
@@ -27,7 +26,6 @@ interface Props {
   name: string;
   style: NameStyle;
   gender: CharacterGender;
-  role?: string | null;
   note?: string | null;
   isUsed?: boolean;
   isCustom?: boolean;
@@ -36,16 +34,12 @@ interface Props {
 }
 
 export function NameCard({
-  name, style, gender, role, note, isUsed, isCustom, onAddToCanvas, onDelete,
+  name, style, gender, note, isUsed, isCustom, onAddToCanvas, onDelete,
 }: Props) {
   function handleCopy() {
     navigator.clipboard.writeText(name);
     toast.success(`Copied: ${name}`);
   }
-
-  // Only show a role badge for specific named roles — suppress UNKNOWN / OTHER
-  const hideRole = !role || role === 'UNKNOWN' || role === 'OTHER';
-  const roleLabel = hideRole ? null : resolveOption('CHARACTER_ROLE', role).label;
 
   return (
     <div
@@ -72,7 +66,6 @@ export function NameCard({
           <div className="mt-1.5 flex flex-wrap gap-1">
             <Badge>{STYLE_LABELS[style]}</Badge>
             <Badge>{GENDER_LABELS[gender]}</Badge>
-            {roleLabel && <Badge>{roleLabel}</Badge>}
             {isUsed && <Badge className="text-zinc-600">On canvas</Badge>}
           </div>
         </div>

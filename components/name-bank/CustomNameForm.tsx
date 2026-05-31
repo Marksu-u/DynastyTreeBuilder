@@ -54,7 +54,6 @@ export function CustomNameForm({ onAdded }: Props) {
         name: name.trim(),
         style,
         gender,
-        role: null,
         note: note || null,
       });
       setName("");
