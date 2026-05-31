@@ -222,6 +222,9 @@ function TreeCanvasInner() {
           deleteKeyCode={['Backspace', 'Delete']}
           className="bg-zinc-950"
           proOptions={{ hideAttribution: false }}
+          defaultEdgeOptions={{ type: 'smoothstep' }}
+          snapToGrid={gridVisible}
+          snapGrid={[20, 20]}
         >
           {gridVisible && (
             <Background
