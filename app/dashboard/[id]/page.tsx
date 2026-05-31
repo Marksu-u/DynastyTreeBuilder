@@ -61,7 +61,6 @@ export default async function DynastyPage({
       style: char.style,
       gender: char.gender as CharacterGender,
       note: char.note ?? undefined,
-      generation: char.generation,
     },
   }));
 

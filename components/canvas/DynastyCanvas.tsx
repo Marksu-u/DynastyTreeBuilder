@@ -236,7 +236,7 @@ export function DynastyCanvas({
   const handleAddFromSidebar = useCallback(
     async (name: string) => {
       const data: CharacterData = {
-        name, flags: [], style: "OTHER", gender: "UNKNOWN", generation: 0,
+        name, flags: [], style: "OTHER", gender: "UNKNOWN",
       };
       const count = nodes.length;
       const position = { x: 80 + (count % 4) * 240, y: 80 + Math.floor(count / 4) * 200 };

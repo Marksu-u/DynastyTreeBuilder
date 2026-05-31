@@ -24,7 +24,6 @@ export interface CharacterData extends Record<string, unknown> {
   style: CharacterStyle;
   gender: CharacterGender;
   note?: string;
-  generation: number;
   isReadOnly?: boolean;
 }
 

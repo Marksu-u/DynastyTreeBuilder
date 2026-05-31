@@ -98,19 +98,18 @@ model Dynasty {
 }
 
 model Character {
-  id         String          @id @default(cuid())
-  name       String
-  alias      String?
+  id        String          @id @default(cuid())
+  name      String
+  alias     String?
   // flags replaces role + isFounder + isLost — open array of permanent genealogical facts
-  flags      String[]        @default([])
-  style      String          @default("OTHER")
-  gender     CharacterGender @default(UNKNOWN)
-  generation Int             @default(0)
-  note       String?
-  posX       Float           @default(0)
-  posY       Float           @default(0)
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
+  flags     String[]        @default([])
+  style     String          @default("OTHER")
+  gender    CharacterGender @default(UNKNOWN)
+  note      String?
+  posX      Float           @default(0)
+  posY      Float           @default(0)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
   dynastyId String
   dynasty   Dynasty @relation(fields: [dynastyId], references: [id], onDelete: Cascade)

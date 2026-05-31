@@ -63,7 +63,6 @@ export default async function SharePage({
       style: char.style,
       gender: char.gender as CharacterGender,
       note: char.note ?? undefined,
-      generation: char.generation,
       isReadOnly: true,
     },
   }));

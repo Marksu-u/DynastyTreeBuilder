@@ -50,7 +50,6 @@ export const CharacterDataSchema = z.object({
   style: TokenSchema,
   gender: CharacterGenderSchema,
   note: z.string().optional(),
-  generation: z.number().int().min(0),
 });
 
 export const RelationshipDataSchema = z.object({
@@ -108,7 +107,6 @@ export const DynastyExportSchema = z.object({
       style: TokenSchema,
       gender: CharacterGenderSchema,
       note: z.string().nullable(),
-      generation: z.number().int().min(0),
       posX: z.number(),
       posY: z.number(),
     })

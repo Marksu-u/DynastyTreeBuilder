@@ -168,7 +168,6 @@ export async function exportDynasty(dynastyId: string): Promise<DynastyExport> {
       style: c.style,
       gender: c.gender,
       note: c.note,
-      generation: c.generation,
       posX: c.posX,
       posY: c.posY,
     })),

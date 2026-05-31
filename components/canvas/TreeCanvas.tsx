@@ -103,7 +103,6 @@ function TreeCanvasInner() {
         style: n.data.style,
         gender: n.data.gender,
         note: n.data.note ?? null,
-        generation: n.data.generation ?? 0,
         posX: n.position.x,
         posY: n.position.y,
       })),
@@ -147,7 +146,7 @@ function TreeCanvasInner() {
 
   const handleAddFromSidebar = useCallback(
     (name: string) => {
-      addCharacter({ name, flags: [], style: 'OTHER', gender: 'UNKNOWN', generation: 0 });
+      addCharacter({ name, flags: [], style: 'OTHER', gender: 'UNKNOWN' });
       toast.success(`${name} added to the dynasty`);
     },
     [addCharacter]

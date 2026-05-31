@@ -32,7 +32,6 @@ export async function createCharacter(
       style: validData.style,
       gender: validData.gender,
       note: validData.note,
-      generation: validData.generation,
       posX: validPos.x,
       posY: validPos.y,
     },
@@ -61,7 +60,6 @@ export async function updateCharacter(
       style: validData.style,
       gender: validData.gender,
       note: validData.note,
-      generation: validData.generation,
     },
   });
 }
