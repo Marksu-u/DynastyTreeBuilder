@@ -8,37 +8,16 @@ datasource db {
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
+// CharacterRole, CharacterStyle, RelationshipType, RelationshipTag were converted
+// to free-text String columns in migration open_catalog_columns to support
+// user-defined custom catalog values. The catalog defaults live in lib/catalog/.
+
 enum DynastySetting {
   FANTASY
   SCI_FI
   HISTORICAL
   MODERN
   HORROR
-  OTHER
-}
-
-enum CharacterRole {
-  HEIR
-  OPERATIVE
-  INFORMANT
-  SWORN_ENEMY
-  PATRIARCH
-  MATRIARCH
-  ALLY
-  RIVAL
-  ADVISOR
-  UNKNOWN
-  OTHER
-}
-
-enum CharacterStyle {
-  NOBLE
-  WARRIOR
-  MAGE
-  ROGUE
-  CLERIC
-  SCHOLAR
-  COMMONER
   OTHER
 }
 
@@ -49,41 +28,6 @@ enum CharacterGender {
   UNKNOWN
 }
 
-enum RelationshipType {
-  BLOOD
-  ADOPTED
-  ALLY
-  ENEMY
-  MARRIED
-  BETROTHED
-  MENTOR
-  RIVAL
-  UNKNOWN
-}
-
-enum RelationshipTag {
-  ESTRANGED
-  LOVER
-  RELUCTANT_DEBTOR
-  BETRAYER
-  PROTECTOR
-  RIVAL_HEIR
-  SECRET_CHILD
-  SWORN_ENEMY
-  UNLIKELY_ALLY
-  REDEEMED
-  FALLEN
-  EXILED
-  DECEASED
-  MISSING
-  CORRUPTED
-  CONFLICTED
-  DEVOTED
-  MANIPULATIVE
-  GRIEVING
-  NEUTRAL
-}
-
 enum NameStyle {
   FANTASY
   SCI_FI
@@ -91,6 +35,15 @@ enum NameStyle {
   MODERN
   HORROR
   OTHER
+}
+
+// CustomOptionKind: developer-controlled set of extendable catalog dimensions.
+// Users can add custom values within each kind, but new kinds are added by devs only.
+enum CustomOptionKind {
+  CHARACTER_ROLE
+  CHARACTER_STYLE
+  RELATIONSHIP_TYPE
+  RELATIONSHIP_TAG
 }
 
 enum AppSource {
@@ -122,6 +75,7 @@ model User {
 
   dynasties       Dynasty[]
   nameBankEntries CustomName[]
+  customOptions   CustomOption[]
 
   @@map("users")
 }
@@ -149,8 +103,9 @@ model Character {
   id         String          @id @default(cuid())
   name       String
   alias      String?
-  role       CharacterRole   @default(UNKNOWN)
-  style      CharacterStyle  @default(OTHER)
+  // role and style are open String columns; defaults are catalog tokens ("UNKNOWN", "OTHER")
+  role       String          @default("UNKNOWN")
+  style      String          @default("OTHER")
   gender     CharacterGender @default(UNKNOWN)
   generation Int             @default(0)
   isFounder  Boolean         @default(false)
@@ -172,13 +127,14 @@ model Character {
 }
 
 model Relationship {
-  id        String           @id @default(cuid())
-  type      RelationshipType @default(UNKNOWN)
-  tag       RelationshipTag?
+  id        String   @id @default(cuid())
+  // type and tag are open String columns; defaults are catalog tokens ("UNKNOWN", null)
+  type      String   @default("UNKNOWN")
+  tag       String?
   hook      String?
-  isMutual  Boolean          @default(false)
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  isMutual  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   dynastyId String
   dynasty   Dynasty @relation(fields: [dynastyId], references: [id], onDelete: Cascade)
@@ -200,7 +156,8 @@ model CustomName {
   name      String
   style     NameStyle       @default(FANTASY)
   gender    CharacterGender @default(UNKNOWN)
-  role      CharacterRole?
+  // role is now an open String so custom roles can be assigned to names
+  role      String?
   note      String?
   createdAt DateTime        @default(now())
 
@@ -209,6 +166,27 @@ model CustomName {
 
   @@index([userId])
   @@map("custom_names")
+}
+
+// User-authored catalog option — extends one of the four open CatalogKinds
+model CustomOption {
+  id          String           @id @default(cuid())
+  kind        CustomOptionKind
+  // Server-derived token from the label (e.g. "SPYMASTER"). Immutable after creation.
+  value       String
+  label       String
+  // Optional hex color (#RRGGBB) for canvas badge/edge rendering
+  color       String?
+  description String?
+  createdAt   DateTime         @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Prevent duplicate tokens per user per kind
+  @@unique([userId, kind, value])
+  @@index([userId])
+  @@map("custom_options")
 }
 
 model Report {

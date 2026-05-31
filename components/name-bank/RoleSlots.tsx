@@ -2,10 +2,9 @@
 
 import { WITHIN_ROLES, OUTSIDE_ROLES } from "@/lib/role-definitions";
 import { RoleCard } from "./RoleCard";
-import type { CharacterRole } from "@/types/canvas";
 
 interface Props {
-  onAddToCanvas?: (name: string, role: CharacterRole) => void;
+  onAddToCanvas?: (name: string, role: string) => void;
 }
 
 export function RoleSlots({ onAddToCanvas }: Props) {

@@ -3,43 +3,10 @@
 import { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import type { RelationshipData, RelationshipType, RelationshipTag } from '@/types/canvas';
+import type { RelationshipData } from '@/types/canvas';
 import type { RelationshipEdgeType } from '@/store/canvas';
-
-const REL_TYPES: { value: RelationshipType; label: string; desc: string }[] = [
-  { value: 'BLOOD',     label: 'Blood',     desc: 'Family by birth' },
-  { value: 'ADOPTED',   label: 'Adopted',   desc: 'Family by choice' },
-  { value: 'MARRIED',   label: 'Married',   desc: 'Bound by marriage' },
-  { value: 'BETROTHED', label: 'Betrothed', desc: 'Promised in marriage' },
-  { value: 'ALLY',      label: 'Ally',      desc: 'Political or tactical alliance' },
-  { value: 'ENEMY',     label: 'Enemy',     desc: 'Open conflict or enmity' },
-  { value: 'MENTOR',    label: 'Mentor',    desc: 'Teacher and student' },
-  { value: 'RIVAL',     label: 'Rival',     desc: 'Competing for the same goal' },
-  { value: 'UNKNOWN',   label: 'Unknown',   desc: 'Relationship unclear' },
-];
-
-const REL_TAGS: { value: RelationshipTag; label: string }[] = [
-  { value: 'ESTRANGED',       label: 'Estranged' },
-  { value: 'LOVER',           label: 'Lover' },
-  { value: 'RELUCTANT_DEBTOR',label: 'Reluctant Debtor' },
-  { value: 'BETRAYER',        label: 'Betrayer' },
-  { value: 'PROTECTOR',       label: 'Protector' },
-  { value: 'RIVAL_HEIR',      label: 'Rival Heir' },
-  { value: 'SECRET_CHILD',    label: 'Secret Child' },
-  { value: 'SWORN_ENEMY',     label: 'Sworn Enemy' },
-  { value: 'UNLIKELY_ALLY',   label: 'Unlikely Ally' },
-  { value: 'REDEEMED',        label: 'Redeemed' },
-  { value: 'FALLEN',          label: 'Fallen' },
-  { value: 'EXILED',          label: 'Exiled' },
-  { value: 'DECEASED',        label: 'Deceased' },
-  { value: 'MISSING',         label: 'Missing' },
-  { value: 'CORRUPTED',       label: 'Corrupted' },
-  { value: 'CONFLICTED',      label: 'Conflicted' },
-  { value: 'DEVOTED',         label: 'Devoted' },
-  { value: 'MANIPULATIVE',    label: 'Manipulative' },
-  { value: 'GRIEVING',        label: 'Grieving' },
-  { value: 'NEUTRAL',         label: 'Neutral' },
-];
+import { CatalogSelect } from './CatalogSelect';
+import { DEFAULT_CATALOG } from '@/lib/catalog';
 
 interface Props {
   open: boolean;
@@ -47,6 +14,8 @@ interface Props {
   edge?: RelationshipEdgeType;
   onSubmit: (data: Partial<RelationshipData>) => void;
   onDelete?: () => void;
+  /** When true, enables custom-option creation via the "+" button */
+  isLoggedIn?: boolean;
 }
 
 const EMPTY: RelationshipData = { type: 'UNKNOWN', isMutual: false };
@@ -54,8 +23,9 @@ const EMPTY: RelationshipData = { type: 'UNKNOWN', isMutual: false };
 const INPUT =
   'w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500';
 
-export function EditRelationshipPanel({ open, onOpenChange, edge, onSubmit, onDelete }: Props) {
+export function EditRelationshipPanel({ open, onOpenChange, edge, onSubmit, onDelete, isLoggedIn = false }: Props) {
   const [form, setForm] = useState<RelationshipData>(EMPTY);
+  const isCustomType = !DEFAULT_CATALOG.RELATIONSHIP_TYPE.some((t) => t.value === form.type);
 
   useEffect(() => {
     if (open) setForm(edge?.data ? { ...edge.data } : EMPTY);
@@ -85,17 +55,18 @@ export function EditRelationshipPanel({ open, onOpenChange, edge, onSubmit, onDe
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Structural Type — grid of built-in buttons + CatalogSelect for custom */}
             <div>
               <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                 Structural Type
               </label>
               <div className="grid grid-cols-3 gap-1.5">
-                {REL_TYPES.map((t) => (
+                {DEFAULT_CATALOG.RELATIONSHIP_TYPE.map((t) => (
                   <button
                     key={t.value}
                     type="button"
                     onClick={() => set('type', t.value)}
-                    title={t.desc}
+                    title={t.description}
                     className={[
                       'rounded-md border px-2 py-1.5 text-xs font-medium transition-colors',
                       form.type === t.value
@@ -107,24 +78,45 @@ export function EditRelationshipPanel({ open, onOpenChange, edge, onSubmit, onDe
                   </button>
                 ))}
               </div>
+              {/* Custom type picker: always visible when logged in, or when a custom type is set */}
+              {(isLoggedIn || isCustomType) && (
+                <div className="mt-2">
+                  <CatalogSelect
+                    kind="RELATIONSHIP_TYPE"
+                    value={form.type}
+                    onChange={(v) => set('type', v)}
+                    canCreate={isLoggedIn}
+                    className={INPUT}
+                  />
+                </div>
+              )}
             </div>
 
+            {/* Narrative Tag — CatalogSelect for logged-in, plain select for guests */}
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-400">
                 Narrative Tag
               </label>
-              <select
-                value={form.tag ?? ''}
-                onChange={(e) =>
-                  set('tag', (e.target.value as RelationshipTag) || undefined)
-                }
-                className={INPUT}
-              >
-                <option value="">— None —</option>
-                {REL_TAGS.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
+              {isLoggedIn ? (
+                <CatalogSelect
+                  kind="RELATIONSHIP_TAG"
+                  value={form.tag ?? ''}
+                  onChange={(v) => set('tag', v || undefined)}
+                  canCreate={true}
+                  className={INPUT}
+                />
+              ) : (
+                <select
+                  value={form.tag ?? ''}
+                  onChange={(e) => set('tag', e.target.value || undefined)}
+                  className={INPUT}
+                >
+                  <option value="">— None —</option>
+                  {DEFAULT_CATALOG.RELATIONSHIP_TAG.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>

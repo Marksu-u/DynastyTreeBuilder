@@ -1,62 +1,23 @@
+// CharacterRole, CharacterStyle, RelationshipType, RelationshipTag are now open
+// string types to support user-defined catalog values. The canonical default token
+// sets live in lib/catalog/ and are validated at runtime via TokenSchema.
+// CharacterGender, NameStyle, DynastySetting remain closed enums (not user-extensible).
+
 export type NameStyle = 'FANTASY' | 'SCI_FI' | 'HISTORICAL' | 'MODERN' | 'HORROR' | 'OTHER';
 
-export type CharacterRole =
-  | 'HEIR'
-  | 'OPERATIVE'
-  | 'INFORMANT'
-  | 'SWORN_ENEMY'
-  | 'PATRIARCH'
-  | 'MATRIARCH'
-  | 'ALLY'
-  | 'RIVAL'
-  | 'ADVISOR'
-  | 'UNKNOWN'
-  | 'OTHER';
+/** Open string — any SCREAMING_SNAKE_CASE token including custom user-defined roles */
+export type CharacterRole = string;
 
-export type CharacterStyle =
-  | 'NOBLE'
-  | 'WARRIOR'
-  | 'MAGE'
-  | 'ROGUE'
-  | 'CLERIC'
-  | 'SCHOLAR'
-  | 'COMMONER'
-  | 'OTHER';
+/** Open string — any SCREAMING_SNAKE_CASE token including custom user-defined styles */
+export type CharacterStyle = string;
 
 export type CharacterGender = 'MALE' | 'FEMALE' | 'NON_BINARY' | 'UNKNOWN';
 
-export type RelationshipType =
-  | 'BLOOD'
-  | 'ADOPTED'
-  | 'ALLY'
-  | 'ENEMY'
-  | 'MARRIED'
-  | 'BETROTHED'
-  | 'MENTOR'
-  | 'RIVAL'
-  | 'UNKNOWN';
+/** Open string — any SCREAMING_SNAKE_CASE token including custom user-defined types */
+export type RelationshipType = string;
 
-export type RelationshipTag =
-  | 'ESTRANGED'
-  | 'LOVER'
-  | 'RELUCTANT_DEBTOR'
-  | 'BETRAYER'
-  | 'PROTECTOR'
-  | 'RIVAL_HEIR'
-  | 'SECRET_CHILD'
-  | 'SWORN_ENEMY'
-  | 'UNLIKELY_ALLY'
-  | 'REDEEMED'
-  | 'FALLEN'
-  | 'EXILED'
-  | 'DECEASED'
-  | 'MISSING'
-  | 'CORRUPTED'
-  | 'CONFLICTED'
-  | 'DEVOTED'
-  | 'MANIPULATIVE'
-  | 'GRIEVING'
-  | 'NEUTRAL';
+/** Open string — any SCREAMING_SNAKE_CASE token including custom user-defined tags */
+export type RelationshipTag = string;
 
 // Both interfaces include [key: string]: unknown to satisfy @xyflow/react's Node<T> constraint.
 // Named property types still resolve correctly for known keys.

@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export const IdSchema = z.string().min(1, "ID is required");
 
+// ─── Closed enum schemas (never user-extended) ───────────────────────────────
+
 export const DynastySettingSchema = z.enum([
   "FANTASY", "SCI_FI", "HISTORICAL", "MODERN", "HORROR", "OTHER",
 ]);
@@ -10,29 +12,31 @@ export const NameStyleSchema = z.enum([
   "FANTASY", "SCI_FI", "HISTORICAL", "MODERN", "HORROR", "OTHER",
 ]);
 
-export const CharacterRoleSchema = z.enum([
-  "HEIR", "OPERATIVE", "INFORMANT", "SWORN_ENEMY", "PATRIARCH",
-  "MATRIARCH", "ALLY", "RIVAL", "ADVISOR", "UNKNOWN", "OTHER",
-]);
-
-export const CharacterStyleSchema = z.enum([
-  "NOBLE", "WARRIOR", "MAGE", "ROGUE", "CLERIC", "SCHOLAR", "COMMONER", "OTHER",
-]);
-
 export const CharacterGenderSchema = z.enum([
   "MALE", "FEMALE", "NON_BINARY", "UNKNOWN",
 ]);
 
-export const RelationshipTypeSchema = z.enum([
-  "BLOOD", "ADOPTED", "ALLY", "ENEMY", "MARRIED", "BETROTHED", "MENTOR", "RIVAL", "UNKNOWN",
-]);
+// ─── Open token schemas (user-extensible catalog values) ─────────────────────
 
-export const RelationshipTagSchema = z.enum([
-  "ESTRANGED", "LOVER", "RELUCTANT_DEBTOR", "BETRAYER", "PROTECTOR",
-  "RIVAL_HEIR", "SECRET_CHILD", "SWORN_ENEMY", "UNLIKELY_ALLY", "REDEEMED",
-  "FALLEN", "EXILED", "DECEASED", "MISSING", "CORRUPTED", "CONFLICTED",
-  "DEVOTED", "MANIPULATIVE", "GRIEVING", "NEUTRAL",
-]);
+/**
+ * Validates a catalog token: SCREAMING_SNAKE_CASE, 1–40 chars.
+ * Accepts both default tokens ("HEIR", "BLOOD") and user-created ones ("SPYMASTER").
+ */
+export const TokenSchema = z
+  .string()
+  .trim()
+  .min(1, "Token is required")
+  .max(40, "Token is too long")
+  .regex(/^[A-Z0-9_]+$/, "Token must be uppercase letters, digits, or underscores");
+
+// Legacy named exports for compatibility with any code that still references these.
+// They now accept any valid token string, not just the built-in set.
+export const CharacterRoleSchema = TokenSchema;
+export const CharacterStyleSchema = TokenSchema;
+export const RelationshipTypeSchema = TokenSchema;
+export const RelationshipTagSchema = TokenSchema;
+
+// ─── Domain schemas ───────────────────────────────────────────────────────────
 
 export const PositionSchema = z.object({
   x: z.number(),
@@ -42,8 +46,8 @@ export const PositionSchema = z.object({
 export const CharacterDataSchema = z.object({
   name: z.string().min(1, "Name is required"),
   alias: z.string().optional(),
-  role: CharacterRoleSchema,
-  style: CharacterStyleSchema,
+  role: TokenSchema,
+  style: TokenSchema,
   gender: CharacterGenderSchema,
   note: z.string().optional(),
   isFounder: z.boolean(),
@@ -52,8 +56,8 @@ export const CharacterDataSchema = z.object({
 });
 
 export const RelationshipDataSchema = z.object({
-  type: RelationshipTypeSchema,
-  tag: RelationshipTagSchema.optional(),
+  type: TokenSchema,
+  tag: TokenSchema.optional(),
   hook: z.string().optional(),
   isMutual: z.boolean(),
 });
@@ -68,9 +72,30 @@ export const CustomNameInputSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   style: NameStyleSchema,
   gender: CharacterGenderSchema,
-  role: CharacterRoleSchema.optional(),
+  role: TokenSchema.optional(),
   note: z.string().trim().optional(),
 });
+
+// ─── Custom catalog option schema ─────────────────────────────────────────────
+
+export const CustomOptionKindSchema = z.enum([
+  "CHARACTER_ROLE",
+  "CHARACTER_STYLE",
+  "RELATIONSHIP_TYPE",
+  "RELATIONSHIP_TAG",
+]);
+
+export const CustomOptionInputSchema = z.object({
+  kind: CustomOptionKindSchema,
+  label: z.string().trim().min(1, "Label is required").max(40, "Label is too long"),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Color must be a hex value (#RRGGBB)")
+    .optional(),
+  description: z.string().trim().max(500).optional(),
+});
+
+// ─── Export / import schema ───────────────────────────────────────────────────
 
 export const DynastyExportSchema = z.object({
   version: z.literal(1),
@@ -85,8 +110,8 @@ export const DynastyExportSchema = z.object({
       id: z.string(),
       name: z.string(),
       alias: z.string().nullable(),
-      role: CharacterRoleSchema,
-      style: CharacterStyleSchema,
+      role: TokenSchema,
+      style: TokenSchema,
       gender: CharacterGenderSchema,
       note: z.string().nullable(),
       isFounder: z.boolean(),
@@ -101,8 +126,8 @@ export const DynastyExportSchema = z.object({
       id: z.string(),
       fromId: z.string(),
       toId: z.string(),
-      type: RelationshipTypeSchema,
-      tag: RelationshipTagSchema.nullable(),
+      type: TokenSchema,
+      tag: TokenSchema.nullable(),
       hook: z.string().nullable(),
       isMutual: z.boolean(),
     })

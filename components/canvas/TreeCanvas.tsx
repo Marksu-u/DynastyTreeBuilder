@@ -15,20 +15,22 @@ import { triggerJsonDownload } from '@/lib/export';
 import { useCanvasStore } from '@/store/canvas';
 import { CharacterNode } from '@/components/canvas/CharacterNode';
 import { RelationshipEdge } from '@/components/canvas/RelationshipEdge';
-import { Toolbar } from '@/components/canvas/Toolbar';
+import { Toolbar, type SidebarPanel } from '@/components/canvas/Toolbar';
 import { AddCharacterPanel } from '@/components/canvas/AddCharacterPanel';
 import { EditRelationshipPanel } from '@/components/canvas/EditRelationshipPanel';
+import { CatalogProvider } from '@/components/canvas/CatalogProvider';
+import { CanvasContext } from '@/components/canvas/CanvasContext';
 import { NameBank } from '@/components/name-bank/NameBank';
 import { RoleSlots } from '@/components/name-bank/RoleSlots';
 import { RelationshipTagsPanel } from '@/components/name-bank/RelationshipTagsPanel';
-import type { CharacterData, CharacterRole, RelationshipData } from '@/types/canvas';
+import type { CharacterData, RelationshipData } from '@/types/canvas';
 import type { RelationshipEdgeType } from '@/store/canvas';
 
 // Defined outside component to avoid recreating on every render
 const nodeTypes = { character: CharacterNode } as const;
 const edgeTypes = { relationship: RelationshipEdge } as const;
 
-export function TreeCanvas() {
+function TreeCanvasInner() {
   const nodes = useCanvasStore((s) => s.nodes);
   const edges = useCanvasStore((s) => s.edges);
   const onNodesChange = useCanvasStore((s) => s.onNodesChange);
@@ -51,7 +53,7 @@ export function TreeCanvas() {
   const toggleGrid = useCanvasStore((s) => s.toggleGrid);
 
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
-  const [sidebar, setSidebar] = useState<'names' | 'roles' | 'tags' | null>(null);
+  const [sidebar, setSidebar] = useState<SidebarPanel | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const { fitView } = useReactFlow();
@@ -125,7 +127,7 @@ export function TreeCanvas() {
 
   const usedNames = useMemo(() => nodes.map((n) => n.data.name), [nodes]);
 
-  const handleToggleSidebar = useCallback((panel: 'names' | 'roles' | 'tags') => {
+  const handleToggleSidebar = useCallback((panel: SidebarPanel) => {
     setSidebar((current) => (current === panel ? null : panel));
   }, []);
 
@@ -148,7 +150,7 @@ export function TreeCanvas() {
   );
 
   const handleAddFromSidebar = useCallback(
-    (name: string, role: CharacterRole = 'UNKNOWN') => {
+    (name: string, role: string = 'UNKNOWN') => {
       addCharacter({ name, role, style: 'OTHER', gender: 'UNKNOWN', isFounder: false, isLost: false, generation: 0 });
       toast.success(`${name} added to the dynasty`);
     },
@@ -201,40 +203,41 @@ export function TreeCanvas() {
   );
 
   return (
-    <div className="flex h-full w-full">
+    <CanvasContext.Provider value={{ setEditingCharacterId }}>
+      <div className="flex h-full w-full">
       <div ref={containerRef} className="relative flex-1 min-w-0 h-full">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={handleConnect}
-        onEdgeClick={handleEdgeClick}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        connectionMode={ConnectionMode.Loose}
-        colorMode="dark"
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
-        deleteKeyCode={['Backspace', 'Delete']}
-        className="bg-zinc-950"
-        proOptions={{ hideAttribution: false }}
-      >
-        {gridVisible && (
-          <Background
-            variant={BackgroundVariant.Dots}
-            color="#3f3f46"
-            size={1.5}
-            gap={20}
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={handleConnect}
+          onEdgeClick={handleEdgeClick}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          connectionMode={ConnectionMode.Loose}
+          colorMode="dark"
+          fitView
+          fitViewOptions={{ padding: 0.2 }}
+          deleteKeyCode={['Backspace', 'Delete']}
+          className="bg-zinc-950"
+          proOptions={{ hideAttribution: false }}
+        >
+          {gridVisible && (
+            <Background
+              variant={BackgroundVariant.Dots}
+              color="#3f3f46"
+              size={1.5}
+              gap={20}
+            />
+          )}
+          <Controls
+            showInteractive={false}
+            className="!bottom-4 !left-auto !right-4 !top-auto"
           />
-        )}
-        <Controls
-          showInteractive={false}
-          className="!bottom-4 !left-auto !right-4 !top-auto"
-        />
-      </ReactFlow>
+        </ReactFlow>
 
-      <Toolbar
+        <Toolbar
           onAddCharacter={() => setAddCharacterOpen(true)}
           gridVisible={gridVisible}
           onToggleGrid={toggleGrid}
@@ -246,49 +249,50 @@ export function TreeCanvas() {
           onToggleSidebar={handleToggleSidebar}
           onExport={handleExport}
           onExportJson={handleExportJson}
+          showCustomOptions={false}
         />
 
-      {nodes.length === 0 && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-2xl font-semibold text-zinc-700">Your dynasty awaits</p>
-            <p className="mt-1 text-sm text-zinc-600">
-              Click <span className="text-zinc-500">Add Character</span> in the toolbar to begin
-            </p>
+        {nodes.length === 0 && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-2xl font-semibold text-zinc-700">Your dynasty awaits</p>
+              <p className="mt-1 text-sm text-zinc-600">
+                Click <span className="text-zinc-500">Add Character</span> in the toolbar to begin
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Add new character */}
-      <AddCharacterPanel
-        key="add"
-        open={addCharacterOpen}
-        onOpenChange={setAddCharacterOpen}
-        onSubmit={handleAddCharacter}
-      />
-
-      {/* Edit existing character */}
-      {editingCharacterId && (
         <AddCharacterPanel
-          key="edit"
-          open={true}
-          onOpenChange={(open) => { if (!open) setEditingCharacterId(null); }}
-          character={editingCharacter}
-          onSubmit={handleUpdateCharacter}
-          onDelete={handleDeleteCharacter}
+          key="add"
+          open={addCharacterOpen}
+          onOpenChange={setAddCharacterOpen}
+          onSubmit={handleAddCharacter}
+          isLoggedIn={false}
         />
-      )}
 
-      {/* Edit relationship */}
-      {editingEdgeId && (
-        <EditRelationshipPanel
-          open={true}
-          onOpenChange={(open) => { if (!open) setEditingEdgeId(null); }}
-          edge={editingEdge}
-          onSubmit={handleUpdateRelationship}
-          onDelete={handleDeleteRelationship}
-        />
-      )}
+        {editingCharacterId && (
+          <AddCharacterPanel
+            key="edit"
+            open={true}
+            onOpenChange={(open) => { if (!open) setEditingCharacterId(null); }}
+            character={editingCharacter}
+            onSubmit={handleUpdateCharacter}
+            onDelete={handleDeleteCharacter}
+            isLoggedIn={false}
+          />
+        )}
+
+        {editingEdgeId && (
+          <EditRelationshipPanel
+            open={true}
+            onOpenChange={(open) => { if (!open) setEditingEdgeId(null); }}
+            edge={editingEdge}
+            onSubmit={handleUpdateRelationship}
+            onDelete={handleDeleteRelationship}
+            isLoggedIn={false}
+          />
+        )}
       </div>
 
       {sidebar === 'names' && (
@@ -305,5 +309,19 @@ export function TreeCanvas() {
         <RelationshipTagsPanel />
       )}
     </div>
+    </CanvasContext.Provider>
+  );
+}
+
+/**
+ * TreeCanvas wraps its inner component in CatalogProvider (isLoggedIn=false)
+ * so CharacterNode and RelationshipEdge can call useCatalog().
+ * Guests see default catalog options only — no custom creation.
+ */
+export function TreeCanvas() {
+  return (
+    <CatalogProvider isLoggedIn={false}>
+      <TreeCanvasInner />
+    </CatalogProvider>
   );
 }

@@ -4,8 +4,10 @@ import { useRef, useState, useEffect } from "react";
 import { useReactFlow } from "@xyflow/react";
 import {
   Plus, Maximize2, Grid3X3, Undo2, Redo2,
-  BookOpen, Swords, Download, ChevronDown, Link2,
+  BookOpen, Swords, Download, ChevronDown, Link2, Settings2,
 } from "lucide-react";
+
+export type SidebarPanel = 'names' | 'roles' | 'tags' | 'custom';
 
 interface Props {
   onAddCharacter: () => void;
@@ -15,10 +17,12 @@ interface Props {
   canRedo?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
-  activeSidebar?: 'names' | 'roles' | 'tags' | null;
-  onToggleSidebar?: (panel: 'names' | 'roles' | 'tags') => void;
+  activeSidebar?: SidebarPanel | null;
+  onToggleSidebar?: (panel: SidebarPanel) => void;
   onExport?: () => void;
   onExportJson?: () => void;
+  /** When true, shows the "Custom options" panel toggle */
+  showCustomOptions?: boolean;
 }
 
 export function Toolbar({
@@ -33,6 +37,7 @@ export function Toolbar({
   onToggleSidebar,
   onExport,
   onExportJson,
+  showCustomOptions = false,
 }: Props) {
   const { fitView } = useReactFlow();
   const [exportOpen, setExportOpen] = useState(false);
@@ -144,6 +149,20 @@ export function Toolbar({
           >
             <Link2 size={14} />
           </button>
+          {showCustomOptions && (
+            <button
+              onClick={() => onToggleSidebar('custom')}
+              className={[
+                "rounded p-1.5 transition-colors",
+                activeSidebar === 'custom'
+                  ? "bg-zinc-800 text-zinc-200"
+                  : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300",
+              ].join(" ")}
+              title="My custom options"
+            >
+              <Settings2 size={14} />
+            </button>
+          )}
         </>
       )}
 

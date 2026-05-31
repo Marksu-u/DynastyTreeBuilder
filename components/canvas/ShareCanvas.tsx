@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CharacterNode } from "./CharacterNode";
 import { RelationshipEdge } from "./RelationshipEdge";
 import { ReportButton } from "./ReportButton";
+import { CatalogProvider } from "./CatalogProvider";
 import "@xyflow/react/dist/style.css";
 import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
 
@@ -20,6 +21,7 @@ type Props = {
 
 export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
   return (
+    <CatalogProvider isLoggedIn={false}>
     <div className="relative h-full w-full">
       <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2">
         <div className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/90 px-4 py-1.5 text-xs text-zinc-400 backdrop-blur-sm">
@@ -61,5 +63,6 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
         />
       </ReactFlow>
     </div>
+    </CatalogProvider>
   );
 }

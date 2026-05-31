@@ -5,39 +5,16 @@ import { Shuffle, Plus, Copy, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { NAME_BANK } from "@/lib/name-bank";
 import type { RoleDefinition } from "@/lib/role-definitions";
-import type { CharacterRole, RelationshipTag } from "@/types/canvas";
-
-const TAG_LABELS: Partial<Record<RelationshipTag, string>> = {
-  DEVOTED: "devoted",
-  MANIPULATIVE: "manipulative",
-  GRIEVING: "grieving",
-  PROTECTOR: "protector",
-  CONFLICTED: "conflicted",
-  RIVAL_HEIR: "rival heir",
-  FALLEN: "fallen",
-  BETRAYER: "betrayer",
-  RELUCTANT_DEBTOR: "reluctant debtor",
-  EXILED: "exiled",
-  MISSING: "missing",
-  UNLIKELY_ALLY: "unlikely ally",
-  ESTRANGED: "estranged",
-  CORRUPTED: "corrupted",
-  SWORN_ENEMY: "sworn enemy",
-  SECRET_CHILD: "secret child",
-  NEUTRAL: "neutral",
-  REDEEMED: "redeemed",
-  LOVER: "lover",
-  DECEASED: "deceased",
-};
+import { resolveOption } from "@/lib/catalog";
 
 interface Props {
   definition: RoleDefinition;
-  onAddToCanvas?: (name: string, role: CharacterRole) => void;
+  onAddToCanvas?: (name: string, role: string) => void;
 }
 
 type Suggestion = { name: string; added: boolean };
 
-function pickSuggestion(role: CharacterRole): string {
+function pickSuggestion(role: string): string {
   const matching = NAME_BANK.filter((n) => n.role === role);
   const pool = matching.length > 0 ? matching : NAME_BANK;
   return pool[Math.floor(Math.random() * pool.length)].name;
@@ -74,7 +51,7 @@ export function RoleCard({ definition, onAddToCanvas }: Props) {
             key={tag}
             className="rounded px-1.5 py-0.5 text-[10px] font-medium bg-zinc-700/40 text-zinc-400"
           >
-            {TAG_LABELS[tag] ?? tag.toLowerCase()}
+            {resolveOption('RELATIONSHIP_TAG', tag).label.toLowerCase()}
           </span>
         ))}
       </div>

@@ -8,44 +8,10 @@ import {
   Edge,
   getBezierPath,
 } from '@xyflow/react';
-import type { RelationshipData, RelationshipType, RelationshipTag } from '@/types/canvas';
+import type { RelationshipData } from '@/types/canvas';
+import { useCatalog } from './CatalogProvider';
 
 export type RelationshipEdgeType = Edge<RelationshipData, 'relationship'>;
-
-const EDGE_STYLES: Record<RelationshipType, React.CSSProperties> = {
-  BLOOD:    { stroke: '#a1a1aa', strokeWidth: 2 },
-  ADOPTED:  { stroke: '#60a5fa', strokeWidth: 2, strokeDasharray: '6 4' },
-  MARRIED:  { stroke: '#fb7185', strokeWidth: 2 },
-  BETROTHED:{ stroke: '#fda4af', strokeWidth: 1.5, strokeDasharray: '4 4' },
-  ALLY:     { stroke: '#4ade80', strokeWidth: 1.5, strokeDasharray: '3 3' },
-  ENEMY:    { stroke: '#f87171', strokeWidth: 2 },
-  MENTOR:   { stroke: '#818cf8', strokeWidth: 2 },
-  RIVAL:    { stroke: '#fb923c', strokeWidth: 2, strokeDasharray: '5 3' },
-  UNKNOWN:  { stroke: '#52525b', strokeWidth: 1.5 },
-};
-
-const TAG_LABELS: Partial<Record<RelationshipTag, string>> = {
-  ESTRANGED: 'estranged',
-  LOVER: 'lover',
-  RELUCTANT_DEBTOR: 'reluctant debtor',
-  BETRAYER: 'betrayer',
-  PROTECTOR: 'protector',
-  RIVAL_HEIR: 'rival heir',
-  SECRET_CHILD: 'secret child',
-  SWORN_ENEMY: 'sworn enemy',
-  UNLIKELY_ALLY: 'unlikely ally',
-  REDEEMED: 'redeemed',
-  FALLEN: 'fallen',
-  EXILED: 'exiled',
-  DECEASED: 'deceased',
-  MISSING: 'missing',
-  CORRUPTED: 'corrupted',
-  CONFLICTED: 'conflicted',
-  DEVOTED: 'devoted',
-  MANIPULATIVE: 'manipulative',
-  GRIEVING: 'grieving',
-  NEUTRAL: 'neutral',
-};
 
 export const RelationshipEdge = memo(({
   id,
@@ -62,14 +28,27 @@ export const RelationshipEdge = memo(({
     sourcePosition, targetPosition,
   });
 
+  const { resolve } = useCatalog();
+
   const relType = data?.type ?? 'UNKNOWN';
+  const typeOption = resolve('RELATIONSHIP_TYPE', relType);
+
+  // For custom types with a hex color, derive edge color from it
+  const customStroke = typeOption.isCustom && typeOption.color?.startsWith('#')
+    ? typeOption.color
+    : undefined;
+
   const style: React.CSSProperties = {
-    ...EDGE_STYLES[relType],
+    ...(customStroke
+      ? { stroke: customStroke, strokeWidth: 1.5 }
+      : typeOption.edgeStyle),
     opacity: selected ? 1 : 0.7,
     filter: selected ? 'drop-shadow(0 0 4px currentColor)' : undefined,
   };
 
-  const tagLabel = data?.tag ? TAG_LABELS[data.tag] : null;
+  const tagLabel = data?.tag
+    ? resolve('RELATIONSHIP_TAG', data.tag).label.toLowerCase()
+    : null;
 
   return (
     <>

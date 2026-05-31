@@ -2,8 +2,10 @@
 
 import { toast } from "sonner";
 import { Copy, Plus, Star, Trash2 } from "lucide-react";
-import type { CharacterRole, CharacterGender, NameStyle } from "@/types/canvas";
+import type { CharacterGender, NameStyle } from "@/types/canvas";
+import { resolveOption } from "@/lib/catalog";
 
+// NameStyle (genre: Fantasy / Sci-Fi / …) is a closed enum, not in the catalog
 const STYLE_LABELS: Record<NameStyle, string> = {
   FANTASY: "Fantasy",
   SCI_FI: "Sci-Fi",
@@ -13,6 +15,7 @@ const STYLE_LABELS: Record<NameStyle, string> = {
   OTHER: "Other",
 };
 
+// CharacterGender is a closed enum, not in the catalog
 const GENDER_LABELS: Record<CharacterGender, string> = {
   MALE: "M",
   FEMALE: "F",
@@ -20,23 +23,11 @@ const GENDER_LABELS: Record<CharacterGender, string> = {
   UNKNOWN: "?",
 };
 
-const ROLE_LABELS: Partial<Record<CharacterRole, string>> = {
-  HEIR: "Heir",
-  PATRIARCH: "Patriarch",
-  MATRIARCH: "Matriarch",
-  OPERATIVE: "Operative",
-  INFORMANT: "Informant",
-  SWORN_ENEMY: "Enemy",
-  ALLY: "Ally",
-  RIVAL: "Rival",
-  ADVISOR: "Advisor",
-};
-
 interface Props {
   name: string;
   style: NameStyle;
   gender: CharacterGender;
-  role?: CharacterRole | null;
+  role?: string | null;
   note?: string | null;
   isUsed?: boolean;
   isCustom?: boolean;
@@ -51,6 +42,10 @@ export function NameCard({
     navigator.clipboard.writeText(name);
     toast.success(`Copied: ${name}`);
   }
+
+  // Only show a role badge for specific named roles — suppress UNKNOWN / OTHER
+  const hideRole = !role || role === 'UNKNOWN' || role === 'OTHER';
+  const roleLabel = hideRole ? null : resolveOption('CHARACTER_ROLE', role).label;
 
   return (
     <div
@@ -77,7 +72,7 @@ export function NameCard({
           <div className="mt-1.5 flex flex-wrap gap-1">
             <Badge>{STYLE_LABELS[style]}</Badge>
             <Badge>{GENDER_LABELS[gender]}</Badge>
-            {role && ROLE_LABELS[role] && <Badge>{ROLE_LABELS[role]}</Badge>}
+            {roleLabel && <Badge>{roleLabel}</Badge>}
             {isUsed && <Badge className="text-zinc-600">On canvas</Badge>}
           </div>
         </div>

@@ -4,36 +4,28 @@ import { memo } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { Pencil } from 'lucide-react';
 import { useCanvasStore } from '@/store/canvas';
-import type { CharacterData, CharacterRole } from '@/types/canvas';
+import type { CharacterData } from '@/types/canvas';
+import { useCatalog } from './CatalogProvider';
+import { DEFAULT_BADGE } from '@/lib/catalog';
+import { useCanvasContext } from './CanvasContext';
 
 type CharacterNodeType = Node<CharacterData, 'character'>;
-
-const ROLE_COLORS: Record<CharacterRole, string> = {
-  HEIR:        'bg-amber-500/20 text-amber-300 border-amber-500/40',
-  PATRIARCH:   'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
-  MATRIARCH:   'bg-rose-500/20 text-rose-300 border-rose-500/40',
-  OPERATIVE:   'bg-blue-500/20 text-blue-300 border-blue-500/40',
-  INFORMANT:   'bg-purple-500/20 text-purple-300 border-purple-500/40',
-  SWORN_ENEMY: 'bg-red-500/20 text-red-300 border-red-500/40',
-  ALLY:        'bg-green-500/20 text-green-300 border-green-500/40',
-  RIVAL:       'bg-orange-500/20 text-orange-300 border-orange-500/40',
-  ADVISOR:     'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
-  UNKNOWN:     'bg-zinc-700/50 text-zinc-400 border-zinc-600/40',
-  OTHER:       'bg-zinc-700/50 text-zinc-400 border-zinc-600/40',
-};
-
-const ROLE_LABELS: Record<CharacterRole, string> = {
-  HEIR: 'Heir', PATRIARCH: 'Patriarch', MATRIARCH: 'Matriarch',
-  OPERATIVE: 'Operative', INFORMANT: 'Informant', SWORN_ENEMY: 'Sworn Enemy',
-  ALLY: 'Ally', RIVAL: 'Rival', ADVISOR: 'Advisor',
-  UNKNOWN: 'Unknown', OTHER: 'Other',
-};
 
 const HANDLE_STYLE =
   '!w-3 !h-3 !bg-zinc-600 !border-2 !border-zinc-500 hover:!bg-blue-400 hover:!border-blue-400 transition-colors';
 
 export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNodeType>) => {
-  const setEditingCharacterId = useCanvasStore((s) => s.setEditingCharacterId);
+  const canvasCtx = useCanvasContext();
+  const setEditingCharacterIdStore = useCanvasStore((s) => s.setEditingCharacterId);
+  const setEditingCharacterId = canvasCtx ? canvasCtx.setEditingCharacterId : setEditingCharacterIdStore;
+  const { resolve } = useCatalog();
+
+  // resolves default AND custom role options; falls back gracefully for deleted customs
+  const roleOption = resolve('CHARACTER_ROLE', data.role);
+
+  // For custom options, color is a hex string (#RRGGBB); for built-ins, Tailwind classes.
+  // If the color starts with '#', apply it as inline styles rather than Tailwind classes.
+  const isHexColor = roleOption.color?.startsWith('#');
 
   return (
     <div
@@ -54,7 +46,7 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold leading-tight text-zinc-100">{data.name}</p>
           {data.alias && (
-            <p className="truncate text-[11px] italic text-zinc-400">"{data.alias}"</p>
+            <p className="truncate text-[11px] italic text-zinc-400">&quot;{data.alias}&quot;</p>
           )}
         </div>
         {!data.isReadOnly && (
@@ -72,14 +64,29 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
       </div>
 
       <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-        <span
-          className={[
-            'inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium',
-            ROLE_COLORS[data.role],
-          ].join(' ')}
-        >
-          {ROLE_LABELS[data.role]}
-        </span>
+        {isHexColor ? (
+          // Custom option with hex color: use inline styles
+          <span
+            className="inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium"
+            style={{
+              backgroundColor: roleOption.color + '33',
+              borderColor: roleOption.color + '66',
+              color: roleOption.color,
+            }}
+          >
+            {roleOption.label}
+          </span>
+        ) : (
+          // Built-in option with Tailwind badge classes
+          <span
+            className={[
+              'inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium',
+              roleOption.color ?? DEFAULT_BADGE,
+            ].join(' ')}
+          >
+            {roleOption.label}
+          </span>
+        )}
         <span className="inline-flex items-center rounded border border-zinc-600/30 bg-zinc-700/40 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">
           Gen {data.generation ?? 0}
         </span>
@@ -92,7 +99,7 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
 
       {data.style !== 'OTHER' && (
         <p className="mt-1 text-[10px] capitalize text-zinc-500">
-          {data.style.toLowerCase()}
+          {data.style.toLowerCase().replace(/_/g, ' ')}
         </p>
       )}
     </div>

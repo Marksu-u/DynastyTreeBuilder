@@ -3,34 +3,12 @@
 import { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import type { CharacterData, CharacterRole, CharacterStyle, CharacterGender } from '@/types/canvas';
+import type { CharacterData, CharacterGender } from '@/types/canvas';
 import type { CharacterNodeType } from '@/store/canvas';
+import { CatalogSelect } from './CatalogSelect';
+import { useCatalog } from './CatalogProvider';
 
-const ROLES: { value: CharacterRole; label: string }[] = [
-  { value: 'HEIR',        label: 'Heir' },
-  { value: 'PATRIARCH',   label: 'Patriarch' },
-  { value: 'MATRIARCH',   label: 'Matriarch' },
-  { value: 'OPERATIVE',   label: 'Operative' },
-  { value: 'INFORMANT',   label: 'Informant' },
-  { value: 'SWORN_ENEMY', label: 'Sworn Enemy' },
-  { value: 'ALLY',        label: 'Ally' },
-  { value: 'RIVAL',       label: 'Rival' },
-  { value: 'ADVISOR',     label: 'Advisor' },
-  { value: 'UNKNOWN',     label: 'Unknown' },
-  { value: 'OTHER',       label: 'Other' },
-];
-
-const STYLES: { value: CharacterStyle; label: string }[] = [
-  { value: 'NOBLE',    label: 'Noble' },
-  { value: 'WARRIOR',  label: 'Warrior' },
-  { value: 'MAGE',     label: 'Mage' },
-  { value: 'ROGUE',    label: 'Rogue' },
-  { value: 'CLERIC',   label: 'Cleric' },
-  { value: 'SCHOLAR',  label: 'Scholar' },
-  { value: 'COMMONER', label: 'Commoner' },
-  { value: 'OTHER',    label: 'Other' },
-];
-
+// Gender options stay fixed — CharacterGender is a closed enum (out of catalog scope)
 const GENDERS: { value: CharacterGender; label: string }[] = [
   { value: 'MALE',       label: 'Male' },
   { value: 'FEMALE',     label: 'Female' },
@@ -44,6 +22,8 @@ interface Props {
   character?: CharacterNodeType;
   onSubmit: (data: CharacterData) => void;
   onDelete?: () => void;
+  /** Pass true when inside a logged-in canvas (enables "+ Add custom" in selects) */
+  isLoggedIn?: boolean;
 }
 
 const EMPTY: CharacterData = {
@@ -55,7 +35,7 @@ const EMPTY: CharacterData = {
 const INPUT =
   'w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500';
 
-export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onDelete }: Props) {
+export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onDelete, isLoggedIn = false }: Props) {
   const [form, setForm] = useState<CharacterData>(EMPTY);
   const isEdit = !!character;
 
@@ -77,6 +57,8 @@ export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onD
 
   const set = <K extends keyof CharacterData>(key: K, value: CharacterData[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  const SELECT_CLS = INPUT;
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -120,23 +102,23 @@ export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onD
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-400">Role</label>
-                <select
+                <CatalogSelect
+                  kind="CHARACTER_ROLE"
                   value={form.role}
-                  onChange={(e) => set('role', e.target.value as CharacterRole)}
-                  className={INPUT}
-                >
-                  {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </select>
+                  onChange={(v) => set('role', v)}
+                  canCreate={isLoggedIn}
+                  className={SELECT_CLS}
+                />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-400">Style</label>
-                <select
+                <CatalogSelect
+                  kind="CHARACTER_STYLE"
                   value={form.style}
-                  onChange={(e) => set('style', e.target.value as CharacterStyle)}
-                  className={INPUT}
-                >
-                  {STYLES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
+                  onChange={(v) => set('style', v)}
+                  canCreate={isLoggedIn}
+                  className={SELECT_CLS}
+                />
               </div>
             </div>
 
