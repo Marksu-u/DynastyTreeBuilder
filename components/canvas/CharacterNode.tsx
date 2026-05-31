@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
-import { Pencil } from 'lucide-react';
+import { Pencil, Skull } from 'lucide-react';
 import { useCanvasStore } from '@/store/canvas';
 import type { CharacterData } from '@/types/canvas';
 import { useCatalog } from './CatalogProvider';
@@ -34,7 +34,7 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
         selected
           ? 'border-blue-400 ring-2 ring-blue-400/20'
           : 'border-zinc-700 hover:border-zinc-600',
-        data.isLost ? 'opacity-50' : '',
+        '',
       ].join(' ')}
     >
       <Handle type="source" position={Position.Top}    id="top"    className={HANDLE_STYLE} />
@@ -90,6 +90,26 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
         <span className="inline-flex items-center rounded border border-zinc-600/30 bg-zinc-700/40 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">
           Gen {data.generation ?? 0}
         </span>
+        {data.gender && data.gender !== 'UNKNOWN' && (
+          <span
+            className={[
+              'inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium',
+              data.gender === 'MALE'
+                ? 'bg-[#E6F1FB] border-[#0C447C]/30 text-[#0C447C]'
+                : data.gender === 'FEMALE'
+                  ? 'bg-[#FBEAF0] border-[#72243E]/30 text-[#72243E]'
+                  : 'bg-[#F1EFE8] border-[#444441]/30 text-[#444441]',
+            ].join(' ')}
+          >
+            {data.gender === 'MALE' ? 'M' : data.gender === 'FEMALE' ? 'F' : 'NB'}
+          </span>
+        )}
+        {data.isLost && (
+          <span className="inline-flex items-center gap-0.5 rounded border border-red-800/40 bg-red-900/30 px-1.5 py-0.5 text-[10px] font-medium text-red-400">
+            <Skull size={9} />
+            Dead
+          </span>
+        )}
         {data.isFounder && (
           <span className="text-[9px] font-medium uppercase tracking-wide text-amber-400">
             ◆ Founder
