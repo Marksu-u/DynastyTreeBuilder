@@ -3,11 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { DynastyPageClient } from "@/components/canvas/DynastyPageClient";
-import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
+import type { CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
 import type {
   CharacterFlag,
   CharacterGender,
-  RelationshipType,
+  LegacyRelationshipType,
 } from "@/types/canvas";
 
 export async function generateMetadata({
@@ -64,13 +64,13 @@ export default async function DynastyPage({
     },
   }));
 
-  const edges: RelationshipEdgeType[] = dynasty.relationships.map((rel) => ({
+  const edges: LegacyEdgeType[] = dynasty.relationships.map((rel) => ({
     id: rel.id,
     type: "relationship" as const,
     source: rel.fromId,
     target: rel.toId,
     data: {
-      type: rel.type as RelationshipType,
+      type: rel.type as LegacyRelationshipType,
       hook: rel.hook ?? undefined,
       isMutual: rel.isMutual,
     },

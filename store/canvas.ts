@@ -5,7 +5,7 @@ import {
   Node, Edge, Connection, NodeChange, EdgeChange,
   applyNodeChanges, applyEdgeChanges,
 } from '@xyflow/react';
-import type { CharacterData, RelationshipData, UnionData } from '@/types/canvas';
+import type { CharacterData, RelationshipData, UnionData, LegacyRelationshipType } from '@/types/canvas';
 import { migrateCanvas } from '@/lib/migrate-canvas';
 import { tidyTree } from '@/lib/tidy-tree';
 
@@ -13,6 +13,8 @@ export type CharacterNodeType = Node<CharacterData, 'character'>;
 export type UnionNodeType = Node<UnionData, 'union'>;
 export type AnyCanvasNode = CharacterNodeType | UnionNodeType;
 export type RelationshipEdgeType = Edge<RelationshipData, 'relationship'>;
+/** Edge type used at server→client boundaries before migrateCanvas runs. */
+export type LegacyEdgeType = Edge<Omit<RelationshipData, 'type'> & { type: LegacyRelationshipType }, 'relationship'>;
 
 type Snapshot = { nodes: AnyCanvasNode[]; edges: RelationshipEdgeType[] };
 

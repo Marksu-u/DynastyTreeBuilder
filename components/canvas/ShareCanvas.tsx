@@ -7,7 +7,7 @@ import { RelationshipEdge } from "./RelationshipEdge";
 import { ReportButton } from "./ReportButton";
 import { CatalogProvider } from "./CatalogProvider";
 import "@xyflow/react/dist/style.css";
-import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
+import type { CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
 
 const nodeTypes = { character: CharacterNode } as const;
 const edgeTypes = { relationship: RelationshipEdge } as const;
@@ -16,7 +16,7 @@ type Props = {
   dynastyName: string;
   shareSlug: string;
   nodes: CharacterNodeType[];
-  edges: RelationshipEdgeType[];
+  edges: LegacyEdgeType[];
 };
 
 export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {

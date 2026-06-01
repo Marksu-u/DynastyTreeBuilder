@@ -16,12 +16,12 @@ interface Props {
 }
 
 const TYPES: { value: RelationshipType; label: string; description: string }[] = [
-  { value: 'PARENT',  label: 'Parent / Child', description: 'Direct parent-child line' },
-  { value: 'SPOUSE',  label: 'Spouse',          description: 'Married or partnered' },
-  { value: 'ADOPTED', label: 'Adopted',         description: 'Brought in by choice' },
+  { value: 'PARTNER',       label: 'Partner',       description: 'Married or partnered' },
+  { value: 'CHILD',         label: 'Parent / Child', description: 'Direct parent-child line' },
+  { value: 'ADOPTED_CHILD', label: 'Adopted',        description: 'Brought in by choice' },
 ];
 
-const EMPTY: RelationshipData = { type: 'PARENT', isMutual: false };
+const EMPTY: RelationshipData = { type: 'PARTNER', isMutual: false };
 
 const INPUT =
   'w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500';

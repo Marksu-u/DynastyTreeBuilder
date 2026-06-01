@@ -34,7 +34,7 @@ import {
   deleteRelationship,
 } from "@/app/actions/relationship";
 import type { CharacterData, RelationshipData } from "@/types/canvas";
-import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
+import type { CharacterNodeType, RelationshipEdgeType, LegacyEdgeType } from "@/store/canvas";
 import { Users } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { UnionNode } from './UnionNode';
@@ -52,7 +52,7 @@ type Props = {
   dynastyId: string;
   dynastyName: string;
   initialNodes: CharacterNodeType[];
-  initialEdges: RelationshipEdgeType[];
+  initialEdges: LegacyEdgeType[];
   userId?: string;
 };
 
@@ -65,7 +65,7 @@ export function DynastyCanvas({
 }: Props) {
   const isLoggedIn = !!userId;
   const migrated = useMemo(
-    () => migrateCanvas(initialNodes as never, initialEdges),
+    () => migrateCanvas(initialNodes as never, initialEdges as never),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
