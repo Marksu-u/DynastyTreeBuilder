@@ -22,6 +22,8 @@ export const CharacterFlagSchema = z.enum([
 
 export const RelationshipTypeSchema = z.enum([
   "PARENT", "SPOUSE", "ADOPTED",
+  // Client-side union model types — stored as-is in DB for round-trip
+  "PARTNER", "CHILD", "ADOPTED_CHILD",
 ]);
 
 // ─── Open token schema (user-extensible catalog values) ───────────────────────

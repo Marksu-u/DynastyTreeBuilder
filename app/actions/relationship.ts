@@ -73,3 +73,57 @@ export async function deleteRelationship(
     where: { id: validId, dynasty: { id: validDynastyId, ownerId: user.id } },
   });
 }
+
+export async function createFamily(
+  dynastyId: string,
+  parentIds: string[],
+  childIds: string[],
+  adoptedIds: string[],
+): Promise<{ relationships: { id: string; fromId: string; toId: string; type: string }[] }> {
+  const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
+  const validDynastyId = IdSchema.parse(dynastyId);
+
+  const dynasty = await prisma.dynasty.findFirst({
+    where: { id: validDynastyId, ownerId: user.id },
+    select: { id: true },
+  });
+  if (!dynasty) throw new Error("Dynasty not found");
+
+  const pairEdges: { fromId: string; toId: string; type: string }[] = [];
+
+  // Spouse edge (if 2 parents)
+  if (parentIds.length === 2) {
+    pairEdges.push({ fromId: parentIds[0], toId: parentIds[1], type: 'SPOUSE' });
+  }
+
+  // Parent → child edges (one per parent per child)
+  for (const parentId of parentIds) {
+    for (const childId of childIds) {
+      pairEdges.push({ fromId: parentId, toId: childId, type: 'PARENT' });
+    }
+    for (const adoptedId of adoptedIds) {
+      pairEdges.push({ fromId: parentId, toId: adoptedId, type: 'ADOPTED' });
+    }
+  }
+
+  const created = await prisma.$transaction(
+    pairEdges.map(e =>
+      prisma.relationship.create({
+        data: {
+          dynastyId: validDynastyId,
+          fromId: e.fromId,
+          toId: e.toId,
+          type: e.type,
+          isMutual: false,
+        },
+      })
+    )
+  );
+
+  return {
+    relationships: created.map(r => ({
+      id: r.id, fromId: r.fromId, toId: r.toId, type: r.type,
+    })),
+  };
+}
