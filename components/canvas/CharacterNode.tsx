@@ -26,6 +26,7 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
   const flags = data.flags ?? [];
 
   const isDeceased = flags.includes('DECEASED');
+  const isGhost = data.isGhost ?? false;
   const isFounder  = flags.includes('FOUNDER');
   const isBastard  = flags.includes('BASTARD');
   const isAdopted  = flags.includes('ADOPTED');
@@ -54,7 +55,13 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
           ? ''
           : 'border border-zinc-700 hover:border-zinc-600',
       ].join(' ')}
-      style={isDeceased ? { opacity: 0.45, filter: 'grayscale(0.5)' } : undefined}
+      style={
+        isGhost
+          ? { opacity: 0.4, filter: 'grayscale(1)' }
+          : isDeceased
+          ? { opacity: 0.45, filter: 'grayscale(0.5)' }
+          : undefined
+      }
     >
       {/* SVG dashed border — follows border-radius on all four sides */}
       {hasSvgBorder && (
@@ -94,7 +101,9 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
             {isBastard && (
               <span className="flex-shrink-0 h-[7px] w-[7px] rounded-full bg-[#EF9F27]" />
             )}
-            <p className="truncate text-sm font-semibold leading-tight text-zinc-100">{data.name}</p>
+            <p className={`truncate text-sm font-semibold leading-tight ${isGhost ? 'text-zinc-500 italic' : 'text-zinc-100'}`}>
+              {isGhost ? 'Unknown' : data.name}
+            </p>
             {data.gender === 'MALE' && (
               <span className="flex-shrink-0 text-[12px] leading-none text-[#0C447C]">♂</span>
             )}
@@ -114,7 +123,7 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
           )}
         </div>
 
-        {!data.isReadOnly && (
+        {!data.isReadOnly && !isGhost && (
           <button
             onClick={(e) => { e.stopPropagation(); setEditingCharacterId(id); }}
             className="nodrag flex-shrink-0 rounded p-0.5 text-zinc-500 transition-colors hover:bg-zinc-700 hover:text-zinc-300"
