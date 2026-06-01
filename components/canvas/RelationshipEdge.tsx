@@ -12,6 +12,10 @@ import type { RelationshipData } from '@/types/canvas';
 export type RelationshipEdgeType = Edge<RelationshipData, 'relationship'>;
 
 const EDGE_STYLES: Record<string, React.CSSProperties> = {
+  PARTNER:       { stroke: '#888780', strokeWidth: 1 },
+  CHILD:         { stroke: '#534AB7', strokeWidth: 1.5 },
+  ADOPTED_CHILD: { stroke: '#0F6E56', strokeWidth: 1.5, strokeDasharray: '4 3' },
+  // Legacy — shown during migration window
   PARENT:  { stroke: '#534AB7', strokeWidth: 1.5 },
   SPOUSE:  { stroke: '#888780', strokeWidth: 1 },
   ADOPTED: { stroke: '#0F6E56', strokeWidth: 1, strokeDasharray: '4 3' },
@@ -34,7 +38,7 @@ export const RelationshipEdge = memo(({
     sourcePosition, targetPosition,
   });
 
-  const relType = data?.type ?? 'PARENT';
+  const relType = data?.type ?? 'CHILD';
   const baseStyle = EDGE_STYLES[relType] ?? FALLBACK_STYLE;
 
   const style: React.CSSProperties = {
