@@ -80,6 +80,6 @@ function makeEdge(source: string, target: string, type: string): AnyEdge {
     type: 'relationship',
     source,
     target,
-    data: { type: type as never, isMutual: false },
+    data: { type: type as RelationshipData['type'], isMutual: false },
   };
 }
