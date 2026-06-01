@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import { useReactFlow } from "@xyflow/react";
 import {
   Plus, Maximize2, Grid3X3, Undo2, Redo2,
-  BookOpen, Download, ChevronDown, Settings2,
+  BookOpen, Download, ChevronDown, Settings2, Users, GitFork,
 } from "lucide-react";
 
 export type SidebarPanel = 'names' | 'custom';
@@ -23,6 +23,8 @@ interface Props {
   onExportJson?: () => void;
   /** When true, shows the "Custom options" panel toggle */
   showCustomOptions?: boolean;
+  onCreateFamily?: () => void;
+  onTidyTree?: () => void;
 }
 
 export function Toolbar({
@@ -38,6 +40,8 @@ export function Toolbar({
   onExport,
   onExportJson,
   showCustomOptions = false,
+  onCreateFamily,
+  onTidyTree,
 }: Props) {
   const { fitView } = useReactFlow();
   const [exportOpen, setExportOpen] = useState(false);
@@ -66,6 +70,17 @@ export function Toolbar({
         <Plus size={14} />
         Add Character
       </button>
+
+      {onCreateFamily && (
+        <button
+          onClick={onCreateFamily}
+          className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-sm font-medium text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+          title="Create a family unit"
+        >
+          <Users size={14} />
+          Family
+        </button>
+      )}
 
       <div className="mx-0.5 h-5 w-px bg-zinc-700" />
 
@@ -109,6 +124,19 @@ export function Toolbar({
       >
         <Redo2 size={14} />
       </button>
+
+      {onTidyTree && (
+        <>
+          <div className="mx-0.5 h-5 w-px bg-zinc-700" />
+          <button
+            onClick={onTidyTree}
+            className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+            title="Auto-arrange tree"
+          >
+            <GitFork size={14} />
+          </button>
+        </>
+      )}
 
       {onToggleSidebar && (
         <>
