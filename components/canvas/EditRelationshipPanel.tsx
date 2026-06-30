@@ -80,7 +80,7 @@ export function EditRelationshipPanel({ open, onOpenChange, edge, onSubmit, onDe
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">Story Hook</label>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">Notes</label>
               <textarea
                 value={form.hook ?? ''}
                 onChange={(e) => set('hook', e.target.value || undefined)}

@@ -110,7 +110,7 @@ export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onD
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-400">Style</label>
+                <label className="mb-1 block text-xs font-medium text-zinc-400">Role</label>
                 <CatalogSelect
                   kind="CHARACTER_STYLE"
                   value={form.style}
@@ -132,7 +132,7 @@ export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onD
             </div>
 
             <div>
-              <label className="mb-2 block text-xs font-medium text-zinc-400">Status flags</label>
+              <label className="mb-2 block text-xs font-medium text-zinc-400">Traits</label>
               <div className="flex flex-wrap gap-2">
                 {CHARACTER_FLAGS.map(({ value, label }) => (
                   <label key={value} className="flex cursor-pointer items-center gap-1.5 text-sm text-zinc-300">
@@ -149,7 +149,7 @@ export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onD
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-zinc-400">Note</label>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">Notes</label>
               <textarea
                 value={form.note ?? ''}
                 onChange={(e) => set('note', e.target.value)}
