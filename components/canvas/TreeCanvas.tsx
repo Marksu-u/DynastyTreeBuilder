@@ -22,6 +22,7 @@ import { ConnectionPopup } from '@/components/canvas/ConnectionPopup';
 import { FamilyBuilderPanel } from '@/components/canvas/FamilyBuilderPanel';
 import { CatalogProvider } from '@/components/canvas/CatalogProvider';
 import { CanvasContext } from '@/components/canvas/CanvasContext';
+import { CanvasEmptyState } from '@/components/canvas/CanvasEmptyState';
 import { NameBank } from '@/components/name-bank/NameBank';
 import type { CharacterData, RelationshipData } from '@/types/canvas';
 
@@ -257,14 +258,7 @@ function TreeCanvasInner() {
           />
 
           {characterNodes.length === 0 && (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-2xl font-semibold text-zinc-700">Your dynasty awaits</p>
-                <p className="mt-1 text-sm text-zinc-600">
-                  Click <span className="text-zinc-500">Add Character</span> in the toolbar to begin
-                </p>
-              </div>
-            </div>
+            <CanvasEmptyState onAddCharacter={() => setAddCharacterOpen(true)} />
           )}
 
           {pendingConnection && (
