@@ -90,6 +90,33 @@ export const CustomOptionInputSchema = z.object({
   description: z.string().trim().max(500).optional(),
 });
 
+// ─── Guest → account import schema ────────────────────────────────────────────
+// The guest canvas persists React Flow nodes/edges to localStorage (union-node
+// model). Extra runtime fields (measured, selected, …) are tolerated via loose
+// objects; character/edge data is coerced defensively in the import action.
+
+const GuestNodeSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  position: z.object({ x: z.number(), y: z.number() }),
+  data: z.record(z.string(), z.unknown()).default({}),
+});
+
+const GuestEdgeSchema = z.object({
+  id: z.string(),
+  source: z.string(),
+  target: z.string(),
+  data: z.object({ type: z.string() }).loose().optional(),
+});
+
+export const GuestSnapshotSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100, "Name is too long"),
+  nodes: z.array(GuestNodeSchema),
+  edges: z.array(GuestEdgeSchema),
+});
+
+export type GuestSnapshot = z.infer<typeof GuestSnapshotSchema>;
+
 // ─── Export / import schema ───────────────────────────────────────────────────
 
 export const DynastyExportSchema = z.object({
