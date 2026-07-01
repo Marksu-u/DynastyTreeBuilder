@@ -4,7 +4,8 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto max-w-2xl px-4 py-16 text-sm text-zinc-300">
+    <main className="min-h-screen bg-zinc-950">
+    <div className="mx-auto max-w-2xl px-4 py-16 text-sm text-zinc-300">
       <h1 className="mb-2 text-2xl font-bold text-zinc-100">Privacy Policy</h1>
       <p className="mb-8 text-zinc-500">Last updated: May 2026</p>
 
@@ -113,6 +114,7 @@ export default function PrivacyPage() {
           ← Back to Dynasty Tree Builder
         </a>
       </div>
+    </div>
     </main>
   );
 }

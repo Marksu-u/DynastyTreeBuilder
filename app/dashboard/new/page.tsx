@@ -14,7 +14,7 @@ const SETTINGS = [
 ] as const;
 
 const INPUT =
-  "w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-100 placeholder-zinc-600 focus:border-indigo-500 focus:outline-none text-sm";
+  "w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-500 text-sm";
 
 export default function NewDynastyPage() {
   const [state, action, isPending] = useActionState(createDynasty, null);
@@ -68,7 +68,7 @@ export default function NewDynastyPage() {
             <button
               type="submit"
               disabled={isPending}
-              className="flex-1 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+              className="flex-1 rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 transition-colors hover:bg-white disabled:opacity-50"
             >
               {isPending ? "Creating…" : "Create Dynasty"}
             </button>

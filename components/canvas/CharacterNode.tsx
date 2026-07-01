@@ -9,8 +9,17 @@ import type { CharacterData } from '@/types/canvas';
 
 type CharacterNodeType = Node<CharacterData, 'character'>;
 
+// Quiet by default (small, muted, low opacity); full size + amber accent on
+// hover, on an active connection drag (connectingfrom/connectingto), or when
+// the card is selected (selectedClass, applied conditionally below) — so
+// touch/keyboard users can reach handles by selecting the card first.
 const HANDLE_STYLE =
-  '!w-3 !h-3 !bg-zinc-600 !border-2 !border-zinc-500 hover:!bg-blue-400 hover:!border-blue-400 transition-colors';
+  '!w-2 !h-2 !bg-zinc-600 !border !border-zinc-600 !opacity-40 transition-all duration-150 ' +
+  'hover:!opacity-100 hover:!w-3 hover:!h-3 hover:!bg-accent hover:!border-accent ' +
+  '[&.connectingfrom]:!opacity-100 [&.connectingfrom]:!w-3 [&.connectingfrom]:!h-3 [&.connectingfrom]:!bg-accent [&.connectingfrom]:!border-accent ' +
+  '[&.connectingto]:!opacity-100 [&.connectingto]:!w-3 [&.connectingto]:!h-3 [&.connectingto]:!bg-accent [&.connectingto]:!border-accent';
+
+const HANDLE_STYLE_SELECTED = HANDLE_STYLE + ' !opacity-100 !w-3 !h-3 !bg-accent !border-accent';
 
 // Rect inset by half-stroke so the stroke sits exactly on the card edge.
 // rx matches rounded-lg (8px) minus the inset (0.75px).
@@ -55,13 +64,7 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
           ? ''
           : 'border border-zinc-700 hover:border-zinc-600',
       ].join(' ')}
-      style={
-        isGhost
-          ? { opacity: 0.4, filter: 'grayscale(1)' }
-          : isDeceased
-          ? { opacity: 0.45, filter: 'grayscale(0.5)' }
-          : undefined
-      }
+      style={isGhost ? { opacity: 0.4, filter: 'grayscale(1)' } : undefined}
     >
       {/* SVG dashed border — follows border-radius on all four sides */}
       {hasSvgBorder && (
@@ -87,10 +90,10 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
         </svg>
       )}
 
-      <Handle type="source" position={Position.Top}    id="top"    className={HANDLE_STYLE} />
-      <Handle type="source" position={Position.Left}   id="left"   className={HANDLE_STYLE} />
-      <Handle type="source" position={Position.Right}  id="right"  className={HANDLE_STYLE} />
-      <Handle type="source" position={Position.Bottom} id="bottom" className={HANDLE_STYLE} />
+      <Handle type="source" position={Position.Top}    id="top"    className={selected ? HANDLE_STYLE_SELECTED : HANDLE_STYLE} />
+      <Handle type="source" position={Position.Left}   id="left"   className={selected ? HANDLE_STYLE_SELECTED : HANDLE_STYLE} />
+      <Handle type="source" position={Position.Right}  id="right"  className={selected ? HANDLE_STYLE_SELECTED : HANDLE_STYLE} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className={selected ? HANDLE_STYLE_SELECTED : HANDLE_STYLE} />
 
       <div className="flex items-start justify-between gap-1">
         <div className="min-w-0 flex-1">
@@ -101,20 +104,31 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
             {isBastard && (
               <span className="flex-shrink-0 h-[7px] w-[7px] rounded-full bg-[#EF9F27]" />
             )}
-            <p className={`truncate text-sm font-semibold leading-tight ${isGhost ? 'text-zinc-500 italic' : 'text-zinc-100'}`}>
+            <p
+              className={`truncate text-sm font-semibold leading-tight ${
+                isGhost
+                  ? 'text-zinc-500 italic'
+                  : isDeceased
+                  ? 'text-zinc-400 line-through decoration-zinc-500'
+                  : 'text-zinc-100'
+              }`}
+            >
               {isGhost ? 'Unknown' : data.name}
             </p>
             {data.gender === 'MALE' && (
-              <span className="flex-shrink-0 text-[12px] leading-none text-[#0C447C]">♂</span>
+              <span className="flex-shrink-0 text-[14px] leading-none text-[#4DA3FF]">♂</span>
             )}
             {data.gender === 'FEMALE' && (
-              <span className="flex-shrink-0 text-[12px] leading-none text-[#72243E]">♀</span>
+              <span className="flex-shrink-0 text-[14px] leading-none text-[#FF6FA5]">♀</span>
             )}
             {data.gender === 'NON_BINARY' && (
-              <span className="flex-shrink-0 text-[11px] leading-none text-zinc-400">⚧</span>
+              <span className="flex-shrink-0 text-[13px] leading-none text-[#C9A8FF]">⚧</span>
+            )}
+            {data.gender === 'UNKNOWN' && (
+              <span className="flex-shrink-0 text-[12px] font-bold leading-none text-zinc-500">?</span>
             )}
             {isDeceased && (
-              <Skull size={11} className="flex-shrink-0 text-[#777]" />
+              <Skull size={12} className="flex-shrink-0 text-zinc-300" />
             )}
           </div>
 

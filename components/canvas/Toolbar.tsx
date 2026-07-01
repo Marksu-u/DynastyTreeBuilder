@@ -4,10 +4,10 @@ import { useRef, useState, useEffect } from "react";
 import { useReactFlow } from "@xyflow/react";
 import {
   Plus, Maximize2, Grid3X3, Undo2, Redo2,
-  BookOpen, Download, ChevronDown, Settings2, Users, GitFork,
+  Download, ChevronDown, Settings2, GitFork,
 } from "lucide-react";
 
-export type SidebarPanel = 'names' | 'custom';
+export type SidebarPanel = 'custom';
 
 interface Props {
   onAddCharacter: () => void;
@@ -23,7 +23,6 @@ interface Props {
   onExportJson?: () => void;
   /** When true, shows the "Custom options" panel toggle */
   showCustomOptions?: boolean;
-  onCreateFamily?: () => void;
   onTidyTree?: () => void;
 }
 
@@ -40,7 +39,6 @@ export function Toolbar({
   onExport,
   onExportJson,
   showCustomOptions = false,
-  onCreateFamily,
   onTidyTree,
 }: Props) {
   const { fitView } = useReactFlow();
@@ -70,17 +68,6 @@ export function Toolbar({
         <Plus size={14} />
         Add Character
       </button>
-
-      {onCreateFamily && (
-        <button
-          onClick={onCreateFamily}
-          className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-sm font-medium text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
-          title="Create a family unit"
-        >
-          <Users size={14} />
-          Family
-        </button>
-      )}
 
       <div className="mx-0.5 h-5 w-px bg-zinc-700" />
 
@@ -138,35 +125,21 @@ export function Toolbar({
         </>
       )}
 
-      {onToggleSidebar && (
+      {showCustomOptions && onToggleSidebar && (
         <>
           <div className="mx-0.5 h-5 w-px bg-zinc-700" />
           <button
-            onClick={() => onToggleSidebar('names')}
+            onClick={() => onToggleSidebar('custom')}
             className={[
               "rounded p-1.5 transition-colors",
-              activeSidebar === 'names'
+              activeSidebar === 'custom'
                 ? "bg-zinc-800 text-zinc-200"
                 : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300",
             ].join(" ")}
-            title="Name bank"
+            title="My custom options"
           >
-            <BookOpen size={14} />
+            <Settings2 size={14} />
           </button>
-          {showCustomOptions && (
-            <button
-              onClick={() => onToggleSidebar('custom')}
-              className={[
-                "rounded p-1.5 transition-colors",
-                activeSidebar === 'custom'
-                  ? "bg-zinc-800 text-zinc-200"
-                  : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300",
-              ].join(" ")}
-              title="My custom options"
-            >
-              <Settings2 size={14} />
-            </button>
-          )}
         </>
       )}
 

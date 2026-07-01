@@ -15,15 +15,13 @@ import type { AnyCanvasNode, CharacterNodeType, RelationshipEdgeType } from '@/s
 import { CharacterNode } from '@/components/canvas/CharacterNode';
 import { UnionNode } from '@/components/canvas/UnionNode';
 import { RelationshipEdge } from '@/components/canvas/RelationshipEdge';
-import { Toolbar, type SidebarPanel } from '@/components/canvas/Toolbar';
+import { Toolbar } from '@/components/canvas/Toolbar';
 import { AddCharacterPanel } from '@/components/canvas/AddCharacterPanel';
 import { EditRelationshipPanel } from '@/components/canvas/EditRelationshipPanel';
 import { ConnectionPopup } from '@/components/canvas/ConnectionPopup';
-import { FamilyBuilderPanel } from '@/components/canvas/FamilyBuilderPanel';
 import { CatalogProvider } from '@/components/canvas/CatalogProvider';
 import { CanvasContext } from '@/components/canvas/CanvasContext';
 import { CanvasEmptyState } from '@/components/canvas/CanvasEmptyState';
-import { NameBank } from '@/components/name-bank/NameBank';
 import type { CharacterData, RelationshipData } from '@/types/canvas';
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
@@ -60,8 +58,6 @@ function TreeCanvasInner() {
   const toggleGrid = useCanvasStore(s => s.toggleGrid);
 
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
-  const [familyBuilderOpen, setFamilyBuilderOpen] = useState(false);
-  const [sidebar, setSidebar] = useState<SidebarPanel | null>(null);
   const [pendingConnection, setPendingConnection] = useState<PendingConnection | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -71,8 +67,6 @@ function TreeCanvasInner() {
     () => nodes.filter((n): n is CharacterNodeType => n.type === 'character'),
     [nodes]
   );
-
-  const usedNames = useMemo(() => characterNodes.map(n => n.data.name), [characterNodes]);
 
   const editingCharacter = useMemo(
     () => characterNodes.find(n => n.id === editingCharacterId),
@@ -133,7 +127,7 @@ function TreeCanvasInner() {
     if (!sourceNode || !targetNode || sourceNode.type !== 'character') return;
 
     if (targetNode.type === 'union') {
-      toast('To add a member to this union, use the Family Builder (toolbar)', { duration: 3500 });
+      toast('Connect directly to a person in this union instead', { duration: 3500 });
       return;
     }
 
@@ -156,7 +150,7 @@ function TreeCanvasInner() {
 
     if (choice === 'partner') {
       addUnion({ parentIds: [source, target], childIds: [], adoptedIds: [] });
-      toast.success('Union created — add children via Family Builder or drag');
+      toast.success('Union created — drag a connection to add children');
     } else if (choice === 'child') {
       addUnion({ parentIds: [source], childIds: [target], adoptedIds: [] });
       toast.success('Parent → child link created');
@@ -166,23 +160,9 @@ function TreeCanvasInner() {
     }
   }, [pendingConnection, addUnion]);
 
-  const handleAddUnionFromBuilder = useCallback((params: {
-    parentIds: string[];
-    childIds: string[];
-    adoptedIds: string[];
-  }) => {
-    addUnion({ parentIds: params.parentIds, childIds: params.childIds, adoptedIds: params.adoptedIds });
-    toast.success('Family unit created');
-  }, [addUnion]);
-
   const handleAddCharacter = useCallback((data: CharacterData) => {
     addCharacter(data);
     toast.success(`${data.name} added to the dynasty`);
-  }, [addCharacter]);
-
-  const handleAddFromSidebar = useCallback((name: string) => {
-    addCharacter({ name, flags: [], style: 'OTHER', gender: 'UNKNOWN' });
-    toast.success(`${name} added`);
   }, [addCharacter]);
 
   const handleUpdateCharacter = useCallback((data: CharacterData) => {
@@ -242,7 +222,6 @@ function TreeCanvasInner() {
 
           <Toolbar
             onAddCharacter={() => setAddCharacterOpen(true)}
-            onCreateFamily={() => setFamilyBuilderOpen(true)}
             onTidyTree={tidyTreeAction}
             gridVisible={gridVisible}
             onToggleGrid={toggleGrid}
@@ -250,8 +229,6 @@ function TreeCanvasInner() {
             canRedo={canRedo}
             onUndo={undo}
             onRedo={redo}
-            activeSidebar={sidebar}
-            onToggleSidebar={panel => setSidebar(p => p === panel ? null : panel)}
             onExport={handleExport}
             onExportJson={handleExportJson}
             showCustomOptions={false}
@@ -300,22 +277,7 @@ function TreeCanvasInner() {
               isLoggedIn={false}
             />
           )}
-
-          <FamilyBuilderPanel
-            open={familyBuilderOpen}
-            onOpenChange={setFamilyBuilderOpen}
-            characters={characterNodes}
-            onSubmit={handleAddUnionFromBuilder}
-          />
         </div>
-
-        {sidebar === 'names' && (
-          <NameBank
-            usedNames={usedNames}
-            onAddToCanvas={handleAddFromSidebar}
-            isLoggedIn={false}
-          />
-        )}
       </div>
     </CanvasContext.Provider>
   );

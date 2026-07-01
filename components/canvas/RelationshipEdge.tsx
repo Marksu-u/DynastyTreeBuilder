@@ -36,6 +36,7 @@ export const RelationshipEdge = memo(({
   const [edgePath] = getSmoothStepPath({
     sourceX, sourceY, targetX, targetY,
     sourcePosition, targetPosition,
+    borderRadius: 0,
   });
 
   const relType = data?.type ?? 'CHILD';

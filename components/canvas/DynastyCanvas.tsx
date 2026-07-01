@@ -19,7 +19,6 @@ import { RelationshipEdge } from "./RelationshipEdge";
 import { Toolbar, type SidebarPanel } from "./Toolbar";
 import { AddCharacterPanel } from "./AddCharacterPanel";
 import { EditRelationshipPanel } from "./EditRelationshipPanel";
-import { NameBank } from "@/components/name-bank/NameBank";
 import { CanvasContext } from "./CanvasContext";
 import { CustomOptionsPanel } from "@/components/name-bank/CustomOptionsPanel";
 import {
@@ -38,7 +37,6 @@ import type { CharacterNodeType, RelationshipEdgeType, LegacyEdgeType } from "@/
 import { CanvasEmptyState } from "@/components/canvas/CanvasEmptyState";
 import { UnionNode } from './UnionNode';
 import { ConnectionPopup } from './ConnectionPopup';
-import { FamilyBuilderPanel } from './FamilyBuilderPanel';
 import type { UnionNodeType, AnyCanvasNode } from '@/store/canvas';
 import { migrateCanvas } from '@/lib/migrate-canvas';
 import { tidyTree } from '@/lib/tidy-tree';
@@ -71,7 +69,6 @@ export function DynastyCanvas({
   const [nodes, setNodes] = useState<AnyCanvasNode[]>(migrated.nodes as AnyCanvasNode[]);
   const [edges, setEdges] = useState<RelationshipEdgeType[]>(migrated.edges);
   const [pendingConnection, setPendingConnection] = useState<{ source: string; target: string; screenX: number; screenY: number } | null>(null);
-  const [familyBuilderOpen, setFamilyBuilderOpen] = useState(false);
   const [gridVisible, setGridVisible] = useState(true);
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
@@ -87,8 +84,6 @@ export function DynastyCanvas({
     () => nodes.filter((n): n is CharacterNodeType => n.type === 'character'),
     [nodes]
   );
-  const usedNames = useMemo(() => characterNodes.map((n) => n.data.name), [characterNodes]);
-
   const editingCharacter = useMemo(
     () => characterNodes.find((n) => n.id === editingCharacterId),
     [characterNodes, editingCharacterId]
@@ -174,35 +169,6 @@ export function DynastyCanvas({
       toast.error('Failed to save family link');
     }
   }, [pendingConnection, nodes, dynastyId]);
-
-  const handleAddUnionFromBuilder = useCallback(async (params: { parentIds: string[]; childIds: string[]; adoptedIds: string[] }) => {
-    const unionId = crypto.randomUUID();
-    const parents = params.parentIds.map(id => nodes.find(n => n.id === id)).filter(Boolean) as AnyCanvasNode[];
-    const unionPos = parents.length >= 2
-      ? { x: (parents[0].position.x + parents[1].position.x) / 2, y: Math.max(parents[0].position.y, parents[1].position.y) + 40 }
-      : parents.length === 1
-      ? { x: parents[0].position.x, y: parents[0].position.y + 80 }
-      : { x: 200, y: 200 };
-
-    const unionNode: UnionNodeType = { id: unionId, type: 'union', position: unionPos, data: {} };
-    const newEdges: RelationshipEdgeType[] = [
-      ...params.parentIds.map(pid => ({ id: crypto.randomUUID(), type: 'relationship' as const, source: pid, target: unionId, data: { type: 'PARTNER' as const, isMutual: false } })),
-      ...params.childIds.map(cid => ({ id: crypto.randomUUID(), type: 'relationship' as const, source: unionId, target: cid, data: { type: 'CHILD' as const, isMutual: false } })),
-      ...params.adoptedIds.map(cid => ({ id: crypto.randomUUID(), type: 'relationship' as const, source: unionId, target: cid, data: { type: 'ADOPTED_CHILD' as const, isMutual: false } })),
-    ];
-
-    setNodes(nds => [...nds, unionNode]);
-    setEdges(eds => [...eds, ...newEdges]);
-
-    try {
-      await createFamily(dynastyId, params.parentIds, params.childIds, params.adoptedIds);
-      toast.success('Family unit created');
-    } catch {
-      setNodes(nds => nds.filter(n => n.id !== unionId));
-      setEdges(eds => eds.filter(e => !newEdges.some(ne => ne.id === e.id)));
-      toast.error('Failed to save family unit');
-    }
-  }, [nodes, dynastyId]);
 
   const handleTidyTree = useCallback(() => {
     setNodes(nds => {
@@ -311,27 +277,6 @@ export function DynastyCanvas({
     []
   );
 
-  const handleAddFromSidebar = useCallback(
-    async (name: string) => {
-      const data: CharacterData = {
-        name, flags: [], style: "OTHER", gender: "UNKNOWN",
-      };
-      const count = nodes.filter(n => n.type === 'character').length;
-      const position = { x: 80 + (count % 4) * 240, y: 80 + Math.floor(count / 4) * 200 };
-      const tempId = crypto.randomUUID();
-      setNodes((nds) => [...nds, { id: tempId, type: "character", position, data }]);
-      try {
-        const { id } = await createCharacter(dynastyId, data, position);
-        setNodes((nds) => nds.map((n) => (n.id === tempId ? { ...n, id } : n)));
-        toast.success(`${name} added to the dynasty`);
-      } catch {
-        setNodes((nds) => nds.filter((n) => n.id !== tempId));
-        toast.error("Failed to save character");
-      }
-    },
-    [dynastyId, nodes.length] // eslint-disable-line react-hooks/exhaustive-deps
-  );
-
   function recalcUnions(ns: AnyCanvasNode[], es: RelationshipEdgeType[]): AnyCanvasNode[] {
     return ns.map(node => {
       if (node.type !== 'union') return node;
@@ -395,7 +340,6 @@ export function DynastyCanvas({
 
         <Toolbar
           onAddCharacter={() => setAddCharacterOpen(true)}
-          onCreateFamily={() => setFamilyBuilderOpen(true)}
           onTidyTree={handleTidyTree}
           gridVisible={gridVisible}
           onToggleGrid={() => setGridVisible((v) => !v)}
@@ -442,22 +386,8 @@ export function DynastyCanvas({
             isLoggedIn={isLoggedIn}
           />
         )}
-
-          <FamilyBuilderPanel
-            open={familyBuilderOpen}
-            onOpenChange={setFamilyBuilderOpen}
-            characters={characterNodes}
-            onSubmit={handleAddUnionFromBuilder}
-          />
       </div>
 
-      {sidebar === 'names' && (
-        <NameBank
-          usedNames={usedNames}
-          onAddToCanvas={(name) => handleAddFromSidebar(name)}
-          isLoggedIn={isLoggedIn}
-        />
-      )}
       {sidebar === 'custom' && isLoggedIn && (
         <CustomOptionsPanel />
       )}
