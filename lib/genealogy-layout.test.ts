@@ -72,3 +72,66 @@ describe('assignGenerations', () => {
     expect(r.get('b')).toBeTypeOf('number');
   });
 });
+
+describe('layoutGenealogy — placement invariants', () => {
+  function positionsOf(fix: { nodes: { id: string; type?: string }[]; edges: ReturnType<typeof partner>[] }) {
+    return layoutGenealogy(fix.nodes, fix.edges).positions;
+  }
+
+  it('partners are adjacent on the same row, PARTNER_GAP apart', () => {
+    const p = positionsOf(nuclear(1));
+    expect(p.dad.y).toBe(p.mom.y);
+    const [l, r] = [p.dad, p.mom].sort((a, b) => a.x - b.x);
+    expect(r.x - (l.x + CARD_W)).toBe(PARTNER_GAP);
+  });
+
+  it('children sit exactly one ROW_HEIGHT below their parents', () => {
+    const p = positionsOf(nuclear(3));
+    for (const c of ['c1', 'c2', 'c3']) expect(p[c].y).toBe(p.dad.y + ROW_HEIGHT);
+  });
+
+  it('no two characters on the same row overlap', () => {
+    const fix = nuclear(4);
+    // add a grandchild layer: c1 + spouse s1 -> u2 -> g1,g2
+    fix.nodes.push(char('s1'), union('u2'), char('g1'), char('g2'));
+    fix.edges.push(partner('c1', 'u2'), partner('s1', 'u2'), child('u2', 'g1'), child('u2', 'g2'));
+    const p = positionsOf(fix);
+    const chars = fix.nodes.filter(n => n.type === 'character').map(n => n.id);
+    for (const a of chars) for (const b of chars) {
+      if (a >= b || p[a].y !== p[b].y) continue;
+      expect(Math.abs(p[a].x - p[b].x)).toBeGreaterThanOrEqual(CARD_W + 8);
+    }
+  });
+
+  it('remarriage: both spouses on the anchor row, no overlap', () => {
+    const nodes = [char('anchor'), char('w1'), char('w2'), union('u1'), union('u2'),
+      char('k1'), char('k2')];
+    const edges = [partner('anchor', 'u1'), partner('w1', 'u1'), child('u1', 'k1'),
+      partner('anchor', 'u2'), partner('w2', 'u2'), child('u2', 'k2')];
+    const p = layoutGenealogy(nodes, edges).positions;
+    expect(p.w1.y).toBe(p.anchor.y);
+    expect(p.w2.y).toBe(p.anchor.y);
+    const xs = [p.anchor.x, p.w1.x, p.w2.x].sort((a, b) => a - b);
+    expect(xs[1] - xs[0]).toBeGreaterThanOrEqual(CARD_W + PARTNER_GAP);
+    expect(xs[2] - xs[1]).toBeGreaterThanOrEqual(CARD_W + PARTNER_GAP);
+  });
+
+  it('solo parent: child below the single parent', () => {
+    const nodes = [char('p'), union('u1'), char('k')];
+    const edges = [partner('p', 'u1'), child('u1', 'k')];
+    const p = layoutGenealogy(nodes, edges).positions;
+    expect(p.k.y).toBe(p.p.y + ROW_HEIGHT);
+  });
+
+  it('intermarriage between branches keeps both partners on one row (marriage line stays horizontal)', () => {
+    // two root couples, one child each, and the two children marry
+    const nodes = [char('a1'), char('a2'), union('ua'), char('ka'),
+      char('b1'), char('b2'), union('ub'), char('kb'), union('um'), char('gk')];
+    const edges = [partner('a1', 'ua'), partner('a2', 'ua'), child('ua', 'ka'),
+      partner('b1', 'ub'), partner('b2', 'ub'), child('ub', 'kb'),
+      partner('ka', 'um'), partner('kb', 'um'), child('um', 'gk')];
+    const p = layoutGenealogy(nodes, edges).positions;
+    expect(p.ka.y).toBe(p.kb.y);
+    expect(p.gk.y).toBe(p.ka.y + ROW_HEIGHT);
+  });
+});
