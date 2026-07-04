@@ -294,9 +294,33 @@ export function layoutGenealogy(nodes: LayoutNodeIn[], edges: LayoutEdgeIn[]): G
   const rank = assignGenerations(graph);
   const clusters = findClusters(graph);
   const positions: Record<string, { x: number; y: number }> = {};
+
+  let offsetX = 0;
   for (const cluster of clusters) {
     const p = layoutCluster(cluster, graph, rank);
-    for (const [id, pos] of p) positions[id] = pos;
+    const xs = [...p.values()].map(v => v.x);
+    const minX = xs.length ? Math.min(...xs) : 0;
+    const maxX = xs.length ? Math.max(...xs) : 0;
+    for (const [id, pos] of p) positions[id] = { x: pos.x - minX + offsetX, y: pos.y };
+    offsetX += (maxX - minX) + CARD_W + CLUSTER_GAP;
   }
-  return { positions, rows: [] };
+
+  // completeness guarantee for anything the cluster pass missed (corrupt data)
+  for (const n of nodes) {
+    if (!positions[n.id]) {
+      positions[n.id] = { x: offsetX, y: 0 };
+      offsetX += CARD_W + SIBLING_GAP;
+    }
+  }
+
+  let maxRow = 0;
+  for (const id of graph.characterIds) {
+    const r = Math.round(positions[id].y / ROW_HEIGHT);
+    if (r > maxRow) maxRow = r;
+  }
+  const rows: GenerationRow[] = Array.from({ length: maxRow + 1 }, (_, i) => ({
+    index: i, y: i * ROW_HEIGHT, height: CARD_H,
+  }));
+
+  return { positions, rows };
 }

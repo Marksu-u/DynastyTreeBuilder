@@ -135,3 +135,47 @@ describe('layoutGenealogy — placement invariants', () => {
     expect(p.gk.y).toBe(p.ka.y + ROW_HEIGHT);
   });
 });
+
+describe('layoutGenealogy — clusters, rows, determinism', () => {
+  it('disconnected clusters do not overlap and are separated by ≥ CLUSTER_GAP', () => {
+    const a = nuclear(2);
+    const nodes = [...a.nodes, char('lone1'), char('lone2'), union('u9')];
+    const edges = [...a.edges, partner('lone1', 'u9'), partner('lone2', 'u9')];
+    const { positions: p } = layoutGenealogy(nodes, edges);
+    const aMaxX = Math.max(p.dad.x, p.mom.x, p.c1.x, p.c2.x) + CARD_W;
+    const bMinX = Math.min(p.lone1.x, p.lone2.x);
+    expect(bMinX - aMaxX).toBeGreaterThanOrEqual(CLUSTER_GAP);
+  });
+
+  it('every input node gets a position (characters, unions, singletons)', () => {
+    const fix = nuclear(1);
+    fix.nodes.push(char('hermit'));
+    const { positions } = layoutGenealogy(fix.nodes, fix.edges);
+    for (const n of fix.nodes) expect(positions[n.id]).toBeDefined();
+  });
+
+  it('rows cover every generation at ROW_HEIGHT pitch', () => {
+    const nodes = [char('a'), union('u1'), char('b'), union('u2'), char('c')];
+    const edges = [partner('a', 'u1'), child('u1', 'b'), partner('b', 'u2'), child('u2', 'c')];
+    const { rows } = layoutGenealogy(nodes, edges);
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toEqual({ index: 0, y: 0, height: CARD_H });
+    expect(rows[2].y).toBe(2 * ROW_HEIGHT);
+  });
+
+  it('is deterministic', () => {
+    const fix = nuclear(3);
+    fix.nodes.push(char('s1'), union('u2'), char('g1'));
+    fix.edges.push(partner('c1', 'u2'), partner('s1', 'u2'), child('u2', 'g1'));
+    expect(layoutGenealogy(fix.nodes, fix.edges)).toEqual(layoutGenealogy(fix.nodes, fix.edges));
+  });
+
+  it('adopted children lay out identically to biological ones', () => {
+    const bio = nuclear(2);
+    const adopted = {
+      nodes: bio.nodes,
+      edges: [partner('dad', 'u1'), partner('mom', 'u1'), child('u1', 'c1'), child('u1', 'c2', true)],
+    };
+    expect(layoutGenealogy(adopted.nodes, adopted.edges)).toEqual(layoutGenealogy(bio.nodes, bio.edges));
+  });
+});
