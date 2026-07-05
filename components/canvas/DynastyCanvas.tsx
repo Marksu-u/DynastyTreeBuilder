@@ -16,8 +16,8 @@ import { CharacterNode } from "./CharacterNode";
 import { RelationshipEdge } from "./RelationshipEdge";
 import { Toolbar, type SidebarPanel } from "./Toolbar";
 import { AddCharacterPanel } from "./AddCharacterPanel";
-import { EditRelationshipPanel } from "./EditRelationshipPanel";
 import { AddRelativePanel } from "./AddRelativePanel";
+import { AddRelativeHint } from "./AddRelativeHint";
 import { GenerationBands } from "./GenerationBands";
 import { CanvasContext } from "./CanvasContext";
 import { CustomOptionsPanel } from "@/components/name-bank/CustomOptionsPanel";
@@ -26,12 +26,8 @@ import {
   updateCharacter,
   deleteCharacter,
 } from "@/app/actions/character";
-import {
-  updateRelationship,
-  deleteRelationship,
-  createRelativeEdges,
-} from "@/app/actions/relationship";
-import type { CharacterData, RelationshipData } from "@/types/canvas";
+import { createRelativeEdges } from "@/app/actions/relationship";
+import type { CharacterData } from "@/types/canvas";
 import type { CharacterNodeType, RelationshipEdgeType, LegacyEdgeType } from "@/store/canvas";
 import { CanvasEmptyState } from "@/components/canvas/CanvasEmptyState";
 import { UnionNode } from './UnionNode';
@@ -69,7 +65,6 @@ export function DynastyCanvas({
   const [gridVisible, setGridVisible] = useState(false);
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
-  const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null);
   const [sidebar, setSidebar] = useState<SidebarPanel | null>(null);
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
 
@@ -86,11 +81,6 @@ export function DynastyCanvas({
   const editingCharacter = useMemo(
     () => characterNodes.find((n) => n.id === editingCharacterId),
     [characterNodes, editingCharacterId]
-  );
-
-  const editingEdge = useMemo(
-    () => edges.find((e) => e.id === editingEdgeId) as RelationshipEdgeType | undefined,
-    [edges, editingEdgeId]
   );
 
   const onNodesChange = useCallback(
@@ -156,46 +146,6 @@ export function DynastyCanvas({
     }
   }, [editingCharacterId, dynastyId]);
 
-  const handleUpdateRelationship = useCallback(
-    async (data: Partial<RelationshipData>) => {
-      if (!editingEdgeId) return;
-      const id = editingEdgeId;
-      setEdges((eds) =>
-        eds.map((e) =>
-          e.id === id ? { ...e, data: { ...e.data, ...data } as RelationshipData } : e
-        )
-      );
-      setEditingEdgeId(null);
-
-      try {
-        await updateRelationship(id, dynastyId, data);
-      } catch {
-        toast.error("Failed to save relationship");
-      }
-    },
-    [editingEdgeId, dynastyId]
-  );
-
-  const handleDeleteRelationship = useCallback(async () => {
-    if (!editingEdgeId) return;
-    const id = editingEdgeId;
-    setEdges((eds) => eds.filter((e) => e.id !== id));
-    setEditingEdgeId(null);
-
-    try {
-      await deleteRelationship(id, dynastyId);
-    } catch {
-      toast.error("Failed to delete relationship");
-    }
-  }, [editingEdgeId, dynastyId]);
-
-  const handleEdgeClick = useCallback(
-    (_: React.MouseEvent, edge: RelationshipEdgeType) => {
-      setEditingEdgeId(edge.id);
-    },
-    []
-  );
-
   const openAddRelative = useCallback((anchorId: string, kind: RelativeKind) => {
     setRelPicker({ anchorId, kind });
   }, []);
@@ -240,7 +190,6 @@ export function DynastyCanvas({
           edges={edges}
           onNodesChange={onNodesChange as (changes: NodeChange<AnyCanvasNode>[]) => void}
           onEdgesChange={onEdgesChange}
-          onEdgeClick={handleEdgeClick}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           colorMode="dark"
@@ -279,6 +228,8 @@ export function DynastyCanvas({
           <CanvasEmptyState onAddCharacter={() => setAddCharacterOpen(true)} />
         )}
 
+        <AddRelativeHint visible={characterNodes.length === 1 && !characterNodes[0].selected} />
+
         <AddCharacterPanel
           key="add"
           open={addCharacterOpen}
@@ -297,19 +248,6 @@ export function DynastyCanvas({
             character={editingCharacter}
             onSubmit={handleUpdateCharacter}
             onDelete={handleDeleteCharacter}
-            isLoggedIn={isLoggedIn}
-          />
-        )}
-
-        {editingEdgeId && (
-          <EditRelationshipPanel
-            open={true}
-            onOpenChange={(open) => {
-              if (!open) setEditingEdgeId(null);
-            }}
-            edge={editingEdge}
-            onSubmit={handleUpdateRelationship}
-            onDelete={handleDeleteRelationship}
             isLoggedIn={isLoggedIn}
           />
         )}

@@ -10,21 +10,21 @@ import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
 import { triggerJsonDownload } from '@/lib/export';
 import { useCanvasStore } from '@/store/canvas';
-import type { AnyCanvasNode, CharacterNodeType, RelationshipEdgeType } from '@/store/canvas';
+import type { AnyCanvasNode, CharacterNodeType } from '@/store/canvas';
 import { CharacterNode } from '@/components/canvas/CharacterNode';
 import { UnionNode } from '@/components/canvas/UnionNode';
 import { RelationshipEdge } from '@/components/canvas/RelationshipEdge';
 import { Toolbar } from '@/components/canvas/Toolbar';
 import { AddCharacterPanel } from '@/components/canvas/AddCharacterPanel';
-import { EditRelationshipPanel } from '@/components/canvas/EditRelationshipPanel';
 import { AddRelativePanel } from '@/components/canvas/AddRelativePanel';
+import { AddRelativeHint } from '@/components/canvas/AddRelativeHint';
 import { GenerationBands } from '@/components/canvas/GenerationBands';
 import { CatalogProvider } from '@/components/canvas/CatalogProvider';
 import { CanvasContext } from '@/components/canvas/CanvasContext';
 import { CanvasEmptyState } from '@/components/canvas/CanvasEmptyState';
 import { useGenealogyLayout } from '@/components/canvas/useGenealogyLayout';
 import { partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
-import type { CharacterData, RelationshipData } from '@/types/canvas';
+import type { CharacterData } from '@/types/canvas';
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
 const edgeTypes = { relationship: RelationshipEdge } as const;
@@ -38,12 +38,8 @@ function TreeCanvasInner() {
   const addRelative = useCanvasStore(s => s.addRelative);
   const updateCharacter = useCanvasStore(s => s.updateCharacter);
   const deleteCharacter = useCanvasStore(s => s.deleteCharacter);
-  const updateRelationship = useCanvasStore(s => s.updateRelationship);
-  const deleteRelationship = useCanvasStore(s => s.deleteRelationship);
   const editingCharacterId = useCanvasStore(s => s.editingCharacterId);
   const setEditingCharacterId = useCanvasStore(s => s.setEditingCharacterId);
-  const editingEdgeId = useCanvasStore(s => s.editingEdgeId);
-  const setEditingEdgeId = useCanvasStore(s => s.setEditingEdgeId);
   const gridVisible = useCanvasStore(s => s.gridVisible);
   const undo = useCanvasStore(s => s.undo);
   const redo = useCanvasStore(s => s.redo);
@@ -67,11 +63,6 @@ function TreeCanvasInner() {
   const editingCharacter = useMemo(
     () => characterNodes.find(n => n.id === editingCharacterId),
     [characterNodes, editingCharacterId]
-  );
-
-  const editingEdge = useMemo(
-    () => edges.find(e => e.id === editingEdgeId) as RelationshipEdgeType | undefined,
-    [edges, editingEdgeId]
   );
 
   const handleExport = useCallback(async () => {
@@ -133,20 +124,6 @@ function TreeCanvasInner() {
     toast.success('Character removed');
   }, [editingCharacterId, deleteCharacter]);
 
-  const handleUpdateRelationship = useCallback((data: Partial<RelationshipData>) => {
-    if (!editingEdgeId) return;
-    updateRelationship(editingEdgeId, data);
-  }, [editingEdgeId, updateRelationship]);
-
-  const handleDeleteRelationship = useCallback(() => {
-    if (!editingEdgeId) return;
-    deleteRelationship(editingEdgeId);
-  }, [editingEdgeId, deleteRelationship]);
-
-  const handleEdgeClick = useCallback((_: React.MouseEvent, edge: RelationshipEdgeType) => {
-    setEditingEdgeId(edge.id);
-  }, [setEditingEdgeId]);
-
   const openAddRelative = useCallback((anchorId: string, kind: RelativeKind) => {
     setRelPicker({ anchorId, kind });
   }, []);
@@ -167,7 +144,6 @@ function TreeCanvasInner() {
             edges={edges}
             onNodesChange={onNodesChange as (changes: import('@xyflow/react').NodeChange<AnyCanvasNode>[]) => void}
             onEdgesChange={onEdgesChange}
-            onEdgeClick={handleEdgeClick}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             colorMode="dark"
@@ -202,6 +178,8 @@ function TreeCanvasInner() {
             <CanvasEmptyState onAddCharacter={() => setAddCharacterOpen(true)} />
           )}
 
+          <AddRelativeHint visible={characterNodes.length === 1 && !characterNodes[0].selected} />
+
           <AddCharacterPanel
             key="add"
             open={addCharacterOpen}
@@ -218,17 +196,6 @@ function TreeCanvasInner() {
               character={editingCharacter}
               onSubmit={handleUpdateCharacter}
               onDelete={handleDeleteCharacter}
-              isLoggedIn={false}
-            />
-          )}
-
-          {editingEdgeId && (
-            <EditRelationshipPanel
-              open={true}
-              onOpenChange={open => { if (!open) setEditingEdgeId(null); }}
-              edge={editingEdge}
-              onSubmit={handleUpdateRelationship}
-              onDelete={handleDeleteRelationship}
               isLoggedIn={false}
             />
           )}

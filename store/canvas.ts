@@ -31,7 +31,6 @@ interface CanvasState {
   future: Snapshot[];
   gridVisible: boolean;
   editingCharacterId: string | null;
-  editingEdgeId: string | null;
   isDirty: boolean;
 
   onNodesChange: (changes: NodeChange<AnyCanvasNode>[]) => void;
@@ -42,14 +41,11 @@ interface CanvasState {
   deleteCharacter: (id: string) => void;
   addUnion: (params: AddUnionParams) => void;
   addRelative: (input: AddRelativeInput) => string | null;
-  updateRelationship: (id: string, data: Partial<RelationshipData>) => void;
-  deleteRelationship: (id: string) => void;
 
   undo: () => void;
   redo: () => void;
   toggleGrid: () => void;
   setEditingCharacterId: (id: string | null) => void;
-  setEditingEdgeId: (id: string | null) => void;
   initCanvas: (nodes: AnyCanvasNode[], edges: RelationshipEdgeType[]) => void;
   markClean: () => void;
 }
@@ -75,7 +71,6 @@ export const useCanvasStore = create<CanvasState>()(
       future: [],
       gridVisible: false,
       editingCharacterId: null,
-      editingEdgeId: null,
       isDirty: false,
 
       onNodesChange: (changes) => {
@@ -185,26 +180,6 @@ export const useCanvasStore = create<CanvasState>()(
         return null;
       },
 
-      updateRelationship: (id, data) => {
-        const state = get();
-        set({
-          edges: state.edges.map(e =>
-            e.id === id ? { ...e, data: { ...e.data, ...data } as RelationshipData } : e
-          ),
-          past: [...state.past.slice(-(MAX_HISTORY - 1)), snap(state)],
-          future: [], editingEdgeId: null, isDirty: true,
-        });
-      },
-
-      deleteRelationship: (id) => {
-        const state = get();
-        set({
-          edges: state.edges.filter(e => e.id !== id),
-          past: [...state.past.slice(-(MAX_HISTORY - 1)), snap(state)],
-          future: [], editingEdgeId: null, isDirty: true,
-        });
-      },
-
       undo: () => {
         const { past, nodes, edges, future } = get();
         if (past.length === 0) return;
@@ -221,7 +196,6 @@ export const useCanvasStore = create<CanvasState>()(
 
       toggleGrid: () => set(s => ({ gridVisible: !s.gridVisible })),
       setEditingCharacterId: (id) => set({ editingCharacterId: id }),
-      setEditingEdgeId: (id) => set({ editingEdgeId: id }),
 
       initCanvas: (nodes, edges) => {
         const migrated = migrateCanvas(nodes as never, edges);

@@ -54,12 +54,6 @@ export const CharacterDataSchema = z.object({
   note: z.string().optional(),
 });
 
-export const RelationshipDataSchema = z.object({
-  type: RelationshipTypeSchema,
-  hook: z.string().optional(),
-  isMutual: z.boolean(),
-});
-
 export const DynastySettingsSchema = z.object({
   name: z.string().trim().min(1, "Name is required").optional(),
   setting: DynastySettingSchema.optional(),
