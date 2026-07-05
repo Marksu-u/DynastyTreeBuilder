@@ -7,6 +7,7 @@ import {
 } from '@xyflow/react';
 import type { CharacterData, RelationshipData, UnionData, LegacyRelationshipType } from '@/types/canvas';
 import { migrateCanvas } from '@/lib/migrate-canvas';
+import { computeAddRelative, type AddRelativeInput } from '@/lib/relative-ops';
 
 export type CharacterNodeType = Node<CharacterData, 'character'>;
 export type UnionNodeType = Node<UnionData, 'union'>;
@@ -40,6 +41,7 @@ interface CanvasState {
   updateCharacter: (id: string, data: Partial<CharacterData>) => void;
   deleteCharacter: (id: string) => void;
   addUnion: (params: AddUnionParams) => void;
+  addRelative: (input: AddRelativeInput) => string | null;
   updateRelationship: (id: string, data: Partial<RelationshipData>) => void;
   deleteRelationship: (id: string) => void;
 
@@ -169,6 +171,18 @@ export const useCanvasStore = create<CanvasState>()(
           past: [...state.past.slice(-(MAX_HISTORY - 1)), snap(state)],
           future: [], isDirty: true,
         });
+      },
+
+      addRelative: (input) => {
+        const state = get();
+        const result = computeAddRelative(state.nodes, state.edges, input);
+        if (!result.ok) return result.error;
+        set({
+          nodes: result.nodes, edges: result.edges,
+          past: [...state.past.slice(-(MAX_HISTORY - 1)), snap(state)],
+          future: [], isDirty: true,
+        });
+        return null;
       },
 
       updateRelationship: (id, data) => {

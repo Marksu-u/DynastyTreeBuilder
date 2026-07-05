@@ -2,24 +2,17 @@
 
 import { memo } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
-import { Pencil, Skull } from 'lucide-react';
+import { Pencil, Skull, Plus } from 'lucide-react';
 import { useCanvasStore } from '@/store/canvas';
 import { useCanvasContext } from './CanvasContext';
 import type { CharacterData } from '@/types/canvas';
 
 type CharacterNodeType = Node<CharacterData, 'character'>;
 
-// Quiet by default (small, muted, low opacity); full size + amber accent on
-// hover, on an active connection drag (connectingfrom/connectingto), or when
-// the card is selected (selectedClass, applied conditionally below) — so
-// touch/keyboard users can reach handles by selecting the card first.
-const HANDLE_STYLE =
-  '!w-2 !h-2 !bg-zinc-600 !border !border-zinc-600 !opacity-40 transition-all duration-150 ' +
-  'hover:!opacity-100 hover:!w-3 hover:!h-3 hover:!bg-accent hover:!border-accent ' +
-  '[&.connectingfrom]:!opacity-100 [&.connectingfrom]:!w-3 [&.connectingfrom]:!h-3 [&.connectingfrom]:!bg-accent [&.connectingfrom]:!border-accent ' +
-  '[&.connectingto]:!opacity-100 [&.connectingto]:!w-3 [&.connectingto]:!h-3 [&.connectingto]:!bg-accent [&.connectingto]:!border-accent';
-
-const HANDLE_STYLE_SELECTED = HANDLE_STYLE + ' !opacity-100 !w-3 !h-3 !bg-accent !border-accent';
+// Handles are purely structural anchors for edge routing now — connections
+// are made via the contextual add-relative buttons, not drag-connect — so
+// all handles are invisible and non-connectable.
+const HANDLE_STYLE = '!w-px !h-px !min-w-0 !min-h-0 !bg-transparent !border-0 !opacity-0';
 
 // Rect inset by half-stroke so the stroke sits exactly on the card edge.
 // rx matches rounded-lg (8px) minus the inset (0.75px).
@@ -32,6 +25,7 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
   const canvasCtx = useCanvasContext();
   const setEditingCharacterIdStore = useCanvasStore((s) => s.setEditingCharacterId);
   const setEditingCharacterId = canvasCtx ? canvasCtx.setEditingCharacterId : setEditingCharacterIdStore;
+  const openAddRelative = canvasCtx?.openAddRelative;
   const flags = data.flags ?? [];
 
   const isDeceased = flags.includes('DECEASED');
@@ -90,11 +84,31 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
         </svg>
       )}
 
-      <Handle type="source" position={Position.Top}    id="top"    className={selected ? HANDLE_STYLE_SELECTED : HANDLE_STYLE} />
-      <Handle type="source" position={Position.Left}   id="left"   className={selected ? HANDLE_STYLE_SELECTED : HANDLE_STYLE} />
-      <Handle type="source" position={Position.Right}  id="right"  className={selected ? HANDLE_STYLE_SELECTED : HANDLE_STYLE} />
-      <Handle type="source" position={Position.Bottom} id="bottom" className={selected ? HANDLE_STYLE_SELECTED : HANDLE_STYLE} />
+      <Handle type="source" position={Position.Top}    id="top"    className={HANDLE_STYLE} isConnectable={false} />
+      <Handle type="source" position={Position.Left}   id="left"   className={HANDLE_STYLE} isConnectable={false} />
+      <Handle type="source" position={Position.Right}  id="right"  className={HANDLE_STYLE} isConnectable={false} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className={HANDLE_STYLE} isConnectable={false} />
       <Handle type="target" position={Position.Top} id="t" className="!w-px !h-px !min-w-0 !min-h-0 !bg-transparent !border-0 !opacity-0" isConnectable={false} />
+
+      {selected && openAddRelative && !data.isReadOnly && !isGhost && (
+        <>
+          <button
+            onClick={(e) => { e.stopPropagation(); openAddRelative(id, 'parent'); }}
+            className="nodrag absolute -top-3.5 left-1/2 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full border border-accent/60 bg-zinc-900 text-accent shadow hover:bg-accent hover:text-zinc-900"
+            title="Add parent"
+          ><Plus size={12} /></button>
+          <button
+            onClick={(e) => { e.stopPropagation(); openAddRelative(id, 'partner'); }}
+            className="nodrag absolute -right-3.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-accent/60 bg-zinc-900 text-accent shadow hover:bg-accent hover:text-zinc-900"
+            title="Add partner"
+          ><Plus size={12} /></button>
+          <button
+            onClick={(e) => { e.stopPropagation(); openAddRelative(id, 'child'); }}
+            className="nodrag absolute -bottom-3.5 left-1/2 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full border border-accent/60 bg-zinc-900 text-accent shadow hover:bg-accent hover:text-zinc-900"
+            title="Add child"
+          ><Plus size={12} /></button>
+        </>
+      )}
 
       <div className="flex items-start justify-between gap-1">
         <div className="min-w-0 flex-1">

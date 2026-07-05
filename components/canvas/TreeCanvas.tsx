@@ -17,10 +17,12 @@ import { RelationshipEdge } from '@/components/canvas/RelationshipEdge';
 import { Toolbar } from '@/components/canvas/Toolbar';
 import { AddCharacterPanel } from '@/components/canvas/AddCharacterPanel';
 import { EditRelationshipPanel } from '@/components/canvas/EditRelationshipPanel';
+import { AddRelativePanel } from '@/components/canvas/AddRelativePanel';
 import { CatalogProvider } from '@/components/canvas/CatalogProvider';
 import { CanvasContext } from '@/components/canvas/CanvasContext';
 import { CanvasEmptyState } from '@/components/canvas/CanvasEmptyState';
 import { useGenealogyLayout } from '@/components/canvas/useGenealogyLayout';
+import { partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
 import type { CharacterData, RelationshipData } from '@/types/canvas';
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
@@ -32,6 +34,7 @@ function TreeCanvasInner() {
   const onNodesChange = useCanvasStore(s => s.onNodesChange);
   const onEdgesChange = useCanvasStore(s => s.onEdgesChange);
   const addCharacter = useCanvasStore(s => s.addCharacter);
+  const addRelative = useCanvasStore(s => s.addRelative);
   const updateCharacter = useCanvasStore(s => s.updateCharacter);
   const deleteCharacter = useCanvasStore(s => s.deleteCharacter);
   const updateRelationship = useCanvasStore(s => s.updateRelationship);
@@ -48,6 +51,7 @@ function TreeCanvasInner() {
   const toggleGrid = useCanvasStore(s => s.toggleGrid);
 
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
+  const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const { fitView } = useReactFlow();
@@ -143,8 +147,19 @@ function TreeCanvasInner() {
     setEditingEdgeId(edge.id);
   }, [setEditingEdgeId]);
 
+  const openAddRelative = useCallback((anchorId: string, kind: RelativeKind) => {
+    setRelPicker({ anchorId, kind });
+  }, []);
+
+  const handleAddRelative = useCallback((input: AddRelativeInput) => {
+    const error = addRelative(input);
+    if (error) { toast.error(error === 'AMBIGUOUS_UNION' ? 'Pick which partner first' : error); return; }
+    setRelPicker(null);
+    toast.success('Added to the tree');
+  }, [addRelative]);
+
   return (
-    <CanvasContext.Provider value={{ setEditingCharacterId }}>
+    <CanvasContext.Provider value={{ setEditingCharacterId, openAddRelative }}>
       <div className="flex h-full w-full">
         <div ref={containerRef} className="relative flex-1 min-w-0 h-full">
           <ReactFlow
@@ -216,6 +231,21 @@ function TreeCanvasInner() {
               isLoggedIn={false}
             />
           )}
+
+          {relPicker && (() => {
+            const anchor = characterNodes.find(n => n.id === relPicker.anchorId);
+            if (!anchor) return null;
+            return (
+              <AddRelativePanel
+                anchor={anchor}
+                kind={relPicker.kind}
+                characters={characterNodes}
+                unions={partnerUnionsOf(nodes, edges, relPicker.anchorId)}
+                onSubmit={handleAddRelative}
+                onClose={() => setRelPicker(null)}
+              />
+            );
+          })()}
         </div>
       </div>
     </CanvasContext.Provider>
