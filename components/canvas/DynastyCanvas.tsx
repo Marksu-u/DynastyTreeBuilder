@@ -18,6 +18,7 @@ import { Toolbar, type SidebarPanel } from "./Toolbar";
 import { AddCharacterPanel } from "./AddCharacterPanel";
 import { EditRelationshipPanel } from "./EditRelationshipPanel";
 import { AddRelativePanel } from "./AddRelativePanel";
+import { GenerationBands } from "./GenerationBands";
 import { CanvasContext } from "./CanvasContext";
 import { CustomOptionsPanel } from "@/components/name-bank/CustomOptionsPanel";
 import {
@@ -73,7 +74,6 @@ export function DynastyCanvas({
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
-  void rows; // consumed in a later task
 
   const handleToggleSidebar = useCallback((panel: SidebarPanel) => {
     setSidebar((current) => (current === panel ? null : panel));
@@ -264,6 +264,7 @@ export function DynastyCanvas({
             showInteractive={false}
             className="!bottom-4 !left-auto !right-4 !top-auto"
           />
+          <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} />
         </ReactFlow>
 
         <Toolbar

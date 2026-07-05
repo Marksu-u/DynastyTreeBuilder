@@ -18,6 +18,7 @@ import { Toolbar } from '@/components/canvas/Toolbar';
 import { AddCharacterPanel } from '@/components/canvas/AddCharacterPanel';
 import { EditRelationshipPanel } from '@/components/canvas/EditRelationshipPanel';
 import { AddRelativePanel } from '@/components/canvas/AddRelativePanel';
+import { GenerationBands } from '@/components/canvas/GenerationBands';
 import { CatalogProvider } from '@/components/canvas/CatalogProvider';
 import { CanvasContext } from '@/components/canvas/CanvasContext';
 import { CanvasEmptyState } from '@/components/canvas/CanvasEmptyState';
@@ -57,7 +58,6 @@ function TreeCanvasInner() {
   const { fitView } = useReactFlow();
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
-  void rows; // consumed in a later task
 
   const characterNodes = useMemo(
     () => nodes.filter((n): n is CharacterNodeType => n.type === 'character'),
@@ -183,6 +183,7 @@ function TreeCanvasInner() {
               <Background variant={BackgroundVariant.Dots} color="#3f3f46" size={1.5} gap={20} />
             )}
             <Controls showInteractive={false} className="!bottom-4 !left-auto !right-4 !top-auto" />
+            <GenerationBands rows={rows} nodes={laidOutNodes} houseName="Your Dynasty" />
           </ReactFlow>
 
           <Toolbar

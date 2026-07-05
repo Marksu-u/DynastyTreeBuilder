@@ -7,6 +7,7 @@ import { CharacterNode } from "./CharacterNode";
 import { RelationshipEdge } from "./RelationshipEdge";
 import { ReportButton } from "./ReportButton";
 import { CatalogProvider } from "./CatalogProvider";
+import { GenerationBands } from "./GenerationBands";
 import { migrateCanvas } from "@/lib/migrate-canvas";
 import { useGenealogyLayout } from "./useGenealogyLayout";
 import { UnionNode } from "./UnionNode";
@@ -28,7 +29,7 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
     () => migrateCanvas(nodes as never, edges as never),
     [nodes, edges],
   );
-  const { nodes: laidOutNodes } = useGenealogyLayout(
+  const { nodes: laidOutNodes, rows } = useGenealogyLayout(
     migrated.nodes as AnyCanvasNode[],
     migrated.edges as RelationshipEdgeType[],
   );
@@ -74,6 +75,7 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
           showInteractive={false}
           className="!bottom-4 !left-auto !right-4 !top-auto"
         />
+        <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} />
       </ReactFlow>
     </div>
     </CatalogProvider>
