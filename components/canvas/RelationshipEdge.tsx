@@ -1,59 +1,70 @@
 "use client";
 
 import { memo } from 'react';
-import {
-  BaseEdge,
-  EdgeProps,
-  Edge,
-  getSmoothStepPath,
-} from '@xyflow/react';
+import { BaseEdge, EdgeProps, Edge, useInternalNode } from '@xyflow/react';
+import { CARD_W, CARD_H, RAIL_OFFSET } from '@/lib/genealogy-layout';
 import type { RelationshipData } from '@/types/canvas';
 
 export type RelationshipEdgeType = Edge<RelationshipData, 'relationship'>;
 
 const EDGE_STYLES: Record<string, React.CSSProperties> = {
-  PARTNER:       { stroke: '#888780', strokeWidth: 1 },
+  PARTNER:       { stroke: '#888780', strokeWidth: 1.5 },
   CHILD:         { stroke: '#534AB7', strokeWidth: 1.5 },
   ADOPTED_CHILD: { stroke: '#0F6E56', strokeWidth: 1.5, strokeDasharray: '4 3' },
-  // Legacy — shown during migration window
-  PARENT:  { stroke: '#534AB7', strokeWidth: 1.5 },
-  SPOUSE:  { stroke: '#888780', strokeWidth: 1 },
-  ADOPTED: { stroke: '#0F6E56', strokeWidth: 1, strokeDasharray: '4 3' },
 };
 
 const FALLBACK_STYLE: React.CSSProperties = { stroke: '#52525b', strokeWidth: 1.5 };
 
+/**
+ * Classic genealogy connectors. The layout guarantees the geometry (partners
+ * adjacent on one row with the union point between them; children exactly one
+ * row below), so paths are plain orthogonal segments:
+ *   PARTNER  — horizontal marriage line from the card edge to the union point
+ *   CHILD    — drop from the union point to a sibling rail, then to the child
+ */
 export const RelationshipEdge = memo(({
-  id,
-  sourceX, sourceY,
-  targetX, targetY,
-  sourcePosition,
-  targetPosition,
-  data,
-  markerEnd,
-  selected,
+  id, source, target, data, selected,
 }: EdgeProps<RelationshipEdgeType>) => {
-  const [edgePath] = getSmoothStepPath({
-    sourceX, sourceY, targetX, targetY,
-    sourcePosition, targetPosition,
-    borderRadius: 0,
-  });
+  const sourceNode = useInternalNode(source);
+  const targetNode = useInternalNode(target);
+  if (!sourceNode || !targetNode) return null;
 
+  const s = sourceNode.internals.positionAbsolute;
+  const t = targetNode.internals.positionAbsolute;
   const relType = data?.type ?? 'CHILD';
+
+  let path: string;
+  if (relType === 'PARTNER') {
+    // source = character card, target = union point
+    const w = sourceNode.measured?.width ?? CARD_W;
+    const h = sourceNode.measured?.height ?? CARD_H;
+    const midY = s.y + h / 2;
+    if (Math.abs(t.y - midY) <= h / 2) {
+      // partnered union: horizontal marriage line from the nearest card edge
+      const fromX = t.x < s.x + w / 2 ? s.x : s.x + w;
+      path = `M ${fromX} ${t.y} L ${t.x} ${t.y}`;
+    } else {
+      // solo-parent union below the card (or rank mismatch fallback)
+      path = `M ${s.x + w / 2} ${s.y + h} L ${t.x} ${t.y}`;
+    }
+  } else {
+    // source = union point, target = child card
+    const w = targetNode.measured?.width ?? CARD_W;
+    const railY = t.y - RAIL_OFFSET;
+    const cx = t.x + w / 2;
+    path = `M ${s.x} ${s.y} L ${s.x} ${railY} L ${cx} ${railY} L ${cx} ${t.y}`;
+  }
+
   const baseStyle = EDGE_STYLES[relType] ?? FALLBACK_STYLE;
-
-  const style: React.CSSProperties = {
-    ...baseStyle,
-    opacity: selected ? 1 : 0.7,
-    filter: selected ? 'drop-shadow(0 0 4px currentColor)' : undefined,
-  };
-
   return (
     <BaseEdge
       id={id}
-      path={edgePath}
-      style={style}
-      markerEnd={markerEnd}
+      path={path}
+      style={{
+        ...baseStyle,
+        opacity: selected ? 1 : 0.8,
+        filter: selected ? 'drop-shadow(0 0 4px currentColor)' : undefined,
+      }}
       interactionWidth={20}
     />
   );

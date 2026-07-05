@@ -94,6 +94,7 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
       <Handle type="source" position={Position.Left}   id="left"   className={selected ? HANDLE_STYLE_SELECTED : HANDLE_STYLE} />
       <Handle type="source" position={Position.Right}  id="right"  className={selected ? HANDLE_STYLE_SELECTED : HANDLE_STYLE} />
       <Handle type="source" position={Position.Bottom} id="bottom" className={selected ? HANDLE_STYLE_SELECTED : HANDLE_STYLE} />
+      <Handle type="target" position={Position.Top} id="t" className="!w-px !h-px !min-w-0 !min-h-0 !bg-transparent !border-0 !opacity-0" isConnectable={false} />
 
       <div className="flex items-start justify-between gap-1">
         <div className="min-w-0 flex-1">
