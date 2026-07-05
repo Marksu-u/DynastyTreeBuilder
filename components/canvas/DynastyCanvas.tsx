@@ -1,15 +1,13 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   ReactFlow,
   Background,
   BackgroundVariant,
-  ConnectionMode,
   Controls,
   type NodeChange,
   type EdgeChange,
-  type Connection,
   applyNodeChanges,
   applyEdgeChanges,
 } from "@xyflow/react";
@@ -25,10 +23,8 @@ import {
   createCharacter,
   updateCharacter,
   deleteCharacter,
-  updatePosition,
 } from "@/app/actions/character";
 import {
-  createRelationship,
   updateRelationship,
   deleteRelationship,
 } from "@/app/actions/relationship";
@@ -36,11 +32,9 @@ import type { CharacterData, RelationshipData } from "@/types/canvas";
 import type { CharacterNodeType, RelationshipEdgeType, LegacyEdgeType } from "@/store/canvas";
 import { CanvasEmptyState } from "@/components/canvas/CanvasEmptyState";
 import { UnionNode } from './UnionNode';
-import { ConnectionPopup } from './ConnectionPopup';
-import type { UnionNodeType, AnyCanvasNode } from '@/store/canvas';
+import type { AnyCanvasNode } from '@/store/canvas';
 import { migrateCanvas } from '@/lib/migrate-canvas';
-import { tidyTree } from '@/lib/tidy-tree';
-import { createFamily } from '@/app/actions/relationship';
+import { useGenealogyLayout } from './useGenealogyLayout';
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
 const edgeTypes = { relationship: RelationshipEdge } as const;
@@ -68,13 +62,14 @@ export function DynastyCanvas({
   );
   const [nodes, setNodes] = useState<AnyCanvasNode[]>(migrated.nodes as AnyCanvasNode[]);
   const [edges, setEdges] = useState<RelationshipEdgeType[]>(migrated.edges);
-  const [pendingConnection, setPendingConnection] = useState<{ source: string; target: string; screenX: number; screenY: number } | null>(null);
   const [gridVisible, setGridVisible] = useState(true);
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
   const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null);
   const [sidebar, setSidebar] = useState<SidebarPanel | null>(null);
-  const positionTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
+  void rows; // consumed in a later task
 
   const handleToggleSidebar = useCallback((panel: SidebarPanel) => {
     setSidebar((current) => (current === panel ? null : panel));
@@ -96,23 +91,9 @@ export function DynastyCanvas({
 
   const onNodesChange = useCallback(
     (changes: NodeChange<AnyCanvasNode>[]) => {
-      setNodes((nds) => {
-        const updated = applyNodeChanges(changes, nds) as AnyCanvasNode[];
-        return recalcUnions(updated, edges);
-      });
-
-      for (const change of changes) {
-        if (change.type !== 'position' || change.dragging !== false || !change.position) continue;
-        const node = nodes.find(n => n.id === change.id);
-        if (!node || node.type !== 'character') continue;
-        const { id, position } = change;
-        clearTimeout(positionTimers.current[id]);
-        positionTimers.current[id] = setTimeout(() => {
-          updatePosition(id, dynastyId, position.x, position.y).catch(() => {});
-        }, 500);
-      }
+      setNodes((nds) => applyNodeChanges(changes, nds) as AnyCanvasNode[]);
     },
-    [dynastyId, edges, nodes]
+    []
   );
 
   const onEdgesChange = useCallback(
@@ -122,78 +103,12 @@ export function DynastyCanvas({
     []
   );
 
-  const handleConnect = useCallback((connection: Connection) => {
-    const containerRect = document.querySelector('.react-flow')?.getBoundingClientRect();
-    setPendingConnection({
-      source: connection.source,
-      target: connection.target,
-      screenX: containerRect ? containerRect.left + containerRect.width / 2 : window.innerWidth / 2,
-      screenY: containerRect ? containerRect.top + containerRect.height / 2 : window.innerHeight / 2,
-    });
-  }, []);
-
-  const handleConnectionChoice = useCallback(async (choice: 'partner' | 'child' | 'adopted') => {
-    if (!pendingConnection) return;
-    const { source, target } = pendingConnection;
-    setPendingConnection(null);
-
-    const parentIds = choice === 'partner' ? [source, target] : [source];
-    const childIds = choice === 'child' ? [target] : [];
-    const adoptedIds = choice === 'adopted' ? [target] : [];
-
-    const unionId = crypto.randomUUID();
-    const sourceNode = nodes.find(n => n.id === source);
-    const targetNode = nodes.find(n => n.id === target);
-    if (!sourceNode) return;
-
-    const unionPos = choice === 'partner' && targetNode
-      ? { x: (sourceNode.position.x + targetNode.position.x) / 2, y: Math.max(sourceNode.position.y, targetNode.position.y) + 40 }
-      : { x: sourceNode.position.x, y: sourceNode.position.y + 80 };
-
-    const unionNode: UnionNodeType = { id: unionId, type: 'union', position: unionPos, data: {} };
-    const newEdges: RelationshipEdgeType[] = [
-      ...parentIds.map(pid => ({ id: crypto.randomUUID(), type: 'relationship' as const, source: pid, target: unionId, data: { type: 'PARTNER' as const, isMutual: false } })),
-      ...childIds.map(cid => ({ id: crypto.randomUUID(), type: 'relationship' as const, source: unionId, target: cid, data: { type: 'CHILD' as const, isMutual: false } })),
-      ...adoptedIds.map(cid => ({ id: crypto.randomUUID(), type: 'relationship' as const, source: unionId, target: cid, data: { type: 'ADOPTED_CHILD' as const, isMutual: false } })),
-    ];
-
-    setNodes(nds => [...nds, unionNode]);
-    setEdges(eds => [...eds, ...newEdges]);
-
-    try {
-      await createFamily(dynastyId, parentIds, childIds, adoptedIds);
-      toast.success('Family link saved');
-    } catch {
-      setNodes(nds => nds.filter(n => n.id !== unionId));
-      setEdges(eds => eds.filter(e => !newEdges.some(ne => ne.id === e.id)));
-      toast.error('Failed to save family link');
-    }
-  }, [pendingConnection, nodes, dynastyId]);
-
-  const handleTidyTree = useCallback(() => {
-    setNodes(nds => {
-      const positions = tidyTree(nds as never, edges as never);
-      const updated = nds.map(n => n.type === 'character' && positions[n.id] ? { ...n, position: positions[n.id] } : n);
-      return recalcUnions(updated, edges);
-    });
-  }, [edges]);
-
   const handleAddCharacter = useCallback(
     async (data: CharacterData) => {
-      const count = nodes.filter(n => n.type === 'character').length;
-      const position = {
-        x: 80 + (count % 4) * 240,
-        y: 80 + Math.floor(count / 4) * 200,
-      };
       const tempId = crypto.randomUUID();
-
-      setNodes((nds) => [
-        ...nds,
-        { id: tempId, type: "character", position, data },
-      ]);
-
+      setNodes((nds) => [...nds, { id: tempId, type: "character", position: { x: 0, y: 0 }, data }]);
       try {
-        const { id } = await createCharacter(dynastyId, data, position);
+        const { id } = await createCharacter(dynastyId, data, { x: 0, y: 0 });
         setNodes((nds) => nds.map((n) => (n.id === tempId ? { ...n, id } : n)));
         toast.success(`${data.name} added to the dynasty`);
       } catch {
@@ -201,7 +116,7 @@ export function DynastyCanvas({
         toast.error("Failed to save character");
       }
     },
-    [dynastyId, nodes.length]
+    [dynastyId]
   );
 
   const handleUpdateCharacter = useCallback(
@@ -277,34 +192,18 @@ export function DynastyCanvas({
     []
   );
 
-  function recalcUnions(ns: AnyCanvasNode[], es: RelationshipEdgeType[]): AnyCanvasNode[] {
-    return ns.map(node => {
-      if (node.type !== 'union') return node;
-      const partnerEdges = es.filter(e => e.target === node.id && e.data?.type === 'PARTNER');
-      const parents = partnerEdges.map(e => ns.find(n => n.id === e.source)).filter(Boolean) as AnyCanvasNode[];
-      if (parents.length === 0) return node;
-      if (parents.length === 1) return { ...node, position: { x: parents[0].position.x, y: parents[0].position.y + 80 } };
-      return { ...node, position: {
-        x: (parents[0].position.x + parents[1].position.x) / 2,
-        y: Math.max(parents[0].position.y, parents[1].position.y) + 40,
-      }};
-    });
-  }
-
   return (
     <CanvasContext.Provider value={{ setEditingCharacterId }}>
       <div className="flex h-full w-full">
       <div className="relative flex-1 min-w-0 h-full">
         <ReactFlow
-          nodes={nodes}
+          nodes={laidOutNodes}
           edges={edges}
           onNodesChange={onNodesChange as (changes: NodeChange<AnyCanvasNode>[]) => void}
           onEdgesChange={onEdgesChange}
-          onConnect={handleConnect}
           onEdgeClick={handleEdgeClick}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
-          connectionMode={ConnectionMode.Loose}
           colorMode="dark"
           fitView
           fitViewOptions={{ padding: 0.2 }}
@@ -312,8 +211,7 @@ export function DynastyCanvas({
           className="bg-zinc-950"
           proOptions={{ hideAttribution: false }}
           defaultEdgeOptions={{ type: 'smoothstep' }}
-          snapToGrid={gridVisible}
-          snapGrid={[20, 20]}
+          nodesDraggable={false}
         >
           {gridVisible && (
             <Background
@@ -329,18 +227,8 @@ export function DynastyCanvas({
           />
         </ReactFlow>
 
-          {pendingConnection && (
-            <ConnectionPopup
-              x={pendingConnection.screenX}
-              y={pendingConnection.screenY}
-              onSelect={handleConnectionChoice}
-              onDismiss={() => setPendingConnection(null)}
-            />
-          )}
-
         <Toolbar
           onAddCharacter={() => setAddCharacterOpen(true)}
-          onTidyTree={handleTidyTree}
           gridVisible={gridVisible}
           onToggleGrid={() => setGridVisible((v) => !v)}
           activeSidebar={sidebar}
