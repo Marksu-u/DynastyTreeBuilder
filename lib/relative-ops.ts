@@ -114,7 +114,13 @@ export function computeAddRelative(
     if (existing) {
       if (existing.partners.includes(personId)) return { ok: false, error: 'Already a parent' };
       addedEdges.push(relEdge(personId, existing.id, 'PARTNER'));
-      for (const p of existing.partners) pairEdges.push({ fromId: personId, toId: p, type: 'SPOUSE' });
+      for (const p of existing.partners) {
+        // Skip the SPOUSE pair edge if they're already partners in another union —
+        // migrate-canvas builds one union per SPOUSE edge, so a duplicate row
+        // would materialize as a phantom second marriage on reload.
+        const alreadyPartners = (graph.partnerUnions.get(personId) ?? []).some(u => u.partners.includes(p));
+        if (!alreadyPartners) pairEdges.push({ fromId: personId, toId: p, type: 'SPOUSE' });
+      }
       for (const c of existing.children) pairEdges.push({ fromId: personId, toId: c, type: 'PARENT' });
     } else {
       const unionId = crypto.randomUUID();

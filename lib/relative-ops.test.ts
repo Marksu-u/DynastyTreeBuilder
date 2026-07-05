@@ -129,6 +129,24 @@ describe('computeAddRelative', () => {
     });
     expect(r.ok).toBe(false);
   });
+
+  it('second parent who is already a co-partner does not emit a duplicate SPOUSE', () => {
+    // mother & father already partners via u2 (child kid2); father solo-parents anchor via u
+    const n = [charNode('father'), charNode('mother'), unionNode('u'), unionNode('u2'),
+      charNode('anchor'), charNode('kid2')];
+    const e = [
+      edge('e1', 'father', 'u', 'PARTNER'), edge('e2', 'u', 'anchor', 'CHILD'),
+      edge('e3', 'father', 'u2', 'PARTNER'), edge('e4', 'mother', 'u2', 'PARTNER'), edge('e5', 'u2', 'kid2', 'CHILD'),
+    ];
+    const r = computeAddRelative(n, e, {
+      anchorId: 'anchor', kind: 'parent', person: { existingId: 'mother' },
+    });
+    if (!r.ok) throw new Error(r.error);
+    expect(r.pairEdges.filter(p => p.type === 'SPOUSE')).toHaveLength(0);
+    expect(r.pairEdges).toEqual(expect.arrayContaining([
+      { fromId: 'mother', toId: 'anchor', type: 'PARENT' },
+    ]));
+  });
 });
 
 describe('partnerUnionsOf', () => {
