@@ -3,9 +3,8 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import {
   ReactFlow,
-  Background, BackgroundVariant, ConnectionMode, Controls,
+  Background, BackgroundVariant, Controls,
   useReactFlow,
-  type Connection,
 } from '@xyflow/react';
 import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
@@ -18,21 +17,14 @@ import { RelationshipEdge } from '@/components/canvas/RelationshipEdge';
 import { Toolbar } from '@/components/canvas/Toolbar';
 import { AddCharacterPanel } from '@/components/canvas/AddCharacterPanel';
 import { EditRelationshipPanel } from '@/components/canvas/EditRelationshipPanel';
-import { ConnectionPopup } from '@/components/canvas/ConnectionPopup';
 import { CatalogProvider } from '@/components/canvas/CatalogProvider';
 import { CanvasContext } from '@/components/canvas/CanvasContext';
 import { CanvasEmptyState } from '@/components/canvas/CanvasEmptyState';
+import { useGenealogyLayout } from '@/components/canvas/useGenealogyLayout';
 import type { CharacterData, RelationshipData } from '@/types/canvas';
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
 const edgeTypes = { relationship: RelationshipEdge } as const;
-
-interface PendingConnection {
-  source: string;
-  target: string;
-  screenX: number;
-  screenY: number;
-}
 
 function TreeCanvasInner() {
   const nodes = useCanvasStore(s => s.nodes);
@@ -42,10 +34,8 @@ function TreeCanvasInner() {
   const addCharacter = useCanvasStore(s => s.addCharacter);
   const updateCharacter = useCanvasStore(s => s.updateCharacter);
   const deleteCharacter = useCanvasStore(s => s.deleteCharacter);
-  const addUnion = useCanvasStore(s => s.addUnion);
   const updateRelationship = useCanvasStore(s => s.updateRelationship);
   const deleteRelationship = useCanvasStore(s => s.deleteRelationship);
-  const tidyTreeAction = useCanvasStore(s => s.tidyTree);
   const editingCharacterId = useCanvasStore(s => s.editingCharacterId);
   const setEditingCharacterId = useCanvasStore(s => s.setEditingCharacterId);
   const editingEdgeId = useCanvasStore(s => s.editingEdgeId);
@@ -58,10 +48,12 @@ function TreeCanvasInner() {
   const toggleGrid = useCanvasStore(s => s.toggleGrid);
 
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
-  const [pendingConnection, setPendingConnection] = useState<PendingConnection | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const { fitView, getNode } = useReactFlow();
+  const { fitView } = useReactFlow();
+
+  const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
+  void rows; // consumed in a later task
 
   const characterNodes = useMemo(
     () => nodes.filter((n): n is CharacterNodeType => n.type === 'character'),
@@ -97,7 +89,7 @@ function TreeCanvasInner() {
   }, [fitView]);
 
   const handleExportJson = useCallback(() => {
-    const { nodes: n, edges: e } = useCanvasStore.getState();
+    const n = laidOutNodes; const e = edges;
     const data = {
       version: 1 as const,
       exportedAt: new Date().toISOString(),
@@ -119,46 +111,7 @@ function TreeCanvasInner() {
     };
     triggerJsonDownload(data, 'dynasty-tree.json');
     toast.success('Downloaded as JSON');
-  }, []);
-
-  const handleConnect = useCallback((connection: Connection) => {
-    const sourceNode = getNode(connection.source);
-    const targetNode = getNode(connection.target);
-    if (!sourceNode || !targetNode || sourceNode.type !== 'character') return;
-
-    if (targetNode.type === 'union') {
-      toast('Connect directly to a person in this union instead', { duration: 3500 });
-      return;
-    }
-
-    const container = containerRef.current?.getBoundingClientRect();
-    const midX = container ? container.left + (container.width / 2) : window.innerWidth / 2;
-    const midY = container ? container.top + (container.height / 2) : window.innerHeight / 2;
-
-    setPendingConnection({
-      source: connection.source,
-      target: connection.target,
-      screenX: midX,
-      screenY: midY,
-    });
-  }, [getNode]);
-
-  const handleConnectionChoice = useCallback((choice: 'partner' | 'child' | 'adopted') => {
-    if (!pendingConnection) return;
-    const { source, target } = pendingConnection;
-    setPendingConnection(null);
-
-    if (choice === 'partner') {
-      addUnion({ parentIds: [source, target], childIds: [], adoptedIds: [] });
-      toast.success('Union created — drag a connection to add children');
-    } else if (choice === 'child') {
-      addUnion({ parentIds: [source], childIds: [target], adoptedIds: [] });
-      toast.success('Parent → child link created');
-    } else {
-      addUnion({ parentIds: [source], childIds: [], adoptedIds: [target] });
-      toast.success('Adopted link created');
-    }
-  }, [pendingConnection, addUnion]);
+  }, [laidOutNodes, edges]);
 
   const handleAddCharacter = useCallback((data: CharacterData) => {
     addCharacter(data);
@@ -195,15 +148,13 @@ function TreeCanvasInner() {
       <div className="flex h-full w-full">
         <div ref={containerRef} className="relative flex-1 min-w-0 h-full">
           <ReactFlow
-            nodes={nodes}
+            nodes={laidOutNodes}
             edges={edges}
             onNodesChange={onNodesChange as (changes: import('@xyflow/react').NodeChange<AnyCanvasNode>[]) => void}
             onEdgesChange={onEdgesChange}
-            onConnect={handleConnect}
             onEdgeClick={handleEdgeClick}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
-            connectionMode={ConnectionMode.Loose}
             colorMode="dark"
             fitView
             fitViewOptions={{ padding: 0.2 }}
@@ -211,8 +162,7 @@ function TreeCanvasInner() {
             className="bg-zinc-950"
             proOptions={{ hideAttribution: false }}
             defaultEdgeOptions={{ type: 'smoothstep' }}
-            snapToGrid={gridVisible}
-            snapGrid={[20, 20]}
+            nodesDraggable={false}
           >
             {gridVisible && (
               <Background variant={BackgroundVariant.Dots} color="#3f3f46" size={1.5} gap={20} />
@@ -222,7 +172,6 @@ function TreeCanvasInner() {
 
           <Toolbar
             onAddCharacter={() => setAddCharacterOpen(true)}
-            onTidyTree={tidyTreeAction}
             gridVisible={gridVisible}
             onToggleGrid={toggleGrid}
             canUndo={canUndo}
@@ -236,15 +185,6 @@ function TreeCanvasInner() {
 
           {characterNodes.length === 0 && (
             <CanvasEmptyState onAddCharacter={() => setAddCharacterOpen(true)} />
-          )}
-
-          {pendingConnection && (
-            <ConnectionPopup
-              x={pendingConnection.screenX}
-              y={pendingConnection.screenY}
-              onSelect={handleConnectionChoice}
-              onDismiss={() => setPendingConnection(null)}
-            />
           )}
 
           <AddCharacterPanel
