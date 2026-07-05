@@ -318,9 +318,11 @@ export function layoutGenealogy(nodes: LayoutNodeIn[], edges: LayoutEdgeIn[]): G
     const r = Math.round(positions[id].y / ROW_HEIGHT);
     if (r > maxRow) maxRow = r;
   }
-  const rows: GenerationRow[] = Array.from({ length: maxRow + 1 }, (_, i) => ({
-    index: i, y: i * ROW_HEIGHT, height: CARD_H,
-  }));
+  const rows: GenerationRow[] = graph.characterIds.length === 0
+    ? []
+    : Array.from({ length: maxRow + 1 }, (_, i) => ({
+        index: i, y: i * ROW_HEIGHT, height: CARD_H,
+      }));
 
   return { positions, rows };
 }

@@ -178,4 +178,33 @@ describe('layoutGenealogy — clusters, rows, determinism', () => {
     };
     expect(layoutGenealogy(adopted.nodes, adopted.edges)).toEqual(layoutGenealogy(bio.nodes, bio.edges));
   });
+
+  it('empty input yields no positions and no rows', () => {
+    const { positions, rows } = layoutGenealogy([], []);
+    expect(Object.keys(positions)).toHaveLength(0);
+    expect(rows).toEqual([]);
+  });
+
+  it('adjacent siblings with mismatched strip/child widths never overlap', () => {
+    // root couple with two children:
+    //  - c1 is strip-wide: two marriages (s1, s2), one kid per union
+    //  - c2 is child-wide: one marriage (s3), five kids
+    const fix = nuclear(2);
+    fix.nodes.push(
+      char('s1'), char('s2'), union('m1'), union('m2'), char('k1'), char('k2'),
+      char('s3'), union('m3'), char('q1'), char('q2'), char('q3'), char('q4'), char('q5'),
+    );
+    fix.edges.push(
+      partner('c1', 'm1'), partner('s1', 'm1'), child('m1', 'k1'),
+      partner('c1', 'm2'), partner('s2', 'm2'), child('m2', 'k2'),
+      partner('c2', 'm3'), partner('s3', 'm3'),
+      child('m3', 'q1'), child('m3', 'q2'), child('m3', 'q3'), child('m3', 'q4'), child('m3', 'q5'),
+    );
+    const p = layoutGenealogy(fix.nodes, fix.edges).positions;
+    const chars = fix.nodes.filter(n => n.type === 'character').map(n => n.id);
+    for (const a of chars) for (const b of chars) {
+      if (a >= b || p[a].y !== p[b].y) continue;
+      expect(Math.abs(p[a].x - p[b].x), `${a} vs ${b}`).toBeGreaterThanOrEqual(CARD_W + 8);
+    }
+  });
 });
