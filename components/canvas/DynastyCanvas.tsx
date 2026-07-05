@@ -17,6 +17,7 @@ import { RelationshipEdge } from "./RelationshipEdge";
 import { Toolbar, type SidebarPanel } from "./Toolbar";
 import { AddCharacterPanel } from "./AddCharacterPanel";
 import { EditRelationshipPanel } from "./EditRelationshipPanel";
+import { AddRelativePanel } from "./AddRelativePanel";
 import { CanvasContext } from "./CanvasContext";
 import { CustomOptionsPanel } from "@/components/name-bank/CustomOptionsPanel";
 import {
@@ -27,6 +28,7 @@ import {
 import {
   updateRelationship,
   deleteRelationship,
+  createRelativeEdges,
 } from "@/app/actions/relationship";
 import type { CharacterData, RelationshipData } from "@/types/canvas";
 import type { CharacterNodeType, RelationshipEdgeType, LegacyEdgeType } from "@/store/canvas";
@@ -35,6 +37,7 @@ import { UnionNode } from './UnionNode';
 import type { AnyCanvasNode } from '@/store/canvas';
 import { migrateCanvas } from '@/lib/migrate-canvas';
 import { useGenealogyLayout } from './useGenealogyLayout';
+import { computeAddRelative, partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
 const edgeTypes = { relationship: RelationshipEdge } as const;
@@ -67,6 +70,7 @@ export function DynastyCanvas({
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
   const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null);
   const [sidebar, setSidebar] = useState<SidebarPanel | null>(null);
+  const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
   void rows; // consumed in a later task
@@ -192,8 +196,43 @@ export function DynastyCanvas({
     []
   );
 
+  const openAddRelative = useCallback((anchorId: string, kind: RelativeKind) => {
+    setRelPicker({ anchorId, kind });
+  }, []);
+
+  const handleAddRelative = useCallback(async (input: AddRelativeInput) => {
+    const result = computeAddRelative(nodes, edges, input);
+    if (!result.ok) {
+      toast.error(result.error === 'AMBIGUOUS_UNION' ? 'Pick which partner first' : result.error);
+      return;
+    }
+    setRelPicker(null);
+
+    const prevNodes = nodes;
+    const prevEdges = edges;
+    setNodes(result.nodes);
+    setEdges(result.edges);
+
+    try {
+      let pairEdges = result.pairEdges;
+      if ('newData' in input.person) {
+        const { id: realId } = await createCharacter(dynastyId, input.person.newData, { x: 0, y: 0 });
+        const remap = (v: string) => (v === result.personId ? realId : v);
+        setNodes(nds => nds.map(n => (n.id === result.personId ? { ...n, id: realId } : n)));
+        setEdges(eds => eds.map(e => ({ ...e, source: remap(e.source), target: remap(e.target) })));
+        pairEdges = pairEdges.map(p => ({ ...p, fromId: remap(p.fromId), toId: remap(p.toId) }));
+      }
+      await createRelativeEdges(dynastyId, pairEdges);
+      toast.success('Added to the tree');
+    } catch {
+      setNodes(prevNodes);
+      setEdges(prevEdges);
+      toast.error('Failed to save — reverted');
+    }
+  }, [nodes, edges, dynastyId]);
+
   return (
-    <CanvasContext.Provider value={{ setEditingCharacterId }}>
+    <CanvasContext.Provider value={{ setEditingCharacterId, openAddRelative }}>
       <div className="flex h-full w-full">
       <div className="relative flex-1 min-w-0 h-full">
         <ReactFlow
@@ -273,6 +312,21 @@ export function DynastyCanvas({
             isLoggedIn={isLoggedIn}
           />
         )}
+
+        {relPicker && (() => {
+          const anchor = characterNodes.find((n) => n.id === relPicker.anchorId);
+          if (!anchor) return null;
+          return (
+            <AddRelativePanel
+              anchor={anchor}
+              kind={relPicker.kind}
+              characters={characterNodes}
+              unions={partnerUnionsOf(nodes, edges, relPicker.anchorId)}
+              onSubmit={handleAddRelative}
+              onClose={() => setRelPicker(null)}
+            />
+          );
+        })()}
       </div>
 
       {sidebar === 'custom' && isLoggedIn && (

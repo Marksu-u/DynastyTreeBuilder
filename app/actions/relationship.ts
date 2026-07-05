@@ -1,10 +1,18 @@
 "use server";
 
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { IdSchema, RelationshipDataSchema } from "@/lib/schemas";
 import type { RelationshipData } from "@/types/canvas";
+
+const PairEdgeSchema = z.object({
+  fromId: IdSchema,
+  toId: IdSchema,
+  type: z.enum(['SPOUSE', 'PARENT', 'ADOPTED']),
+});
+const PairEdgesSchema = z.array(PairEdgeSchema).min(1).max(20);
 
 export async function createRelationship(
   dynastyId: string,
@@ -126,4 +134,37 @@ export async function createFamily(
       id: r.id, fromId: r.fromId, toId: r.toId, type: r.type,
     })),
   };
+}
+
+/** Persists the pair edges computed by lib/relative-ops.ts computeAddRelative. */
+export async function createRelativeEdges(
+  dynastyId: string,
+  pairEdges: { fromId: string; toId: string; type: 'SPOUSE' | 'PARENT' | 'ADOPTED' }[],
+): Promise<void> {
+  const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
+  const validDynastyId = IdSchema.parse(dynastyId);
+  const validEdges = PairEdgesSchema.parse(pairEdges);
+
+  const dynasty = await prisma.dynasty.findFirst({
+    where: { id: validDynastyId, ownerId: user.id },
+    select: { id: true },
+  });
+  if (!dynasty) throw new Error("Dynasty not found");
+
+  const ids = [...new Set(validEdges.flatMap(e => [e.fromId, e.toId]))];
+  const owned = await prisma.character.count({
+    where: { id: { in: ids }, dynastyId: validDynastyId },
+  });
+  if (owned !== ids.length) throw new Error("Character not found");
+
+  await prisma.relationship.createMany({
+    data: validEdges.map(e => ({
+      dynastyId: validDynastyId,
+      fromId: e.fromId,
+      toId: e.toId,
+      type: e.type,
+      isMutual: false,
+    })),
+  });
 }
