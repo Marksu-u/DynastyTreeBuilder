@@ -130,6 +130,34 @@ describe('computeAddRelative', () => {
     expect(r.ok).toBe(false);
   });
 
+  it('partner joins an existing solo-parent union instead of creating a second one', () => {
+    // anchor solo-parents kid1 via u1 (no co-partner yet); adding a partner
+    // must attach to u1 (so kid1 stays attached to the marriage), not spawn
+    // a second, disconnected union.
+    const solo = [charNode('anchor'), unionNode('u1'), charNode('kid1')];
+    const soloEdges = [edge('e1', 'anchor', 'u1', 'PARTNER'), edge('e2', 'u1', 'kid1', 'CHILD')];
+    const r = computeAddRelative(solo, soloEdges, {
+      anchorId: 'anchor', kind: 'partner', person: { newData: data('spouse'), newId: 'new1' },
+    });
+    if (!r.ok) throw new Error(r.error);
+    expect(r.nodes.filter(n => n.type === 'union')).toHaveLength(1);
+    expect(r.edges.find(e => e.source === 'new1' && e.target === 'u1' && e.data?.type === 'PARTNER')).toBeDefined();
+    expect(r.pairEdges).toEqual(expect.arrayContaining([
+      { fromId: 'anchor', toId: 'new1', type: 'SPOUSE' },
+      { fromId: 'new1', toId: 'kid1', type: 'PARENT' },
+    ]));
+  });
+
+  it('partner creates a new union for remarriage (existing union already has 2 partners)', () => {
+    const r = computeAddRelative(nodes, edges, {
+      anchorId: 'anchor', kind: 'partner', person: { newData: data('newWife'), newId: 'new1' },
+    });
+    if (!r.ok) throw new Error(r.error);
+    expect(r.nodes.filter(n => n.type === 'union')).toHaveLength(2);
+    const newUnion = r.nodes.find(n => n.type === 'union' && n.id !== 'u1')!;
+    expect(r.edges.find(e => e.source === 'new1' && e.target === newUnion.id)).toBeDefined();
+  });
+
   it('second parent who is already a co-partner does not emit a duplicate SPOUSE', () => {
     // mother & father already partners via u2 (child kid2); father solo-parents anchor via u
     const n = [charNode('father'), charNode('mother'), unionNode('u'), unionNode('u2'),

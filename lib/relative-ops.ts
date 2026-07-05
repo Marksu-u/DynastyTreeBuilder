@@ -66,14 +66,30 @@ export function computeAddRelative(
   const pairEdges: PairEdge[] = [];
 
   if (input.kind === 'partner') {
-    const already = (graph.partnerUnions.get(input.anchorId) ?? [])
-      .some(u => u.partners.includes(personId));
+    const anchorUnions = graph.partnerUnions.get(input.anchorId) ?? [];
+    const already = anchorUnions.some(u => u.partners.includes(personId));
     if (already) return { ok: false, error: 'Already partners' };
-    const unionId = crypto.randomUUID();
-    const unionNode: UnionNodeType = { id: unionId, type: 'union', position: { x: 0, y: 0 }, data: {} };
-    addedNodes.push(unionNode);
-    addedEdges.push(relEdge(input.anchorId, unionId, 'PARTNER'), relEdge(personId, unionId, 'PARTNER'));
-    pairEdges.push({ fromId: input.anchorId, toId: personId, type: 'SPOUSE' });
+
+    // If the anchor already solo-parents via one existing union (no co-partner
+    // yet), join that union rather than spawning a second, disconnected one —
+    // otherwise any existing children would be orphaned from the new marriage.
+    const soloUnion = anchorUnions.length === 1 && anchorUnions[0].partners.length === 1
+      ? anchorUnions[0]
+      : undefined;
+
+    if (soloUnion) {
+      addedEdges.push(relEdge(personId, soloUnion.id, 'PARTNER'));
+      pairEdges.push({ fromId: input.anchorId, toId: personId, type: 'SPOUSE' });
+      for (const c of soloUnion.children) {
+        pairEdges.push({ fromId: personId, toId: c, type: 'PARENT' });
+      }
+    } else {
+      const unionId = crypto.randomUUID();
+      const unionNode: UnionNodeType = { id: unionId, type: 'union', position: { x: 0, y: 0 }, data: {} };
+      addedNodes.push(unionNode);
+      addedEdges.push(relEdge(input.anchorId, unionId, 'PARTNER'), relEdge(personId, unionId, 'PARTNER'));
+      pairEdges.push({ fromId: input.anchorId, toId: personId, type: 'SPOUSE' });
+    }
 
   } else if (input.kind === 'child') {
     const unions = graph.partnerUnions.get(input.anchorId) ?? [];
