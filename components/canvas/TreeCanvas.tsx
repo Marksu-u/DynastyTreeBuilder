@@ -171,7 +171,6 @@ function TreeCanvasInner() {
           </ReactFlow>
 
           <Toolbar
-            onAddCharacter={() => setAddCharacterOpen(true)}
             gridVisible={gridVisible}
             onToggleGrid={toggleGrid}
             canUndo={canUndo}

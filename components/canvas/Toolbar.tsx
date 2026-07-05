@@ -3,14 +3,13 @@
 import { useRef, useState, useEffect } from "react";
 import { useReactFlow } from "@xyflow/react";
 import {
-  Plus, Maximize2, Grid3X3, Undo2, Redo2,
-  Download, ChevronDown, Settings2, GitFork,
+  Maximize2, Grid3X3, Undo2, Redo2,
+  Download, ChevronDown, Settings2,
 } from "lucide-react";
 
 export type SidebarPanel = 'custom';
 
 interface Props {
-  onAddCharacter: () => void;
   gridVisible: boolean;
   onToggleGrid: () => void;
   canUndo?: boolean;
@@ -23,11 +22,9 @@ interface Props {
   onExportJson?: () => void;
   /** When true, shows the "Custom options" panel toggle */
   showCustomOptions?: boolean;
-  onTidyTree?: () => void;
 }
 
 export function Toolbar({
-  onAddCharacter,
   gridVisible,
   onToggleGrid,
   canUndo = false,
@@ -39,7 +36,6 @@ export function Toolbar({
   onExport,
   onExportJson,
   showCustomOptions = false,
-  onTidyTree,
 }: Props) {
   const { fitView } = useReactFlow();
   const [exportOpen, setExportOpen] = useState(false);
@@ -61,16 +57,6 @@ export function Toolbar({
 
   return (
     <div className="absolute left-4 top-4 z-10 flex items-center gap-0.5 rounded-lg border border-zinc-700 bg-zinc-900/95 p-1 shadow-lg backdrop-blur-sm">
-      <button
-        onClick={onAddCharacter}
-        className="flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium text-zinc-100 transition-colors hover:bg-zinc-800"
-      >
-        <Plus size={14} />
-        Add Character
-      </button>
-
-      <div className="mx-0.5 h-5 w-px bg-zinc-700" />
-
       <button
         onClick={() => fitView({ duration: 400, padding: 0.15 })}
         className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
@@ -111,19 +97,6 @@ export function Toolbar({
       >
         <Redo2 size={14} />
       </button>
-
-      {onTidyTree && (
-        <>
-          <div className="mx-0.5 h-5 w-px bg-zinc-700" />
-          <button
-            onClick={onTidyTree}
-            className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
-            title="Auto-arrange tree"
-          >
-            <GitFork size={14} />
-          </button>
-        </>
-      )}
 
       {showCustomOptions && onToggleSidebar && (
         <>

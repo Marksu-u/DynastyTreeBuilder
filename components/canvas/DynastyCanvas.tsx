@@ -228,7 +228,6 @@ export function DynastyCanvas({
         </ReactFlow>
 
         <Toolbar
-          onAddCharacter={() => setAddCharacterOpen(true)}
           gridVisible={gridVisible}
           onToggleGrid={() => setGridVisible((v) => !v)}
           activeSidebar={sidebar}
