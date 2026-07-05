@@ -66,7 +66,7 @@ export function DynastyCanvas({
   );
   const [nodes, setNodes] = useState<AnyCanvasNode[]>(migrated.nodes as AnyCanvasNode[]);
   const [edges, setEdges] = useState<RelationshipEdgeType[]>(migrated.edges);
-  const [gridVisible, setGridVisible] = useState(true);
+  const [gridVisible, setGridVisible] = useState(false);
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
   const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null);

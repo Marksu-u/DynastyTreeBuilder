@@ -73,7 +73,7 @@ export const useCanvasStore = create<CanvasState>()(
       edges: [],
       past: [],
       future: [],
-      gridVisible: true,
+      gridVisible: false,
       editingCharacterId: null,
       editingEdgeId: null,
       isDirty: false,

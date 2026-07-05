@@ -56,6 +56,8 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
           ? 'border border-blue-400 ring-2 ring-blue-400/20'
           : hasSvgBorder
           ? ''
+          : isFounder
+          ? 'border border-[#EF9F27]/50 hover:border-[#EF9F27]/80'
           : 'border border-zinc-700 hover:border-zinc-600',
       ].join(' ')}
       style={isGhost ? { opacity: 0.4, filter: 'grayscale(1)' } : undefined}
