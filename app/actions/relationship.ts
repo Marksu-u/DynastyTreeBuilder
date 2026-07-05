@@ -12,7 +12,9 @@ const PairEdgeSchema = z.object({
   toId: IdSchema,
   type: z.enum(['SPOUSE', 'PARENT', 'ADOPTED']),
 });
-const PairEdgesSchema = z.array(PairEdgeSchema).min(1).max(20);
+// Cap sized for the largest legitimate emission: a second parent joining a
+// solo-parent union emits 1 SPOUSE + one PARENT per existing child.
+const PairEdgesSchema = z.array(PairEdgeSchema).min(1).max(50);
 
 export async function createRelationship(
   dynastyId: string,
