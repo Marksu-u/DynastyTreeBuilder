@@ -38,13 +38,17 @@ export const RelationshipEdge = memo(({
     // source = character card, target = union point
     const w = sourceNode.measured?.width ?? CARD_W;
     const h = sourceNode.measured?.height ?? CARD_H;
-    const midY = s.y + h / 2;
-    if (Math.abs(t.y - midY) <= h / 2) {
+    // Layout invariant: a couple's union point sits exactly at s.y + CARD_H / 2
+    // (lib/genealogy-layout.ts union placement). Compare against the layout
+    // constant — NOT measured height — so tall cards and solo unions
+    // (placed at s.y + CARD_H) can never flip into the marriage-line branch.
+    const marriageY = s.y + CARD_H / 2;
+    if (Math.abs(t.y - marriageY) < 1) {
       // partnered union: horizontal marriage line from the nearest card edge
       const fromX = t.x < s.x + w / 2 ? s.x : s.x + w;
       path = `M ${fromX} ${t.y} L ${t.x} ${t.y}`;
     } else {
-      // solo-parent union below the card (or rank mismatch fallback)
+      // solo-parent union at the card's layout bottom — stub hides behind the card
       path = `M ${s.x + w / 2} ${s.y + h} L ${t.x} ${t.y}`;
     }
   } else {

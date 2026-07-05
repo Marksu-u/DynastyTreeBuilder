@@ -272,6 +272,8 @@ function layoutCluster(
 
   // unions: midpoint of the two partner card centers at marriage-line height;
   // solo-parent unions sit directly under the card (vertical descent)
+  // NOTE: RelationshipEdge.tsx keys its marriage-line branch off these exact
+  // CARD_H-based anchors — keep them in lockstep.
   for (const u of clusterUnions) {
     const pts = u.partners.filter(p => positions.has(p)).map(p => positions.get(p)!);
     if (pts.length >= 2) {
