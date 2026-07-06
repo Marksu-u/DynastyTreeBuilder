@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import {
   ReactFlow,
   Background,
@@ -35,6 +35,10 @@ import type { AnyCanvasNode } from '@/store/canvas';
 import { migrateCanvas } from '@/lib/migrate-canvas';
 import { useGenealogyLayout } from './useGenealogyLayout';
 import { computeAddRelative, partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
+import { toPng } from "html-to-image";
+import { triggerJsonDownload } from "@/lib/export";
+import { exportDynasty, replaceDynastyFromExport } from "@/app/actions/dynasty";
+import { parseImportFile } from "@/lib/import-canvas";
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
 const edgeTypes = { relationship: RelationshipEdge } as const;
@@ -67,6 +71,7 @@ export function DynastyCanvas({
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
   const [sidebar, setSidebar] = useState<SidebarPanel | null>(null);
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
 
@@ -181,10 +186,61 @@ export function DynastyCanvas({
     }
   }, [nodes, edges, dynastyId]);
 
+  const handleExport = useCallback(async () => {
+    const element = containerRef.current?.querySelector<HTMLElement>('.react-flow');
+    if (!element) return;
+    try {
+      const dataUrl = await toPng(element, {
+        backgroundColor: '#09090b',
+        filter: node => !(node instanceof Element && node.classList.contains('react-flow__panel')),
+      });
+      const link = document.createElement('a');
+      link.download = `${dynastyName}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success('Exported as PNG');
+    } catch { toast.error('Export failed'); }
+  }, [dynastyName]);
+
+  const handleExportJson = useCallback(async () => {
+    try {
+      const data = await exportDynasty(dynastyId);
+      triggerJsonDownload(data, `${dynastyName}.json`);
+      toast.success('Downloaded as JSON');
+    } catch { toast.error('Export failed'); }
+  }, [dynastyId, dynastyName]);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleImportFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!window.confirm("Import will permanently replace this dynasty's characters and relationships. Continue?")) {
+      return;
+    }
+    try {
+      const raw = await file.text();
+      const data = parseImportFile(raw);
+      const result = await replaceDynastyFromExport(dynastyId, data);
+      const migrated = migrateCanvas(result.nodes as never, result.edges as never);
+      setNodes(migrated.nodes as AnyCanvasNode[]);
+      setEdges(migrated.edges);
+      setEditingCharacterId(null);
+      toast.success('Imported dynasty tree');
+    } catch {
+      toast.error("Couldn't read that file — is it a Dynasty Tree export?");
+    }
+  }, [dynastyId]);
+
   return (
     <CanvasContext.Provider value={{ setEditingCharacterId, openAddRelative }}>
       <div className="flex h-full w-full">
-      <div className="relative flex-1 min-w-0 h-full">
+      <div ref={containerRef} className="relative flex-1 min-w-0 h-full">
         <ReactFlow
           nodes={laidOutNodes}
           edges={edges}
@@ -216,16 +272,27 @@ export function DynastyCanvas({
           <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} />
         </ReactFlow>
 
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          onChange={handleImportFile}
+          className="hidden"
+        />
+
         <Toolbar
           gridVisible={gridVisible}
           onToggleGrid={() => setGridVisible((v) => !v)}
           activeSidebar={sidebar}
           onToggleSidebar={handleToggleSidebar}
           showCustomOptions={isLoggedIn}
+          onExport={handleExport}
+          onExportJson={handleExportJson}
+          onImportJson={handleImportClick}
         />
 
         {characterNodes.length === 0 && (
-          <CanvasEmptyState onAddCharacter={() => setAddCharacterOpen(true)} />
+          <CanvasEmptyState onAddCharacter={() => setAddCharacterOpen(true)} onImportJson={handleImportClick} />
         )}
 
         <AddRelativeHint visible={characterNodes.length === 1 && !characterNodes[0].selected} />
