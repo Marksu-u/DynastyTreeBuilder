@@ -8,6 +8,7 @@ import {
   Controls,
   type NodeChange,
   type EdgeChange,
+  type EdgeRemoveChange,
   applyNodeChanges,
   applyEdgeChanges,
 } from "@xyflow/react";
@@ -26,7 +27,7 @@ import {
   updateCharacter,
   deleteCharacter,
 } from "@/app/actions/character";
-import { createRelativeEdges } from "@/app/actions/relationship";
+import { createRelativeEdges, deleteRelativeEdges } from "@/app/actions/relationship";
 import type { CharacterData } from "@/types/canvas";
 import type { CharacterNodeType, RelationshipEdgeType, LegacyEdgeType } from "@/store/canvas";
 import { CanvasEmptyState } from "@/components/canvas/CanvasEmptyState";
@@ -34,7 +35,7 @@ import { UnionNode } from './UnionNode';
 import type { AnyCanvasNode } from '@/store/canvas';
 import { migrateCanvas } from '@/lib/migrate-canvas';
 import { useGenealogyLayout } from './useGenealogyLayout';
-import { computeAddRelative, partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
+import { computeAddRelative, computeRemoveRelative, partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
 import { toPng } from "html-to-image";
 import { triggerJsonDownload } from "@/lib/export";
 import { exportDynasty, replaceDynastyFromExport } from "@/app/actions/dynasty";
@@ -97,9 +98,36 @@ export function DynastyCanvas({
 
   const onEdgesChange = useCallback(
     (changes: EdgeChange<RelationshipEdgeType>[]) => {
-      setEdges((eds) => applyEdgeChanges(changes, eds) as RelationshipEdgeType[]);
+      const isRemove = (c: EdgeChange<RelationshipEdgeType>): c is EdgeRemoveChange => c.type === 'remove';
+      const removeIds = changes.filter(isRemove).map((c) => c.id);
+      const rest = changes.filter((c) => !isRemove(c));
+
+      if (removeIds.length === 0) {
+        setEdges((eds) => applyEdgeChanges(changes, eds) as RelationshipEdgeType[]);
+        return;
+      }
+
+      const result = computeRemoveRelative(nodes, edges, removeIds);
+      if (!result.ok) {
+        toast.error(result.error);
+        setEdges((eds) => applyEdgeChanges(rest, eds) as RelationshipEdgeType[]);
+        return;
+      }
+
+      const prevNodes = nodes;
+      const prevEdges = edges;
+      setNodes(result.nodes);
+      setEdges(applyEdgeChanges(rest, result.edges) as RelationshipEdgeType[]);
+
+      if (result.pairEdges.length > 0) {
+        deleteRelativeEdges(dynastyId, result.pairEdges).catch(() => {
+          setNodes(prevNodes);
+          setEdges(prevEdges);
+          toast.error('Failed to delete — reverted');
+        });
+      }
     },
-    []
+    [nodes, edges, dynastyId]
   );
 
   const handleAddCharacter = useCallback(
