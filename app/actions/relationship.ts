@@ -101,3 +101,46 @@ export async function createRelativeEdges(
     })),
   });
 }
+
+// Same shape as PairEdgesSchema but 0 items is valid — a removal batch that
+// only garbage-collects an empty union has nothing to delete server-side.
+const DeletePairEdgesSchema = z.array(PairEdgeSchema).max(50);
+
+/** Deletes the pair edges computed by lib/relative-ops.ts computeRemoveRelative. */
+export async function deleteRelativeEdges(
+  dynastyId: string,
+  pairEdges: { fromId: string; toId: string; type: 'SPOUSE' | 'PARENT' | 'ADOPTED' }[],
+): Promise<void> {
+  const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
+  const validDynastyId = IdSchema.parse(dynastyId);
+  const validEdges = DeletePairEdgesSchema.parse(pairEdges);
+  if (validEdges.length === 0) return;
+
+  const dynasty = await prisma.dynasty.findFirst({
+    where: { id: validDynastyId, ownerId: user.id },
+    select: { id: true },
+  });
+  if (!dynasty) throw new Error("Dynasty not found");
+
+  await prisma.relationship.deleteMany({
+    where: {
+      dynastyId: validDynastyId,
+      // SPOUSE is stored directionally but is semantically symmetric (the
+      // row could be (A,B) or (B,A) depending on who was the anchor when it
+      // was created) — match either direction. PARENT/ADOPTED are always
+      // parent -> child and match exactly.
+      OR: validEdges.map(e =>
+        e.type === 'SPOUSE'
+          ? {
+              type: 'SPOUSE' as const,
+              OR: [
+                { fromId: e.fromId, toId: e.toId },
+                { fromId: e.toId, toId: e.fromId },
+              ],
+            }
+          : { type: e.type, fromId: e.fromId, toId: e.toId },
+      ),
+    },
+  });
+}
