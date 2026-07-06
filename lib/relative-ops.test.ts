@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeAddRelative, partnerUnionsOf } from './relative-ops';
+import { computeAddRelative, computeRemoveRelative, partnerUnionsOf } from './relative-ops';
 import type { AnyCanvasNode, RelationshipEdgeType } from '@/store/canvas';
 import type { CharacterData } from '@/types/canvas';
 
@@ -181,5 +181,78 @@ describe('partnerUnionsOf', () => {
   it('lists unions with co-partner ids', () => {
     const u = partnerUnionsOf(nodes, edges, 'anchor');
     expect(u).toEqual([{ unionId: 'u1', partnerIds: ['wife'] }]);
+  });
+});
+
+describe('computeRemoveRelative', () => {
+  it('removes a CHILD edge: emits PARENT pairEdges from every partner', () => {
+    const r = computeRemoveRelative(nodes, edges, ['e3']);
+    if (!r.ok) throw new Error(r.error);
+    expect(r.edges.find(e => e.id === 'e3')).toBeUndefined();
+    expect(r.pairEdges.sort((a, b) => a.fromId.localeCompare(b.fromId))).toEqual([
+      { fromId: 'anchor', toId: 'kid1', type: 'PARENT' },
+      { fromId: 'wife', toId: 'kid1', type: 'PARENT' },
+    ]);
+    expect(r.nodes.find(n => n.id === 'u1')).toBeDefined();
+  });
+
+  it('emits ADOPTED pairEdges for adopted children', () => {
+    const adoptEdges = [
+      edge('e1', 'anchor', 'u1', 'PARTNER'),
+      edge('e2', 'wife', 'u1', 'PARTNER'),
+      edge('e3', 'u1', 'kid1', 'ADOPTED_CHILD'),
+    ];
+    const r = computeRemoveRelative(nodes, adoptEdges, ['e3']);
+    if (!r.ok) throw new Error(r.error);
+    expect(r.pairEdges.sort((a, b) => a.fromId.localeCompare(b.fromId))).toEqual([
+      { fromId: 'anchor', toId: 'kid1', type: 'ADOPTED' },
+      { fromId: 'wife', toId: 'kid1', type: 'ADOPTED' },
+    ]);
+  });
+
+  it('removes one PARTNER edge from a 2-partner union with children: full detach', () => {
+    const r = computeRemoveRelative(nodes, edges, ['e1']);
+    if (!r.ok) throw new Error(r.error);
+    expect(r.edges.find(e => e.id === 'e1')).toBeUndefined();
+    expect(r.edges.find(e => e.id === 'e2')).toBeDefined();
+    expect(r.pairEdges.sort((a, b) => a.type.localeCompare(b.type))).toEqual([
+      { fromId: 'anchor', toId: 'kid1', type: 'PARENT' },
+      { fromId: 'anchor', toId: 'wife', type: 'SPOUSE' },
+    ]);
+    expect(r.nodes.find(n => n.id === 'u1')).toBeDefined();
+  });
+
+  it('removes the sole PARTNER edge of a childless solo union: garbage-collects the union', () => {
+    const soloNodes = [charNode('anchor'), unionNode('u1')];
+    const soloEdges = [edge('e1', 'anchor', 'u1', 'PARTNER')];
+    const r = computeRemoveRelative(soloNodes, soloEdges, ['e1']);
+    if (!r.ok) throw new Error(r.error);
+    expect(r.edges).toHaveLength(0);
+    expect(r.nodes.find(n => n.id === 'u1')).toBeUndefined();
+    expect(r.pairEdges).toEqual([]);
+  });
+
+  it('rejects removing the sole PARTNER edge of a solo union with children', () => {
+    const soloNodes = [charNode('anchor'), unionNode('u1'), charNode('kid1')];
+    const soloEdges = [edge('e1', 'anchor', 'u1', 'PARTNER'), edge('e2', 'u1', 'kid1', 'CHILD')];
+    const r = computeRemoveRelative(soloNodes, soloEdges, ['e1']);
+    expect(r.ok).toBe(false);
+  });
+
+  it('rejects a batch removing both PARTNER edges of a 2-partner union with children', () => {
+    const r = computeRemoveRelative(nodes, edges, ['e1', 'e2']);
+    expect(r.ok).toBe(false);
+  });
+
+  it('dedups pairEdges when a CHILD edge and its union PARTNER edge are removed together', () => {
+    const r = computeRemoveRelative(nodes, edges, ['e1', 'e3']);
+    if (!r.ok) throw new Error(r.error);
+    const parentPairs = r.pairEdges.filter(p => p.type === 'PARENT' && p.fromId === 'anchor' && p.toId === 'kid1');
+    expect(parentPairs).toHaveLength(1);
+    expect(r.pairEdges.sort((a, b) => (a.fromId + a.type).localeCompare(b.fromId + b.type))).toEqual([
+      { fromId: 'anchor', toId: 'kid1', type: 'PARENT' },
+      { fromId: 'anchor', toId: 'wife', type: 'SPOUSE' },
+      { fromId: 'wife', toId: 'kid1', type: 'PARENT' },
+    ]);
   });
 });

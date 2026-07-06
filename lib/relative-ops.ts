@@ -155,3 +155,94 @@ export function computeAddRelative(
     personId,
   };
 }
+
+export type RemoveRelativeResult =
+  | { ok: true; nodes: AnyCanvasNode[]; edges: RelationshipEdgeType[]; pairEdges: PairEdge[] }
+  | { ok: false; error: string };
+
+export function computeRemoveRelative(
+  nodes: AnyCanvasNode[],
+  edges: RelationshipEdgeType[],
+  edgeIdsToRemove: string[],
+): RemoveRelativeResult {
+  const graph = buildFamilyGraph(nodes, edges);
+  const removeIdSet = new Set(edgeIdsToRemove);
+  const removedEdges = edges.filter(e => removeIdSet.has(e.id));
+
+  // union+child -> CHILD | ADOPTED_CHILD, so a detached partner's pairEdge
+  // matches the adoption status of each specific child (buildFamilyGraph's
+  // Union.children loses that distinction).
+  const childEdgeType = new Map<string, 'CHILD' | 'ADOPTED_CHILD'>();
+  for (const e of edges) {
+    const t = e.data?.type;
+    if (t === 'CHILD' || t === 'ADOPTED_CHILD') childEdgeType.set(`${e.source}::${e.target}`, t);
+  }
+
+  const pairEdges: PairEdge[] = [];
+  const pairEdgeKeys = new Set<string>();
+  const pushPair = (fromId: string, toId: string, type: PairEdge['type']) => {
+    const key = `${type}::${fromId}::${toId}`;
+    if (pairEdgeKeys.has(key)) return;
+    pairEdgeKeys.add(key);
+    pairEdges.push({ fromId, toId, type });
+  };
+
+  // net partner/child counts per union, seeded from the pre-removal graph —
+  // used to validate the whole batch at once rather than edge-by-edge.
+  const netPartners = new Map<string, Set<string>>();
+  const netChildren = new Map<string, Set<string>>();
+  for (const u of graph.unions) {
+    netPartners.set(u.id, new Set(u.partners));
+    netChildren.set(u.id, new Set(u.children));
+  }
+  const touchedUnions = new Set<string>();
+
+  for (const e of removedEdges) {
+    const type = e.data?.type;
+    if (type === 'PARTNER') {
+      const unionId = e.target;
+      const partnerId = e.source;
+      const union = graph.unionById.get(unionId);
+      if (!union) continue;
+      touchedUnions.add(unionId);
+      for (const other of union.partners) {
+        if (other !== partnerId) pushPair(partnerId, other, 'SPOUSE');
+      }
+      for (const child of union.children) {
+        const childType = childEdgeType.get(`${unionId}::${child}`);
+        pushPair(partnerId, child, childType === 'ADOPTED_CHILD' ? 'ADOPTED' : 'PARENT');
+      }
+      netPartners.get(unionId)?.delete(partnerId);
+    } else if (type === 'CHILD' || type === 'ADOPTED_CHILD') {
+      const unionId = e.source;
+      const childId = e.target;
+      const union = graph.unionById.get(unionId);
+      if (!union) continue;
+      touchedUnions.add(unionId);
+      const pairType = type === 'ADOPTED_CHILD' ? 'ADOPTED' : 'PARENT';
+      for (const partner of union.partners) {
+        pushPair(partner, childId, pairType);
+      }
+      netChildren.get(unionId)?.delete(childId);
+    }
+  }
+
+  const garbageUnionIds = new Set<string>();
+  for (const unionId of touchedUnions) {
+    const partnersLeft = netPartners.get(unionId)?.size ?? 0;
+    const childrenLeft = netChildren.get(unionId)?.size ?? 0;
+    if (partnersLeft === 0 && childrenLeft > 0) {
+      return { ok: false, error: 'Remove the children first, or add another partner before removing this one' };
+    }
+    if (partnersLeft === 0 && childrenLeft === 0) {
+      garbageUnionIds.add(unionId);
+    }
+  }
+
+  return {
+    ok: true,
+    nodes: nodes.filter(n => !(n.type === 'union' && garbageUnionIds.has(n.id))),
+    edges: edges.filter(e => !removeIdSet.has(e.id)),
+    pairEdges,
+  };
+}
