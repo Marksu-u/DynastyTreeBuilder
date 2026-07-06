@@ -375,13 +375,28 @@ export async function replaceDynastyFromExport(
         toId: idMap.get(r.toId),
         type: r.type,
         isMutual: r.isMutual,
+        hook: r.hook,
       }))
       .filter(
-        (r): r is { fromId: string; toId: string; type: typeof r.type; isMutual: boolean } =>
-          !!r.fromId && !!r.toId,
+        (
+          r,
+        ): r is {
+          fromId: string;
+          toId: string;
+          type: typeof r.type;
+          isMutual: boolean;
+          hook: string | null;
+        } => !!r.fromId && !!r.toId,
       );
 
-    let relationships: { id: string; fromId: string; toId: string; type: string; isMutual: boolean }[] = [];
+    let relationships: {
+      id: string;
+      fromId: string;
+      toId: string;
+      type: string;
+      isMutual: boolean;
+      hook: string | null;
+    }[] = [];
     if (relationshipsData.length > 0) {
       await tx.relationship.createMany({
         data: relationshipsData.map((r) => ({ dynastyId: validId, ...r })),
@@ -418,7 +433,7 @@ export async function replaceDynastyFromExport(
       target: rel.toId,
       data: {
         type: rel.type as LegacyRelationshipType,
-        hook: undefined,
+        hook: rel.hook ?? undefined,
         isMutual: rel.isMutual,
       },
     })),
