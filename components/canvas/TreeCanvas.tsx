@@ -24,7 +24,7 @@ import { CanvasContext } from '@/components/canvas/CanvasContext';
 import { CanvasEmptyState } from '@/components/canvas/CanvasEmptyState';
 import { useGenealogyLayout } from '@/components/canvas/useGenealogyLayout';
 import { partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
-import { deriveExportRelationships } from '@/lib/import-canvas';
+import { parseImportFile, buildCanvasFromExport, deriveExportRelationships } from '@/lib/import-canvas';
 import type { CharacterData } from '@/types/canvas';
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
@@ -47,6 +47,7 @@ function TreeCanvasInner() {
   const canUndo = useCanvasStore(s => s.past.length > 0);
   const canRedo = useCanvasStore(s => s.future.length > 0);
   const toggleGrid = useCanvasStore(s => s.toggleGrid);
+  const initCanvas = useCanvasStore(s => s.initCanvas);
 
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
@@ -135,6 +136,30 @@ function TreeCanvasInner() {
     toast.success('Added to the tree');
   }, [addRelative]);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleImportFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (characterNodes.length > 0 && !window.confirm('Import will replace your current guest tree. Continue?')) {
+      return;
+    }
+    try {
+      const raw = await file.text();
+      const data = parseImportFile(raw);
+      const { nodes: importedNodes, edges: importedEdges } = buildCanvasFromExport(data);
+      initCanvas(importedNodes, importedEdges);
+      toast.success('Imported dynasty tree');
+    } catch {
+      toast.error("Couldn't read that file — is it a Dynasty Tree export?");
+    }
+  }, [characterNodes.length, initCanvas]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMod = e.metaKey || e.ctrlKey;
@@ -183,6 +208,14 @@ function TreeCanvasInner() {
             <GenerationBands rows={rows} nodes={laidOutNodes} houseName="Your Dynasty" />
           </ReactFlow>
 
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={handleImportFile}
+            className="hidden"
+          />
+
           <Toolbar
             gridVisible={gridVisible}
             onToggleGrid={toggleGrid}
@@ -192,11 +225,12 @@ function TreeCanvasInner() {
             onRedo={redo}
             onExport={handleExport}
             onExportJson={handleExportJson}
+            onImportJson={handleImportClick}
             showCustomOptions={false}
           />
 
           {characterNodes.length === 0 && (
-            <CanvasEmptyState onAddCharacter={() => setAddCharacterOpen(true)} />
+            <CanvasEmptyState onAddCharacter={() => setAddCharacterOpen(true)} onImportJson={handleImportClick} />
           )}
 
           <AddRelativeHint visible={characterNodes.length === 1 && !characterNodes[0].selected} />
