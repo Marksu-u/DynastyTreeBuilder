@@ -3,14 +3,13 @@
 import { useRef, useState, useEffect } from "react";
 import { useReactFlow } from "@xyflow/react";
 import {
-  Plus, Maximize2, Grid3X3, Undo2, Redo2,
-  BookOpen, Swords, Download, ChevronDown, Link2, Settings2,
+  Maximize2, Grid3X3, Undo2, Redo2,
+  Download, Upload, ChevronDown, Settings2,
 } from "lucide-react";
 
-export type SidebarPanel = 'names' | 'roles' | 'tags' | 'custom';
+export type SidebarPanel = 'custom';
 
 interface Props {
-  onAddCharacter: () => void;
   gridVisible: boolean;
   onToggleGrid: () => void;
   canUndo?: boolean;
@@ -21,12 +20,12 @@ interface Props {
   onToggleSidebar?: (panel: SidebarPanel) => void;
   onExport?: () => void;
   onExportJson?: () => void;
+  onImportJson?: () => void;
   /** When true, shows the "Custom options" panel toggle */
   showCustomOptions?: boolean;
 }
 
 export function Toolbar({
-  onAddCharacter,
   gridVisible,
   onToggleGrid,
   canUndo = false,
@@ -37,6 +36,7 @@ export function Toolbar({
   onToggleSidebar,
   onExport,
   onExportJson,
+  onImportJson,
   showCustomOptions = false,
 }: Props) {
   const { fitView } = useReactFlow();
@@ -55,20 +55,10 @@ export function Toolbar({
   }, [exportOpen]);
 
   const showExport = !!onExport;
-  const showDropdown = showExport && !!onExportJson;
+  const showDropdown = showExport && (!!onExportJson || !!onImportJson);
 
   return (
     <div className="absolute left-4 top-4 z-10 flex items-center gap-0.5 rounded-lg border border-zinc-700 bg-zinc-900/95 p-1 shadow-lg backdrop-blur-sm">
-      <button
-        onClick={onAddCharacter}
-        className="flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium text-zinc-100 transition-colors hover:bg-zinc-800"
-      >
-        <Plus size={14} />
-        Add Character
-      </button>
-
-      <div className="mx-0.5 h-5 w-px bg-zinc-700" />
-
       <button
         onClick={() => fitView({ duration: 400, padding: 0.15 })}
         className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
@@ -96,7 +86,7 @@ export function Toolbar({
         onClick={onUndo}
         disabled={!canUndo || !onUndo}
         className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-30"
-        title="Undo"
+        title="Undo (Ctrl/⌘+Z)"
       >
         <Undo2 size={14} />
       </button>
@@ -105,64 +95,26 @@ export function Toolbar({
         onClick={onRedo}
         disabled={!canRedo || !onRedo}
         className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-30"
-        title="Redo"
+        title="Redo (Ctrl/⌘+Shift+Z)"
       >
         <Redo2 size={14} />
       </button>
 
-      {onToggleSidebar && (
+      {showCustomOptions && onToggleSidebar && (
         <>
           <div className="mx-0.5 h-5 w-px bg-zinc-700" />
           <button
-            onClick={() => onToggleSidebar('names')}
+            onClick={() => onToggleSidebar('custom')}
             className={[
               "rounded p-1.5 transition-colors",
-              activeSidebar === 'names'
+              activeSidebar === 'custom'
                 ? "bg-zinc-800 text-zinc-200"
                 : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300",
             ].join(" ")}
-            title="Name bank"
+            title="My custom options"
           >
-            <BookOpen size={14} />
+            <Settings2 size={14} />
           </button>
-          <button
-            onClick={() => onToggleSidebar('roles')}
-            className={[
-              "rounded p-1.5 transition-colors",
-              activeSidebar === 'roles'
-                ? "bg-zinc-800 text-zinc-200"
-                : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300",
-            ].join(" ")}
-            title="Role slots"
-          >
-            <Swords size={14} />
-          </button>
-          <button
-            onClick={() => onToggleSidebar('tags')}
-            className={[
-              "rounded p-1.5 transition-colors",
-              activeSidebar === 'tags'
-                ? "bg-zinc-800 text-zinc-200"
-                : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300",
-            ].join(" ")}
-            title="Relationship tags"
-          >
-            <Link2 size={14} />
-          </button>
-          {showCustomOptions && (
-            <button
-              onClick={() => onToggleSidebar('custom')}
-              className={[
-                "rounded p-1.5 transition-colors",
-                activeSidebar === 'custom'
-                  ? "bg-zinc-800 text-zinc-200"
-                  : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300",
-              ].join(" ")}
-              title="My custom options"
-            >
-              <Settings2 size={14} />
-            </button>
-          )}
         </>
       )}
 
@@ -195,6 +147,18 @@ export function Toolbar({
                   >
                     Download JSON
                   </button>
+                  {onImportJson && (
+                    <>
+                      <div className="my-1 h-px bg-zinc-700" />
+                      <button
+                        onClick={() => { setExportOpen(false); onImportJson(); }}
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
+                      >
+                        <Upload size={12} />
+                        Import JSON
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>

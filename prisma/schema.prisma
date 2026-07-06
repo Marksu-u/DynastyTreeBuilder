@@ -40,10 +40,8 @@ enum NameStyle {
 // CustomOptionKind: developer-controlled set of extendable catalog dimensions.
 // Users can add custom values within each kind, but new kinds are added by devs only.
 enum CustomOptionKind {
-  CHARACTER_ROLE
   CHARACTER_STYLE
   RELATIONSHIP_TYPE
-  RELATIONSHIP_TAG
 }
 
 enum AppSource {
@@ -100,21 +98,18 @@ model Dynasty {
 }
 
 model Character {
-  id         String          @id @default(cuid())
-  name       String
-  alias      String?
-  // role and style are open String columns; defaults are catalog tokens ("UNKNOWN", "OTHER")
-  role       String          @default("UNKNOWN")
-  style      String          @default("OTHER")
-  gender     CharacterGender @default(UNKNOWN)
-  generation Int             @default(0)
-  isFounder  Boolean         @default(false)
-  isLost     Boolean         @default(false)
-  note       String?
-  posX       Float           @default(0)
-  posY       Float           @default(0)
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
+  id        String          @id @default(cuid())
+  name      String
+  alias     String?
+  // flags replaces role + isFounder + isLost — open array of permanent genealogical facts
+  flags     String[]        @default([])
+  style     String          @default("OTHER")
+  gender    CharacterGender @default(UNKNOWN)
+  note      String?
+  posX      Float           @default(0)
+  posY      Float           @default(0)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
   dynastyId String
   dynasty   Dynasty @relation(fields: [dynastyId], references: [id], onDelete: Cascade)
@@ -128,9 +123,8 @@ model Character {
 
 model Relationship {
   id        String   @id @default(cuid())
-  // type and tag are open String columns; defaults are catalog tokens ("UNKNOWN", null)
-  type      String   @default("UNKNOWN")
-  tag       String?
+  // type is restricted to PARENT | SPOUSE | ADOPTED
+  type      String   @default("PARENT")
   hook      String?
   isMutual  Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -156,8 +150,6 @@ model CustomName {
   name      String
   style     NameStyle       @default(FANTASY)
   gender    CharacterGender @default(UNKNOWN)
-  // role is now an open String so custom roles can be assigned to names
-  role      String?
   note      String?
   createdAt DateTime        @default(now())
 

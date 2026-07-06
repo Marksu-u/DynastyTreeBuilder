@@ -1,25 +1,39 @@
 "use client";
 
+import { useMemo } from "react";
 import { ReactFlow, Background, BackgroundVariant, Controls } from "@xyflow/react";
 import Link from "next/link";
 import { CharacterNode } from "./CharacterNode";
 import { RelationshipEdge } from "./RelationshipEdge";
 import { ReportButton } from "./ReportButton";
 import { CatalogProvider } from "./CatalogProvider";
+import { GenerationBands } from "./GenerationBands";
+import { migrateCanvas } from "@/lib/migrate-canvas";
+import { useGenealogyLayout } from "./useGenealogyLayout";
+import { UnionNode } from "./UnionNode";
 import "@xyflow/react/dist/style.css";
-import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
+import type { AnyCanvasNode, RelationshipEdgeType, CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
 
-const nodeTypes = { character: CharacterNode } as const;
+const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
 const edgeTypes = { relationship: RelationshipEdge } as const;
 
 type Props = {
   dynastyName: string;
   shareSlug: string;
   nodes: CharacterNodeType[];
-  edges: RelationshipEdgeType[];
+  edges: LegacyEdgeType[];
 };
 
 export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
+  const migrated = useMemo(
+    () => migrateCanvas(nodes as never, edges as never),
+    [nodes, edges],
+  );
+  const { nodes: laidOutNodes, rows } = useGenealogyLayout(
+    migrated.nodes as AnyCanvasNode[],
+    migrated.edges as RelationshipEdgeType[],
+  );
+
   return (
     <CatalogProvider isLoggedIn={false}>
     <div className="relative h-full w-full">
@@ -38,8 +52,8 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
       </div>
 
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={laidOutNodes}
+        edges={migrated.edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         nodesDraggable={false}
@@ -61,6 +75,7 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
           showInteractive={false}
           className="!bottom-4 !left-auto !right-4 !top-auto"
         />
+        <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} />
       </ReactFlow>
     </div>
     </CatalogProvider>

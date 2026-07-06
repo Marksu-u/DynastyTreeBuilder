@@ -5,11 +5,10 @@ import {
   ReactFlow,
   Background,
   BackgroundVariant,
-  ConnectionMode,
   Controls,
   type NodeChange,
   type EdgeChange,
-  type Connection,
+  type EdgeRemoveChange,
   applyNodeChanges,
   applyEdgeChanges,
 } from "@xyflow/react";
@@ -18,36 +17,38 @@ import { CharacterNode } from "./CharacterNode";
 import { RelationshipEdge } from "./RelationshipEdge";
 import { Toolbar, type SidebarPanel } from "./Toolbar";
 import { AddCharacterPanel } from "./AddCharacterPanel";
-import { EditRelationshipPanel } from "./EditRelationshipPanel";
-import { NameBank } from "@/components/name-bank/NameBank";
+import { AddRelativePanel } from "./AddRelativePanel";
+import { AddRelativeHint } from "./AddRelativeHint";
+import { GenerationBands } from "./GenerationBands";
 import { CanvasContext } from "./CanvasContext";
-import { RoleSlots } from "@/components/name-bank/RoleSlots";
-import { RelationshipTagsPanel } from "@/components/name-bank/RelationshipTagsPanel";
 import { CustomOptionsPanel } from "@/components/name-bank/CustomOptionsPanel";
 import {
   createCharacter,
   updateCharacter,
   deleteCharacter,
-  updatePosition,
 } from "@/app/actions/character";
-import {
-  createRelationship,
-  updateRelationship,
-  deleteRelationship,
-} from "@/app/actions/relationship";
-import type { CharacterData, RelationshipData } from "@/types/canvas";
-import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
-import { Users } from "lucide-react";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { addRelative, deleteRelativeEdges } from "@/app/actions/relationship";
+import type { CharacterData } from "@/types/canvas";
+import type { CharacterNodeType, RelationshipEdgeType, LegacyEdgeType } from "@/store/canvas";
+import { CanvasEmptyState } from "@/components/canvas/CanvasEmptyState";
+import { UnionNode } from './UnionNode';
+import type { AnyCanvasNode } from '@/store/canvas';
+import { migrateCanvas } from '@/lib/migrate-canvas';
+import { useGenealogyLayout } from './useGenealogyLayout';
+import { computeAddRelative, computeRemoveRelative, partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
+import { toPng } from "html-to-image";
+import { triggerJsonDownload } from "@/lib/export";
+import { exportDynasty, replaceDynastyFromExport } from "@/app/actions/dynasty";
+import { parseImportFile } from "@/lib/import-canvas";
 
-const nodeTypes = { character: CharacterNode } as const;
+const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
 const edgeTypes = { relationship: RelationshipEdge } as const;
 
 type Props = {
   dynastyId: string;
   dynastyName: string;
   initialNodes: CharacterNodeType[];
-  initialEdges: RelationshipEdgeType[];
+  initialEdges: LegacyEdgeType[];
   userId?: string;
 };
 
@@ -59,99 +60,82 @@ export function DynastyCanvas({
   userId,
 }: Props) {
   const isLoggedIn = !!userId;
-  const [nodes, setNodes] = useState<CharacterNodeType[]>(initialNodes);
-  const [edges, setEdges] = useState<RelationshipEdgeType[]>(initialEdges);
-  const [gridVisible, setGridVisible] = useState(true);
+  const migrated = useMemo(
+    () => migrateCanvas(initialNodes as never, initialEdges as never),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  const [nodes, setNodes] = useState<AnyCanvasNode[]>(migrated.nodes as AnyCanvasNode[]);
+  const [edges, setEdges] = useState<RelationshipEdgeType[]>(migrated.edges);
+  const [gridVisible, setGridVisible] = useState(false);
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
-  const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null);
   const [sidebar, setSidebar] = useState<SidebarPanel | null>(null);
-  const positionTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
 
   const handleToggleSidebar = useCallback((panel: SidebarPanel) => {
     setSidebar((current) => (current === panel ? null : panel));
   }, []);
 
-  const usedNames = useMemo(() => nodes.map((n) => n.data.name), [nodes]);
-
-  const editingCharacter = useMemo(
-    () => nodes.find((n) => n.id === editingCharacterId),
-    [nodes, editingCharacterId]
+  const characterNodes = useMemo(
+    () => nodes.filter((n): n is CharacterNodeType => n.type === 'character'),
+    [nodes]
   );
-
-  const editingEdge = useMemo(
-    () => edges.find((e) => e.id === editingEdgeId) as RelationshipEdgeType | undefined,
-    [edges, editingEdgeId]
+  const editingCharacter = useMemo(
+    () => characterNodes.find((n) => n.id === editingCharacterId),
+    [characterNodes, editingCharacterId]
   );
 
   const onNodesChange = useCallback(
-    (changes: NodeChange<CharacterNodeType>[]) => {
-      setNodes((nds) => applyNodeChanges(changes, nds) as CharacterNodeType[]);
-
-      for (const change of changes) {
-        if (change.type !== "position" || change.dragging !== false || !change.position) continue;
-        const { id, position } = change;
-        clearTimeout(positionTimers.current[id]);
-        positionTimers.current[id] = setTimeout(() => {
-          updatePosition(id, dynastyId, position.x, position.y).catch(() => {});
-        }, 500);
-      }
-    },
-    [dynastyId]
-  );
-
-  const onEdgesChange = useCallback(
-    (changes: EdgeChange<RelationshipEdgeType>[]) => {
-      setEdges((eds) => applyEdgeChanges(changes, eds) as RelationshipEdgeType[]);
+    (changes: NodeChange<AnyCanvasNode>[]) => {
+      setNodes((nds) => applyNodeChanges(changes, nds) as AnyCanvasNode[]);
     },
     []
   );
 
-  const handleConnect = useCallback(
-    async (connection: Connection) => {
-      const tempId = crypto.randomUUID();
-      const newEdge: RelationshipEdgeType = {
-        id: tempId,
-        type: "relationship",
-        source: connection.source,
-        target: connection.target,
-        sourceHandle: connection.sourceHandle,
-        targetHandle: connection.targetHandle,
-        data: { type: "UNKNOWN", isMutual: false },
-      };
-      setEdges((eds) => [...eds, newEdge]);
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange<RelationshipEdgeType>[]) => {
+      const isRemove = (c: EdgeChange<RelationshipEdgeType>): c is EdgeRemoveChange => c.type === 'remove';
+      const removeIds = changes.filter(isRemove).map((c) => c.id);
+      const rest = changes.filter((c) => !isRemove(c));
 
-      try {
-        const { id } = await createRelationship(dynastyId, connection.source, connection.target, {
-          type: "UNKNOWN",
-          isMutual: false,
+      if (removeIds.length === 0) {
+        setEdges((eds) => applyEdgeChanges(changes, eds) as RelationshipEdgeType[]);
+        return;
+      }
+
+      const result = computeRemoveRelative(nodes, edges, removeIds);
+      if (!result.ok) {
+        toast.error(result.error);
+        setEdges((eds) => applyEdgeChanges(rest, eds) as RelationshipEdgeType[]);
+        return;
+      }
+
+      const prevNodes = nodes;
+      const prevEdges = edges;
+      setNodes(result.nodes);
+      setEdges(applyEdgeChanges(rest, result.edges) as RelationshipEdgeType[]);
+
+      if (result.pairEdges.length > 0) {
+        deleteRelativeEdges(dynastyId, result.pairEdges).catch(() => {
+          setNodes(prevNodes);
+          setEdges(prevEdges);
+          toast.error('Failed to delete — reverted');
         });
-        setEdges((eds) => eds.map((e) => (e.id === tempId ? { ...e, id } : e)));
-        toast("Connection created — click the line to set its type", { duration: 3500 });
-      } catch {
-        setEdges((eds) => eds.filter((e) => e.id !== tempId));
-        toast.error("Failed to save connection");
       }
     },
-    [dynastyId]
+    [nodes, edges, dynastyId]
   );
 
   const handleAddCharacter = useCallback(
     async (data: CharacterData) => {
-      const count = nodes.length;
-      const position = {
-        x: 80 + (count % 4) * 240,
-        y: 80 + Math.floor(count / 4) * 200,
-      };
       const tempId = crypto.randomUUID();
-
-      setNodes((nds) => [
-        ...nds,
-        { id: tempId, type: "character", position, data },
-      ]);
-
+      setNodes((nds) => [...nds, { id: tempId, type: "character", position: { x: 0, y: 0 }, data }]);
       try {
-        const { id } = await createCharacter(dynastyId, data, position);
+        const { id } = await createCharacter(dynastyId, data, { x: 0, y: 0 });
         setNodes((nds) => nds.map((n) => (n.id === tempId ? { ...n, id } : n)));
         toast.success(`${data.name} added to the dynasty`);
       } catch {
@@ -159,7 +143,7 @@ export function DynastyCanvas({
         toast.error("Failed to save character");
       }
     },
-    [dynastyId, nodes.length]
+    [dynastyId]
   );
 
   const handleUpdateCharacter = useCallback(
@@ -195,87 +179,108 @@ export function DynastyCanvas({
     }
   }, [editingCharacterId, dynastyId]);
 
-  const handleUpdateRelationship = useCallback(
-    async (data: Partial<RelationshipData>) => {
-      if (!editingEdgeId) return;
-      const id = editingEdgeId;
-      setEdges((eds) =>
-        eds.map((e) =>
-          e.id === id ? { ...e, data: { ...e.data, ...data } as RelationshipData } : e
-        )
-      );
-      setEditingEdgeId(null);
+  const openAddRelative = useCallback((anchorId: string, kind: RelativeKind) => {
+    setRelPicker({ anchorId, kind });
+  }, []);
 
-      try {
-        await updateRelationship(id, dynastyId, data);
-      } catch {
-        toast.error("Failed to save relationship");
-      }
-    },
-    [editingEdgeId, dynastyId]
-  );
+  const handleAddRelative = useCallback(async (input: AddRelativeInput) => {
+    const result = computeAddRelative(nodes, edges, input);
+    if (!result.ok) {
+      toast.error(result.error === 'AMBIGUOUS_UNION' ? 'Pick which partner first' : result.error);
+      return;
+    }
+    setRelPicker(null);
 
-  const handleDeleteRelationship = useCallback(async () => {
-    if (!editingEdgeId) return;
-    const id = editingEdgeId;
-    setEdges((eds) => eds.filter((e) => e.id !== id));
-    setEditingEdgeId(null);
+    const prevNodes = nodes;
+    const prevEdges = edges;
+    setNodes(result.nodes);
+    setEdges(result.edges);
 
     try {
-      await deleteRelationship(id, dynastyId);
-    } catch {
-      toast.error("Failed to delete relationship");
-    }
-  }, [editingEdgeId, dynastyId]);
-
-  const handleEdgeClick = useCallback(
-    (_: React.MouseEvent, edge: RelationshipEdgeType) => {
-      setEditingEdgeId(edge.id);
-    },
-    []
-  );
-
-  const handleAddFromSidebar = useCallback(
-    async (name: string, role: string = "UNKNOWN") => {
-      const data: CharacterData = {
-        name, role, style: "OTHER", gender: "UNKNOWN", isFounder: false, isLost: false, generation: 0,
-      };
-      const count = nodes.length;
-      const position = { x: 80 + (count % 4) * 240, y: 80 + Math.floor(count / 4) * 200 };
-      const tempId = crypto.randomUUID();
-      setNodes((nds) => [...nds, { id: tempId, type: "character", position, data }]);
-      try {
-        const { id } = await createCharacter(dynastyId, data, position);
-        setNodes((nds) => nds.map((n) => (n.id === tempId ? { ...n, id } : n)));
-        toast.success(`${name} added to the dynasty`);
-      } catch {
-        setNodes((nds) => nds.filter((n) => n.id !== tempId));
-        toast.error("Failed to save character");
+      const { id: realId } = await addRelative(dynastyId, input.person, result.pairEdges);
+      if (realId !== result.personId) {
+        const remap = (v: string) => (v === result.personId ? realId : v);
+        setNodes(nds => nds.map(n => (n.id === result.personId ? { ...n, id: realId } : n)));
+        setEdges(eds => eds.map(e => ({ ...e, source: remap(e.source), target: remap(e.target) })));
       }
-    },
-    [dynastyId, nodes.length] // eslint-disable-line react-hooks/exhaustive-deps
-  );
+      toast.success('Added to the tree');
+    } catch {
+      setNodes(prevNodes);
+      setEdges(prevEdges);
+      toast.error('Failed to save — reverted');
+    }
+  }, [nodes, edges, dynastyId]);
+
+  const handleExport = useCallback(async () => {
+    const element = containerRef.current?.querySelector<HTMLElement>('.react-flow');
+    if (!element) return;
+    try {
+      const dataUrl = await toPng(element, {
+        backgroundColor: '#09090b',
+        filter: node => !(node instanceof Element && node.classList.contains('react-flow__panel')),
+      });
+      const link = document.createElement('a');
+      link.download = `${dynastyName}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success('Exported as PNG');
+    } catch { toast.error('Export failed'); }
+  }, [dynastyName]);
+
+  const handleExportJson = useCallback(async () => {
+    try {
+      const data = await exportDynasty(dynastyId);
+      triggerJsonDownload(data, `${dynastyName}.json`);
+      toast.success('Downloaded as JSON');
+    } catch { toast.error('Export failed'); }
+  }, [dynastyId, dynastyName]);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleImportFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!window.confirm("Import will permanently replace this dynasty's characters and relationships. Continue?")) {
+      return;
+    }
+    try {
+      const raw = await file.text();
+      const data = parseImportFile(raw);
+      const result = await replaceDynastyFromExport(dynastyId, data);
+      const migrated = migrateCanvas(result.nodes as never, result.edges as never);
+      setNodes(migrated.nodes as AnyCanvasNode[]);
+      setEdges(migrated.edges);
+      setEditingCharacterId(null);
+      toast.success('Imported dynasty tree');
+    } catch {
+      toast.error("Couldn't read that file — is it a Dynasty Tree export?");
+    }
+  }, [dynastyId]);
 
   return (
-    <CanvasContext.Provider value={{ setEditingCharacterId }}>
+    <CanvasContext.Provider value={{ setEditingCharacterId, openAddRelative }}>
       <div className="flex h-full w-full">
-      <div className="relative flex-1 min-w-0 h-full">
+      <div ref={containerRef} className="relative flex-1 min-w-0 h-full">
         <ReactFlow
-          nodes={nodes}
+          nodes={laidOutNodes}
           edges={edges}
-          onNodesChange={onNodesChange}
+          onNodesChange={onNodesChange as (changes: NodeChange<AnyCanvasNode>[]) => void}
           onEdgesChange={onEdgesChange}
-          onConnect={handleConnect}
-          onEdgeClick={handleEdgeClick}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
-          connectionMode={ConnectionMode.Loose}
           colorMode="dark"
           fitView
           fitViewOptions={{ padding: 0.2 }}
           deleteKeyCode={["Backspace", "Delete"]}
           className="bg-zinc-950"
           proOptions={{ hideAttribution: false }}
+          defaultEdgeOptions={{ type: 'smoothstep' }}
+          nodesDraggable={false}
         >
           {gridVisible && (
             <Background
@@ -289,34 +294,33 @@ export function DynastyCanvas({
             showInteractive={false}
             className="!bottom-4 !left-auto !right-4 !top-auto"
           />
+          <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} />
         </ReactFlow>
 
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          onChange={handleImportFile}
+          className="hidden"
+        />
+
         <Toolbar
-          onAddCharacter={() => setAddCharacterOpen(true)}
           gridVisible={gridVisible}
           onToggleGrid={() => setGridVisible((v) => !v)}
           activeSidebar={sidebar}
           onToggleSidebar={handleToggleSidebar}
           showCustomOptions={isLoggedIn}
+          onExport={handleExport}
+          onExportJson={handleExportJson}
+          onImportJson={handleImportClick}
         />
 
-        {nodes.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/60">
-            <EmptyState
-              icon={Users}
-              title="Your canvas is empty"
-              description="Add your first character to start building the dynasty tree."
-              action={
-                <button
-                  onClick={() => setAddCharacterOpen(true)}
-                  className="rounded border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
-                >
-                  Add Character
-                </button>
-              }
-            />
-          </div>
+        {characterNodes.length === 0 && (
+          <CanvasEmptyState onAddCharacter={() => setAddCharacterOpen(true)} onImportJson={handleImportClick} />
         )}
+
+        <AddRelativeHint visible={characterNodes.length === 1 && !characterNodes[0].selected} />
 
         <AddCharacterPanel
           key="add"
@@ -340,33 +344,22 @@ export function DynastyCanvas({
           />
         )}
 
-        {editingEdgeId && (
-          <EditRelationshipPanel
-            open={true}
-            onOpenChange={(open) => {
-              if (!open) setEditingEdgeId(null);
-            }}
-            edge={editingEdge}
-            onSubmit={handleUpdateRelationship}
-            onDelete={handleDeleteRelationship}
-            isLoggedIn={isLoggedIn}
-          />
-        )}
+        {relPicker && (() => {
+          const anchor = characterNodes.find((n) => n.id === relPicker.anchorId);
+          if (!anchor) return null;
+          return (
+            <AddRelativePanel
+              anchor={anchor}
+              kind={relPicker.kind}
+              characters={characterNodes}
+              unions={partnerUnionsOf(nodes, edges, relPicker.anchorId)}
+              onSubmit={handleAddRelative}
+              onClose={() => setRelPicker(null)}
+            />
+          );
+        })()}
       </div>
 
-      {sidebar === 'names' && (
-        <NameBank
-          usedNames={usedNames}
-          onAddToCanvas={(name) => handleAddFromSidebar(name)}
-          isLoggedIn={isLoggedIn}
-        />
-      )}
-      {sidebar === 'roles' && (
-        <RoleSlots onAddToCanvas={handleAddFromSidebar} />
-      )}
-      {sidebar === 'tags' && (
-        <RelationshipTagsPanel />
-      )}
       {sidebar === 'custom' && isLoggedIn && (
         <CustomOptionsPanel />
       )}

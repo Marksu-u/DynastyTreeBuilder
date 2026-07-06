@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listDynasties } from "@/app/actions/dynasty";
 import { CreateDynastyDialog } from "@/components/dashboard/CreateDynastyDialog";
 import { DynastyCard } from "@/components/dashboard/DynastyCard";
+import { GuestImportPrompt } from "@/components/dashboard/GuestImportPrompt";
 import { signOut } from "@/app/actions/auth";
 import { Network } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -48,6 +49,8 @@ export default async function DashboardPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-10">
+        <GuestImportPrompt />
+
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">

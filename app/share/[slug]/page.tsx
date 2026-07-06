@@ -3,13 +3,11 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { prisma } from "@/lib/prisma";
 import { ShareCanvas } from "@/components/canvas/ShareCanvas";
 import "@xyflow/react/dist/style.css";
-import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
+import type { CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
 import type {
-  CharacterRole,
-  CharacterStyle,
+  CharacterFlag,
   CharacterGender,
-  RelationshipType,
-  RelationshipTag,
+  LegacyRelationshipType,
 } from "@/types/canvas";
 
 export const revalidate = 60;
@@ -61,25 +59,21 @@ export default async function SharePage({
     data: {
       name: char.name,
       alias: char.alias ?? undefined,
-      role: char.role as CharacterRole,
-      style: char.style as CharacterStyle,
+      flags: (char as any).flags as CharacterFlag[],
+      style: char.style,
       gender: char.gender as CharacterGender,
       note: char.note ?? undefined,
-      isFounder: char.isFounder,
-      isLost: char.isLost,
-      generation: char.generation,
       isReadOnly: true,
     },
   }));
 
-  const edges: RelationshipEdgeType[] = dynasty.relationships.map((rel) => ({
+  const edges: LegacyEdgeType[] = dynasty.relationships.map((rel) => ({
     id: rel.id,
     type: "relationship" as const,
     source: rel.fromId,
     target: rel.toId,
     data: {
-      type: rel.type as RelationshipType,
-      tag: (rel.tag as RelationshipTag) ?? undefined,
+      type: rel.type as LegacyRelationshipType,
       hook: rel.hook ?? undefined,
       isMutual: rel.isMutual,
     },

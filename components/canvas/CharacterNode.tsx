@@ -2,59 +2,161 @@
 
 import { memo } from 'react';
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
-import { Pencil, Skull } from 'lucide-react';
+import { Pencil, Skull, Plus } from 'lucide-react';
 import { useCanvasStore } from '@/store/canvas';
-import type { CharacterData } from '@/types/canvas';
-import { useCatalog } from './CatalogProvider';
-import { DEFAULT_BADGE } from '@/lib/catalog';
 import { useCanvasContext } from './CanvasContext';
+import type { CharacterData } from '@/types/canvas';
 
 type CharacterNodeType = Node<CharacterData, 'character'>;
 
-const HANDLE_STYLE =
-  '!w-3 !h-3 !bg-zinc-600 !border-2 !border-zinc-500 hover:!bg-blue-400 hover:!border-blue-400 transition-colors';
+// Handles are purely structural anchors for edge routing now — connections
+// are made via the contextual add-relative buttons, not drag-connect — so
+// all handles are invisible and non-connectable.
+const HANDLE_STYLE = '!w-px !h-px !min-w-0 !min-h-0 !bg-transparent !border-0 !opacity-0';
+
+// Rect inset by half-stroke so the stroke sits exactly on the card edge.
+// rx matches rounded-lg (8px) minus the inset (0.75px).
+const SVG_RECT_PROPS = {
+  x: 0.75, y: 0.75, rx: 7.25, ry: 7.25,
+  fill: 'none', strokeWidth: 1.5,
+} as const;
 
 export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNodeType>) => {
   const canvasCtx = useCanvasContext();
   const setEditingCharacterIdStore = useCanvasStore((s) => s.setEditingCharacterId);
   const setEditingCharacterId = canvasCtx ? canvasCtx.setEditingCharacterId : setEditingCharacterIdStore;
-  const { resolve } = useCatalog();
+  const openAddRelative = canvasCtx?.openAddRelative;
+  const flags = data.flags ?? [];
 
-  // resolves default AND custom role options; falls back gracefully for deleted customs
-  const roleOption = resolve('CHARACTER_ROLE', data.role);
+  const isDeceased = flags.includes('DECEASED');
+  const isGhost = data.isGhost ?? false;
+  const isFounder  = flags.includes('FOUNDER');
+  const isBastard  = flags.includes('BASTARD');
+  const isAdopted  = flags.includes('ADOPTED');
+  const isExile    = flags.includes('EXILE');
 
-  // For custom options, color is a hex string (#RRGGBB); for built-ins, Tailwind classes.
-  // If the color starts with '#', apply it as inline styles rather than Tailwind classes.
-  const isHexColor = roleOption.color?.startsWith('#');
+  const hasSvgBorder = !selected && (isAdopted || isExile);
+  // Both flags: "7 13" with orange offset 10 → teal 7px, gap 3px, orange 7px, gap 3px, repeat
+  // Single flag: "7 4" for a standard dashed look
+  const dashArray = isAdopted && isExile ? '7 13' : '7 4';
+
+  const statusLabels = [
+    isBastard && { label: 'Bastard', color: '#EF9F27' },
+    isAdopted && { label: 'Adopted', color: '#5DCAA5' },
+    isExile   && { label: 'Exiled',  color: '#D85A30' },
+  ].filter(Boolean) as { label: string; color: string }[];
+
+  const hasSubRow = (data.style && data.style !== 'OTHER') || statusLabels.length > 0;
 
   return (
     <div
       className={[
-        'relative w-[180px] rounded-lg border bg-zinc-800/95 px-3 py-3 shadow-lg transition-colors duration-100',
+        'relative w-[180px] rounded-lg bg-zinc-800/95 px-3 py-3 shadow-lg transition-colors duration-100',
         selected
-          ? 'border-blue-400 ring-2 ring-blue-400/20'
-          : 'border-zinc-700 hover:border-zinc-600',
-        '',
+          ? 'border border-blue-400 ring-2 ring-blue-400/20'
+          : hasSvgBorder
+          ? ''
+          : isFounder
+          ? 'border border-[#EF9F27]/50 hover:border-[#EF9F27]/80'
+          : 'border border-zinc-700 hover:border-zinc-600',
       ].join(' ')}
+      style={isGhost ? { opacity: 0.4, filter: 'grayscale(1)' } : undefined}
     >
-      <Handle type="source" position={Position.Top}    id="top"    className={HANDLE_STYLE} />
-      <Handle type="source" position={Position.Left}   id="left"   className={HANDLE_STYLE} />
-      <Handle type="source" position={Position.Right}  id="right"  className={HANDLE_STYLE} />
-      <Handle type="source" position={Position.Bottom} id="bottom" className={HANDLE_STYLE} />
+      {/* SVG dashed border — follows border-radius on all four sides */}
+      {hasSvgBorder && (
+        <svg className="pointer-events-none absolute inset-0 h-full w-full">
+          {isAdopted && (
+            <rect
+              {...SVG_RECT_PROPS}
+              style={{ width: 'calc(100% - 1.5px)', height: 'calc(100% - 1.5px)' }}
+              stroke="#5DCAA5"
+              strokeDasharray={dashArray}
+              strokeDashoffset="0"
+            />
+          )}
+          {isExile && (
+            <rect
+              {...SVG_RECT_PROPS}
+              style={{ width: 'calc(100% - 1.5px)', height: 'calc(100% - 1.5px)' }}
+              stroke="#D85A30"
+              strokeDasharray={dashArray}
+              strokeDashoffset={isAdopted ? '10' : '0'}
+            />
+          )}
+        </svg>
+      )}
+
+      <Handle type="source" position={Position.Top}    id="top"    className={HANDLE_STYLE} isConnectable={false} />
+      <Handle type="source" position={Position.Left}   id="left"   className={HANDLE_STYLE} isConnectable={false} />
+      <Handle type="source" position={Position.Right}  id="right"  className={HANDLE_STYLE} isConnectable={false} />
+      <Handle type="source" position={Position.Bottom} id="bottom" className={HANDLE_STYLE} isConnectable={false} />
+      <Handle type="target" position={Position.Top} id="t" className="!w-px !h-px !min-w-0 !min-h-0 !bg-transparent !border-0 !opacity-0" isConnectable={false} />
+
+      {selected && openAddRelative && !data.isReadOnly && !isGhost && (
+        <>
+          <button
+            onClick={(e) => { e.stopPropagation(); openAddRelative(id, 'parent'); }}
+            className="nodrag absolute -top-3.5 left-1/2 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full border border-accent/60 bg-zinc-900 text-accent shadow hover:bg-accent hover:text-zinc-900"
+            title="Add parent"
+          ><Plus size={12} /></button>
+          <button
+            onClick={(e) => { e.stopPropagation(); openAddRelative(id, 'partner'); }}
+            className="nodrag absolute -right-3.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-accent/60 bg-zinc-900 text-accent shadow hover:bg-accent hover:text-zinc-900"
+            title="Add partner"
+          ><Plus size={12} /></button>
+          <button
+            onClick={(e) => { e.stopPropagation(); openAddRelative(id, 'child'); }}
+            className="nodrag absolute -bottom-3.5 left-1/2 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full border border-accent/60 bg-zinc-900 text-accent shadow hover:bg-accent hover:text-zinc-900"
+            title="Add child"
+          ><Plus size={12} /></button>
+        </>
+      )}
 
       <div className="flex items-start justify-between gap-1">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold leading-tight text-zinc-100">{data.name}</p>
+          <div className="flex items-center gap-1">
+            {isFounder && (
+              <span className="flex-shrink-0 text-[10px] text-[#F5A623]">◆</span>
+            )}
+            {isBastard && (
+              <span className="flex-shrink-0 h-[7px] w-[7px] rounded-full bg-[#EF9F27]" />
+            )}
+            <p
+              className={`truncate text-sm font-semibold leading-tight ${
+                isGhost
+                  ? 'text-zinc-500 italic'
+                  : isDeceased
+                  ? 'text-zinc-400 line-through decoration-zinc-500'
+                  : 'text-zinc-100'
+              }`}
+            >
+              {isGhost ? 'Unknown' : data.name}
+            </p>
+            {data.gender === 'MALE' && (
+              <span className="flex-shrink-0 text-[14px] leading-none text-[#4DA3FF]">♂</span>
+            )}
+            {data.gender === 'FEMALE' && (
+              <span className="flex-shrink-0 text-[14px] leading-none text-[#FF6FA5]">♀</span>
+            )}
+            {data.gender === 'NON_BINARY' && (
+              <span className="flex-shrink-0 text-[13px] leading-none text-[#C9A8FF]">⚧</span>
+            )}
+            {data.gender === 'UNKNOWN' && (
+              <span className="flex-shrink-0 text-[12px] font-bold leading-none text-zinc-500">?</span>
+            )}
+            {isDeceased && (
+              <Skull size={12} className="flex-shrink-0 text-zinc-300" />
+            )}
+          </div>
+
           {data.alias && (
             <p className="truncate text-[11px] italic text-zinc-400">&quot;{data.alias}&quot;</p>
           )}
         </div>
-        {!data.isReadOnly && (
+
+        {!data.isReadOnly && !isGhost && (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditingCharacterId(id);
-            }}
+            onClick={(e) => { e.stopPropagation(); setEditingCharacterId(id); }}
             className="nodrag flex-shrink-0 rounded p-0.5 text-zinc-500 transition-colors hover:bg-zinc-700 hover:text-zinc-300"
             title="Edit character"
           >
@@ -63,64 +165,21 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
         )}
       </div>
 
-      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-        {isHexColor ? (
-          // Custom option with hex color: use inline styles
-          <span
-            className="inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium"
-            style={{
-              backgroundColor: roleOption.color + '33',
-              borderColor: roleOption.color + '66',
-              color: roleOption.color,
-            }}
-          >
-            {roleOption.label}
-          </span>
-        ) : (
-          // Built-in option with Tailwind badge classes
-          <span
-            className={[
-              'inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium',
-              roleOption.color ?? DEFAULT_BADGE,
-            ].join(' ')}
-          >
-            {roleOption.label}
-          </span>
-        )}
-        <span className="inline-flex items-center rounded border border-zinc-600/30 bg-zinc-700/40 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400">
-          Gen {data.generation ?? 0}
-        </span>
-        {data.gender && data.gender !== 'UNKNOWN' && (
-          <span
-            className={[
-              'inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium',
-              data.gender === 'MALE'
-                ? 'bg-[#E6F1FB] border-[#0C447C]/30 text-[#0C447C]'
-                : data.gender === 'FEMALE'
-                  ? 'bg-[#FBEAF0] border-[#72243E]/30 text-[#72243E]'
-                  : 'bg-[#F1EFE8] border-[#444441]/30 text-[#444441]',
-            ].join(' ')}
-          >
-            {data.gender === 'MALE' ? 'M' : data.gender === 'FEMALE' ? 'F' : 'NB'}
-          </span>
-        )}
-        {data.isLost && (
-          <span className="inline-flex items-center gap-0.5 rounded border border-red-800/40 bg-red-900/30 px-1.5 py-0.5 text-[10px] font-medium text-red-400">
-            <Skull size={9} />
-            Dead
-          </span>
-        )}
-        {data.isFounder && (
-          <span className="text-[9px] font-medium uppercase tracking-wide text-amber-400">
-            ◆ Founder
-          </span>
-        )}
-      </div>
-
-      {data.style !== 'OTHER' && (
-        <p className="mt-1 text-[10px] capitalize text-zinc-500">
-          {data.style.toLowerCase().replace(/_/g, ' ')}
-        </p>
+      {hasSubRow && (
+        <div className="mt-1 flex flex-wrap items-center gap-x-1 text-[10px] text-zinc-500">
+          {data.style && data.style !== 'OTHER' && (
+            <span>{data.style.charAt(0) + data.style.slice(1).toLowerCase().replace(/_/g, ' ')}</span>
+          )}
+          {data.style && data.style !== 'OTHER' && statusLabels.length > 0 && (
+            <span className="text-zinc-600">·</span>
+          )}
+          {statusLabels.map((s, i) => (
+            <span key={s.label} className="flex items-center gap-x-1">
+              {i > 0 && <span className="text-zinc-600">·</span>}
+              <span style={{ color: s.color }}>{s.label}</span>
+            </span>
+          ))}
+        </div>
       )}
     </div>
   );

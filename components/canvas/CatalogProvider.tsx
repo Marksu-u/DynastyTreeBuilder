@@ -38,10 +38,8 @@ interface CatalogContextValue {
 const CatalogContext = createContext<CatalogContextValue | null>(null);
 
 const EMPTY_CUSTOMS: KindMap = {
-  CHARACTER_ROLE: [],
   CHARACTER_STYLE: [],
   RELATIONSHIP_TYPE: [],
-  RELATIONSHIP_TAG: [],
 };
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -61,10 +59,8 @@ export function CatalogProvider({ children, isLoggedIn }: Props) {
     getCustomOptions()
       .then((entries) => {
         const byKind: KindMap = {
-          CHARACTER_ROLE: [],
           CHARACTER_STYLE: [],
           RELATIONSHIP_TYPE: [],
-          RELATIONSHIP_TAG: [],
         };
         for (const e of entries) {
           byKind[e.kind].push({

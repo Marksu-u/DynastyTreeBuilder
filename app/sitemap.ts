@@ -10,10 +10,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/tree`, changeFrequency: "monthly", priority: 0.6 },
   ];
 
-  const publicDynasties = await prisma.dynasty.findMany({
-    where: { isPublic: true },
-    select: { slug: true, updatedAt: true },
-  });
+  let publicDynasties: { slug: string; updatedAt: Date }[] = [];
+  try {
+    publicDynasties = await prisma.dynasty.findMany({
+      where: { isPublic: true },
+      select: { slug: true, updatedAt: true },
+    });
+  } catch (error) {
+    console.warn("sitemap: failed to load public dynasties, returning static routes only", error);
+    return staticRoutes;
+  }
 
   return [
     ...staticRoutes,

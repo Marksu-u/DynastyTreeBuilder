@@ -11,7 +11,7 @@ import { CatalogProvider } from "./CatalogProvider";
 import { exportDynasty } from "@/app/actions/dynasty";
 import { triggerJsonDownload } from "@/lib/export";
 import "@xyflow/react/dist/style.css";
-import type { CharacterNodeType, RelationshipEdgeType } from "@/store/canvas";
+import type { CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
 
 type Props = {
   dynastyId: string;
@@ -20,7 +20,7 @@ type Props = {
   initialSetting: string;
   initialIsPublic: boolean;
   initialNodes: CharacterNodeType[];
-  initialEdges: RelationshipEdgeType[];
+  initialEdges: LegacyEdgeType[];
   userId: string;
 };
 

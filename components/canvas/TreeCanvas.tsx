@@ -1,169 +1,123 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ReactFlow,
-  Background,
-  BackgroundVariant,
-  ConnectionMode,
-  Controls,
+  Background, BackgroundVariant, Controls,
   useReactFlow,
 } from '@xyflow/react';
 import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
 import { triggerJsonDownload } from '@/lib/export';
 import { useCanvasStore } from '@/store/canvas';
+import type { AnyCanvasNode, CharacterNodeType } from '@/store/canvas';
 import { CharacterNode } from '@/components/canvas/CharacterNode';
+import { UnionNode } from '@/components/canvas/UnionNode';
 import { RelationshipEdge } from '@/components/canvas/RelationshipEdge';
-import { Toolbar, type SidebarPanel } from '@/components/canvas/Toolbar';
+import { Toolbar } from '@/components/canvas/Toolbar';
 import { AddCharacterPanel } from '@/components/canvas/AddCharacterPanel';
-import { EditRelationshipPanel } from '@/components/canvas/EditRelationshipPanel';
+import { AddRelativePanel } from '@/components/canvas/AddRelativePanel';
+import { AddRelativeHint } from '@/components/canvas/AddRelativeHint';
+import { GenerationBands } from '@/components/canvas/GenerationBands';
 import { CatalogProvider } from '@/components/canvas/CatalogProvider';
 import { CanvasContext } from '@/components/canvas/CanvasContext';
-import { NameBank } from '@/components/name-bank/NameBank';
-import { RoleSlots } from '@/components/name-bank/RoleSlots';
-import { RelationshipTagsPanel } from '@/components/name-bank/RelationshipTagsPanel';
-import type { CharacterData, RelationshipData } from '@/types/canvas';
-import type { RelationshipEdgeType } from '@/store/canvas';
+import { CanvasEmptyState } from '@/components/canvas/CanvasEmptyState';
+import { useGenealogyLayout } from '@/components/canvas/useGenealogyLayout';
+import { partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
+import { parseImportFile, buildCanvasFromExport, deriveExportRelationships } from '@/lib/import-canvas';
+import type { CharacterData } from '@/types/canvas';
 
-// Defined outside component to avoid recreating on every render
-const nodeTypes = { character: CharacterNode } as const;
+const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
 const edgeTypes = { relationship: RelationshipEdge } as const;
 
 function TreeCanvasInner() {
-  const nodes = useCanvasStore((s) => s.nodes);
-  const edges = useCanvasStore((s) => s.edges);
-  const onNodesChange = useCanvasStore((s) => s.onNodesChange);
-  const onEdgesChange = useCanvasStore((s) => s.onEdgesChange);
-  const onConnect = useCanvasStore((s) => s.onConnect);
-  const addCharacter = useCanvasStore((s) => s.addCharacter);
-  const updateCharacter = useCanvasStore((s) => s.updateCharacter);
-  const deleteCharacter = useCanvasStore((s) => s.deleteCharacter);
-  const updateRelationship = useCanvasStore((s) => s.updateRelationship);
-  const deleteRelationship = useCanvasStore((s) => s.deleteRelationship);
-  const editingCharacterId = useCanvasStore((s) => s.editingCharacterId);
-  const setEditingCharacterId = useCanvasStore((s) => s.setEditingCharacterId);
-  const editingEdgeId = useCanvasStore((s) => s.editingEdgeId);
-  const setEditingEdgeId = useCanvasStore((s) => s.setEditingEdgeId);
-  const gridVisible = useCanvasStore((s) => s.gridVisible);
-  const undo = useCanvasStore((s) => s.undo);
-  const redo = useCanvasStore((s) => s.redo);
-  const canUndo = useCanvasStore((s) => s.past.length > 0);
-  const canRedo = useCanvasStore((s) => s.future.length > 0);
-  const toggleGrid = useCanvasStore((s) => s.toggleGrid);
+  const nodes = useCanvasStore(s => s.nodes);
+  const edges = useCanvasStore(s => s.edges);
+  const onNodesChange = useCanvasStore(s => s.onNodesChange);
+  const onEdgesChange = useCanvasStore(s => s.onEdgesChange);
+  const addCharacter = useCanvasStore(s => s.addCharacter);
+  const addRelative = useCanvasStore(s => s.addRelative);
+  const updateCharacter = useCanvasStore(s => s.updateCharacter);
+  const deleteCharacter = useCanvasStore(s => s.deleteCharacter);
+  const editingCharacterId = useCanvasStore(s => s.editingCharacterId);
+  const setEditingCharacterId = useCanvasStore(s => s.setEditingCharacterId);
+  const gridVisible = useCanvasStore(s => s.gridVisible);
+  const undo = useCanvasStore(s => s.undo);
+  const redo = useCanvasStore(s => s.redo);
+  const canUndo = useCanvasStore(s => s.past.length > 0);
+  const canRedo = useCanvasStore(s => s.future.length > 0);
+  const toggleGrid = useCanvasStore(s => s.toggleGrid);
+  const initCanvas = useCanvasStore(s => s.initCanvas);
 
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
-  const [sidebar, setSidebar] = useState<SidebarPanel | null>(null);
+  const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const { fitView } = useReactFlow();
 
+  const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
+
+  const characterNodes = useMemo(
+    () => nodes.filter((n): n is CharacterNodeType => n.type === 'character'),
+    [nodes]
+  );
+
+  const editingCharacter = useMemo(
+    () => characterNodes.find(n => n.id === editingCharacterId),
+    [characterNodes, editingCharacterId]
+  );
+
   const handleExport = useCallback(async () => {
     await fitView({ duration: 0, padding: 0.15 });
-    await new Promise<void>((r) => requestAnimationFrame(() => r()));
-
+    await new Promise<void>(r => requestAnimationFrame(() => r()));
     const element = containerRef.current?.querySelector<HTMLElement>('.react-flow');
     if (!element) return;
-
     try {
       const dataUrl = await toPng(element, {
         backgroundColor: '#09090b',
-        filter: (node) => {
-          if (node instanceof Element && node.classList.contains('react-flow__panel')) {
-            return false;
-          }
-          return true;
-        },
+        filter: node => !(node instanceof Element && node.classList.contains('react-flow__panel')),
       });
-
       const link = document.createElement('a');
       link.download = 'dynasty-tree.png';
       link.href = dataUrl;
       link.click();
       toast.success('Exported as PNG');
-    } catch {
-      toast.error('Export failed');
-    }
+    } catch { toast.error('Export failed'); }
   }, [fitView]);
 
   const handleExportJson = useCallback(() => {
-    const { nodes: currentNodes, edges: currentEdges } = useCanvasStore.getState();
-
+    const n = laidOutNodes; const e = edges;
     const data = {
       version: 1 as const,
       exportedAt: new Date().toISOString(),
-      dynasty: {
-        name: "My Dynasty",
-        setting: "FANTASY" as const,
-        isPublic: false,
-      },
-      characters: currentNodes.map((n) => ({
-        id: n.id,
-        name: n.data.name,
-        alias: n.data.alias ?? null,
-        role: n.data.role,
-        style: n.data.style,
-        gender: n.data.gender,
-        note: n.data.note ?? null,
-        isFounder: n.data.isFounder,
-        isLost: n.data.isLost,
-        posX: n.position.x,
-        posY: n.position.y,
+      dynasty: { name: 'My Dynasty', setting: 'FANTASY' as const, isPublic: false },
+      characters: n.filter(nd => nd.type === 'character').map(nd => ({
+        id: nd.id, name: (nd as CharacterNodeType).data.name,
+        alias: (nd as CharacterNodeType).data.alias ?? null,
+        flags: (nd as CharacterNodeType).data.flags ?? [],
+        style: (nd as CharacterNodeType).data.style,
+        gender: (nd as CharacterNodeType).data.gender,
+        note: (nd as CharacterNodeType).data.note ?? null,
+        posX: nd.position.x, posY: nd.position.y,
       })),
-      relationships: currentEdges.map((e) => ({
-        id: e.id,
-        fromId: e.source,
-        toId: e.target,
-        type: e.data?.type ?? 'UNKNOWN',
-        tag: e.data?.tag ?? null,
-        hook: e.data?.hook ?? null,
-        isMutual: e.data?.isMutual ?? false,
+      relationships: deriveExportRelationships(n, e).map(r => ({
+        id: crypto.randomUUID(), fromId: r.fromId, toId: r.toId,
+        type: r.type, hook: null, isMutual: false,
       })),
     };
-
     triggerJsonDownload(data, 'dynasty-tree.json');
     toast.success('Downloaded as JSON');
-  }, []);
+  }, [laidOutNodes, edges]);
 
-  const usedNames = useMemo(() => nodes.map((n) => n.data.name), [nodes]);
+  const handleAddCharacter = useCallback((data: CharacterData) => {
+    addCharacter(data);
+    toast.success(`${data.name} added to the dynasty`);
+  }, [addCharacter]);
 
-  const handleToggleSidebar = useCallback((panel: SidebarPanel) => {
-    setSidebar((current) => (current === panel ? null : panel));
-  }, []);
-
-  const editingCharacter = useMemo(
-    () => nodes.find((n) => n.id === editingCharacterId),
-    [nodes, editingCharacterId]
-  );
-
-  const editingEdge = useMemo(
-    () => edges.find((e) => e.id === editingEdgeId) as RelationshipEdgeType | undefined,
-    [edges, editingEdgeId]
-  );
-
-  const handleAddCharacter = useCallback(
-    (data: CharacterData) => {
-      addCharacter(data);
-      toast.success(`${data.name} added to the dynasty`);
-    },
-    [addCharacter]
-  );
-
-  const handleAddFromSidebar = useCallback(
-    (name: string, role: string = 'UNKNOWN') => {
-      addCharacter({ name, role, style: 'OTHER', gender: 'UNKNOWN', isFounder: false, isLost: false, generation: 0 });
-      toast.success(`${name} added to the dynasty`);
-    },
-    [addCharacter]
-  );
-
-  const handleUpdateCharacter = useCallback(
-    (data: CharacterData) => {
-      if (!editingCharacterId) return;
-      updateCharacter(editingCharacterId, data);
-    },
-    [editingCharacterId, updateCharacter]
-  );
+  const handleUpdateCharacter = useCallback((data: CharacterData) => {
+    if (!editingCharacterId) return;
+    updateCharacter(editingCharacterId, data);
+  }, [editingCharacterId, updateCharacter]);
 
   const handleDeleteCharacter = useCallback(() => {
     if (!editingCharacterId) return;
@@ -171,153 +125,156 @@ function TreeCanvasInner() {
     toast.success('Character removed');
   }, [editingCharacterId, deleteCharacter]);
 
-  const handleUpdateRelationship = useCallback(
-    (data: Partial<RelationshipData>) => {
-      if (!editingEdgeId) return;
-      updateRelationship(editingEdgeId, data);
-    },
-    [editingEdgeId, updateRelationship]
-  );
+  const openAddRelative = useCallback((anchorId: string, kind: RelativeKind) => {
+    setRelPicker({ anchorId, kind });
+  }, []);
 
-  const handleDeleteRelationship = useCallback(() => {
-    if (!editingEdgeId) return;
-    deleteRelationship(editingEdgeId);
-  }, [editingEdgeId, deleteRelationship]);
+  const handleAddRelative = useCallback((input: AddRelativeInput) => {
+    const error = addRelative(input);
+    if (error) { toast.error(error === 'AMBIGUOUS_UNION' ? 'Pick which partner first' : error); return; }
+    setRelPicker(null);
+    toast.success('Added to the tree');
+  }, [addRelative]);
 
-  const handleEdgeClick = useCallback(
-    (_: React.MouseEvent, edge: RelationshipEdgeType) => {
-      setEditingEdgeId(edge.id);
-    },
-    [setEditingEdgeId]
-  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleConnect = useCallback(
-    (connection: Parameters<typeof onConnect>[0]) => {
-      onConnect(connection);
-      toast('Connection created — click the line to set its type', {
-        duration: 3500,
-        description: 'Default type is Unknown',
-      });
-    },
-    [onConnect]
-  );
+  const handleImportClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleImportFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (characterNodes.length > 0 && !window.confirm('Import will replace your current guest tree. Continue?')) {
+      return;
+    }
+    try {
+      const raw = await file.text();
+      const data = parseImportFile(raw);
+      const { nodes: importedNodes, edges: importedEdges } = buildCanvasFromExport(data);
+      initCanvas(importedNodes, importedEdges);
+      toast.success('Imported dynasty tree');
+    } catch {
+      toast.error("Couldn't read that file — is it a Dynasty Tree export?");
+    }
+  }, [characterNodes.length, initCanvas]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey;
+      if (!isMod || e.key.toLowerCase() !== 'z') return;
+
+      const target = e.target as HTMLElement | null;
+      const isEditable = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
+      if (isEditable) return;
+
+      e.preventDefault();
+      if (e.shiftKey) {
+        redo();
+      } else {
+        undo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
 
   return (
-    <CanvasContext.Provider value={{ setEditingCharacterId }}>
+    <CanvasContext.Provider value={{ setEditingCharacterId, openAddRelative }}>
       <div className="flex h-full w-full">
-      <div ref={containerRef} className="relative flex-1 min-w-0 h-full">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={handleConnect}
-          onEdgeClick={handleEdgeClick}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          connectionMode={ConnectionMode.Loose}
-          colorMode="dark"
-          fitView
-          fitViewOptions={{ padding: 0.2 }}
-          deleteKeyCode={['Backspace', 'Delete']}
-          className="bg-zinc-950"
-          proOptions={{ hideAttribution: false }}
-        >
-          {gridVisible && (
-            <Background
-              variant={BackgroundVariant.Dots}
-              color="#3f3f46"
-              size={1.5}
-              gap={20}
+        <div ref={containerRef} className="relative flex-1 min-w-0 h-full">
+          <ReactFlow
+            nodes={laidOutNodes}
+            edges={edges}
+            onNodesChange={onNodesChange as (changes: import('@xyflow/react').NodeChange<AnyCanvasNode>[]) => void}
+            onEdgesChange={onEdgesChange}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            colorMode="dark"
+            fitView
+            fitViewOptions={{ padding: 0.2 }}
+            deleteKeyCode={['Backspace', 'Delete']}
+            className="bg-zinc-950"
+            proOptions={{ hideAttribution: false }}
+            defaultEdgeOptions={{ type: 'smoothstep' }}
+            nodesDraggable={false}
+          >
+            {gridVisible && (
+              <Background variant={BackgroundVariant.Dots} color="#3f3f46" size={1.5} gap={20} />
+            )}
+            <Controls showInteractive={false} className="!bottom-4 !left-auto !right-4 !top-auto" />
+            <GenerationBands rows={rows} nodes={laidOutNodes} houseName="Your Dynasty" />
+          </ReactFlow>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={handleImportFile}
+            className="hidden"
+          />
+
+          <Toolbar
+            gridVisible={gridVisible}
+            onToggleGrid={toggleGrid}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={undo}
+            onRedo={redo}
+            onExport={handleExport}
+            onExportJson={handleExportJson}
+            onImportJson={handleImportClick}
+            showCustomOptions={false}
+          />
+
+          {characterNodes.length === 0 && (
+            <CanvasEmptyState onAddCharacter={() => setAddCharacterOpen(true)} onImportJson={handleImportClick} />
+          )}
+
+          <AddRelativeHint visible={characterNodes.length === 1 && !characterNodes[0].selected} />
+
+          <AddCharacterPanel
+            key="add"
+            open={addCharacterOpen}
+            onOpenChange={setAddCharacterOpen}
+            onSubmit={handleAddCharacter}
+            isLoggedIn={false}
+          />
+
+          {editingCharacterId && (
+            <AddCharacterPanel
+              key="edit"
+              open={true}
+              onOpenChange={open => { if (!open) setEditingCharacterId(null); }}
+              character={editingCharacter}
+              onSubmit={handleUpdateCharacter}
+              onDelete={handleDeleteCharacter}
+              isLoggedIn={false}
             />
           )}
-          <Controls
-            showInteractive={false}
-            className="!bottom-4 !left-auto !right-4 !top-auto"
-          />
-        </ReactFlow>
 
-        <Toolbar
-          onAddCharacter={() => setAddCharacterOpen(true)}
-          gridVisible={gridVisible}
-          onToggleGrid={toggleGrid}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          onUndo={undo}
-          onRedo={redo}
-          activeSidebar={sidebar}
-          onToggleSidebar={handleToggleSidebar}
-          onExport={handleExport}
-          onExportJson={handleExportJson}
-          showCustomOptions={false}
-        />
-
-        {nodes.length === 0 && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-2xl font-semibold text-zinc-700">Your dynasty awaits</p>
-              <p className="mt-1 text-sm text-zinc-600">
-                Click <span className="text-zinc-500">Add Character</span> in the toolbar to begin
-              </p>
-            </div>
-          </div>
-        )}
-
-        <AddCharacterPanel
-          key="add"
-          open={addCharacterOpen}
-          onOpenChange={setAddCharacterOpen}
-          onSubmit={handleAddCharacter}
-          isLoggedIn={false}
-        />
-
-        {editingCharacterId && (
-          <AddCharacterPanel
-            key="edit"
-            open={true}
-            onOpenChange={(open) => { if (!open) setEditingCharacterId(null); }}
-            character={editingCharacter}
-            onSubmit={handleUpdateCharacter}
-            onDelete={handleDeleteCharacter}
-            isLoggedIn={false}
-          />
-        )}
-
-        {editingEdgeId && (
-          <EditRelationshipPanel
-            open={true}
-            onOpenChange={(open) => { if (!open) setEditingEdgeId(null); }}
-            edge={editingEdge}
-            onSubmit={handleUpdateRelationship}
-            onDelete={handleDeleteRelationship}
-            isLoggedIn={false}
-          />
-        )}
+          {relPicker && (() => {
+            const anchor = characterNodes.find(n => n.id === relPicker.anchorId);
+            if (!anchor) return null;
+            return (
+              <AddRelativePanel
+                anchor={anchor}
+                kind={relPicker.kind}
+                characters={characterNodes}
+                unions={partnerUnionsOf(nodes, edges, relPicker.anchorId)}
+                onSubmit={handleAddRelative}
+                onClose={() => setRelPicker(null)}
+              />
+            );
+          })()}
+        </div>
       </div>
-
-      {sidebar === 'names' && (
-        <NameBank
-          usedNames={usedNames}
-          onAddToCanvas={(name) => handleAddFromSidebar(name)}
-          isLoggedIn={false}
-        />
-      )}
-      {sidebar === 'roles' && (
-        <RoleSlots onAddToCanvas={handleAddFromSidebar} />
-      )}
-      {sidebar === 'tags' && (
-        <RelationshipTagsPanel />
-      )}
-    </div>
     </CanvasContext.Provider>
   );
 }
 
-/**
- * TreeCanvas wraps its inner component in CatalogProvider (isLoggedIn=false)
- * so CharacterNode and RelationshipEdge can call useCatalog().
- * Guests see default catalog options only — no custom creation.
- */
 export function TreeCanvas() {
   return (
     <CatalogProvider isLoggedIn={false}>

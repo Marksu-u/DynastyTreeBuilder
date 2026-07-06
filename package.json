@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "prisma": "npx prisma format && npx prisma generate",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
@@ -42,6 +43,7 @@
     "eslint-config-next": "16.2.6",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.9"
   }
 }
