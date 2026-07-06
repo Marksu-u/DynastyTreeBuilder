@@ -11,9 +11,11 @@ import {
   DynastySettingSchema,
   DynastySettingsSchema,
   GuestSnapshotSchema,
+  DynastyExportSchema,
 } from "@/lib/schemas";
 import type { DynastyExport, GuestSnapshot } from "@/lib/schemas";
-import type { CharacterFlag, CharacterGender } from "@/types/canvas";
+import type { CharacterFlag, CharacterGender, LegacyRelationshipType } from "@/types/canvas";
+import type { CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
 
 function makeSlug(name: string): string {
   const base =
@@ -324,6 +326,103 @@ export async function importGuestWorld(
   });
 
   return { id: dynasty.id };
+}
+
+// ─── Replace an existing dynasty from an exported JSON file ───────────────────
+
+export async function replaceDynastyFromExport(
+  dynastyId: string,
+  raw: unknown,
+): Promise<{ nodes: CharacterNodeType[]; edges: LegacyEdgeType[] }> {
+  const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
+  const validId = IdSchema.parse(dynastyId);
+  const data: DynastyExport = DynastyExportSchema.parse(raw);
+
+  const dynasty = await prisma.dynasty.findFirst({
+    where: { id: validId, ownerId: user.id },
+    select: { id: true },
+  });
+  if (!dynasty) throw new Error("Dynasty not found");
+
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.relationship.deleteMany({ where: { dynastyId: validId } });
+    await tx.character.deleteMany({ where: { dynastyId: validId } });
+
+    const idMap = new Map<string, string>();
+    const characters = [];
+    for (const c of data.characters) {
+      const row = await tx.character.create({
+        data: {
+          dynastyId: validId,
+          name: c.name,
+          alias: c.alias,
+          flags: c.flags,
+          style: c.style,
+          gender: c.gender,
+          note: c.note,
+          posX: c.posX,
+          posY: c.posY,
+        },
+      });
+      idMap.set(c.id, row.id);
+      characters.push(row);
+    }
+
+    const relationshipsData = data.relationships
+      .map((r) => ({
+        fromId: idMap.get(r.fromId),
+        toId: idMap.get(r.toId),
+        type: r.type,
+        isMutual: r.isMutual,
+      }))
+      .filter(
+        (r): r is { fromId: string; toId: string; type: typeof r.type; isMutual: boolean } =>
+          !!r.fromId && !!r.toId,
+      );
+
+    let relationships: { id: string; fromId: string; toId: string; type: string; isMutual: boolean }[] = [];
+    if (relationshipsData.length > 0) {
+      await tx.relationship.createMany({
+        data: relationshipsData.map((r) => ({ dynastyId: validId, ...r })),
+      });
+      relationships = await tx.relationship.findMany({ where: { dynastyId: validId } });
+    }
+
+    return { characters, relationships };
+  });
+
+  revalidatePath(`/dashboard/${validId}`);
+
+  // Same row→node/edge conversion as app/dashboard/[id]/page.tsx:53-77 (the
+  // initial page load) — reused here so DynastyCanvas can treat an import
+  // exactly like a fresh load.
+  return {
+    nodes: result.characters.map((char) => ({
+      id: char.id,
+      type: "character" as const,
+      position: { x: char.posX, y: char.posY },
+      data: {
+        name: char.name,
+        alias: char.alias ?? undefined,
+        flags: (char as any).flags as CharacterFlag[],
+        style: char.style,
+        gender: char.gender as CharacterGender,
+        note: char.note ?? undefined,
+      },
+    })),
+    edges: result.relationships.map((rel) => ({
+      id: rel.id,
+      type: "relationship" as const,
+      source: rel.fromId,
+      target: rel.toId,
+      data: {
+        type: rel.type as LegacyRelationshipType,
+        hook: undefined,
+        isMutual: rel.isMutual,
+      },
+    })),
+  };
 }
 
 export async function getDynasty(dynastyId: string) {
