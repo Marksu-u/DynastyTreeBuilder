@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { IdSchema } from "@/lib/schemas";
+import type { PairEdge } from "@/lib/relative-ops";
 
 const PairEdgeSchema = z.object({
   fromId: IdSchema,
@@ -72,7 +73,7 @@ export async function createFamily(
 /** Persists the pair edges computed by lib/relative-ops.ts computeAddRelative. */
 export async function createRelativeEdges(
   dynastyId: string,
-  pairEdges: { fromId: string; toId: string; type: 'SPOUSE' | 'PARENT' | 'ADOPTED' }[],
+  pairEdges: PairEdge[],
 ): Promise<void> {
   const user = await getAuthUser();
   if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
@@ -109,7 +110,7 @@ const DeletePairEdgesSchema = z.array(PairEdgeSchema).max(50);
 /** Deletes the pair edges computed by lib/relative-ops.ts computeRemoveRelative. */
 export async function deleteRelativeEdges(
   dynastyId: string,
-  pairEdges: { fromId: string; toId: string; type: 'SPOUSE' | 'PARENT' | 'ADOPTED' }[],
+  pairEdges: PairEdge[],
 ): Promise<void> {
   const user = await getAuthUser();
   if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
