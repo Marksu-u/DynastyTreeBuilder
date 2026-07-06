@@ -49,7 +49,7 @@ export const CharacterDataSchema = z.object({
   name: z.string().min(1, "Name is required"),
   alias: z.string().optional(),
   flags: z.array(CharacterFlagSchema),
-  style: TokenSchema,
+  style: z.string().trim().max(60, "Role is too long"),
   gender: CharacterGenderSchema,
   note: z.string().optional(),
 });

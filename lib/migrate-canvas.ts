@@ -20,8 +20,15 @@ export function migrateCanvas(
   const unionChildren = new Map<string, Set<string>>();
 
   // Step 1: Convert SPOUSE edges → union nodes + PARTNER edges
+  // Dedup by unordered pair: duplicate/reversed-direction SPOUSE rows in the DB
+  // (not currently blocked by any DB constraint) would otherwise each spawn
+  // their own union node — a phantom second marriage on reload.
+  const seenSpousePairs = new Set<string>();
   for (const e of edges) {
     if ((e.data?.type as unknown as string) !== 'SPOUSE') continue;
+    const pairKey = [e.source, e.target].sort().join('::');
+    if (seenSpousePairs.has(pairKey)) continue;
+    seenSpousePairs.add(pairKey);
     const nodeA = nodes.find(n => n.id === e.source);
     const nodeB = nodes.find(n => n.id === e.target);
     if (!nodeA || !nodeB) continue;
