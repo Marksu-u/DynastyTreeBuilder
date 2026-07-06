@@ -42,6 +42,13 @@ describe('parseImportFile', () => {
     }));
     expect(() => parseImportFile(raw)).not.toThrow();
   });
+
+  it('accepts an empty style (character with no role set)', () => {
+    const raw = JSON.stringify(baseExport({
+      characters: [{ ...char('a', 'Aegon'), style: '' }],
+    }));
+    expect(() => parseImportFile(raw)).not.toThrow();
+  });
 });
 
 describe('buildCanvasFromExport', () => {
