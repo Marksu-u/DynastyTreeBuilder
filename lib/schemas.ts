@@ -127,7 +127,7 @@ export const DynastyExportSchema = z.object({
       name: z.string(),
       alias: z.string().nullable(),
       flags: z.array(CharacterFlagSchema),
-      style: TokenSchema,
+      style: z.string().trim().min(1).max(60),
       gender: CharacterGenderSchema,
       note: z.string().nullable(),
       posX: z.number(),
