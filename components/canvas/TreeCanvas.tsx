@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ReactFlow,
   Background, BackgroundVariant, Controls,
@@ -24,6 +24,7 @@ import { CanvasContext } from '@/components/canvas/CanvasContext';
 import { CanvasEmptyState } from '@/components/canvas/CanvasEmptyState';
 import { useGenealogyLayout } from '@/components/canvas/useGenealogyLayout';
 import { partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
+import { deriveExportRelationships } from '@/lib/import-canvas';
 import type { CharacterData } from '@/types/canvas';
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
@@ -98,10 +99,9 @@ function TreeCanvasInner() {
         note: (nd as CharacterNodeType).data.note ?? null,
         posX: nd.position.x, posY: nd.position.y,
       })),
-      relationships: e.map(edge => ({
-        id: edge.id, fromId: edge.source, toId: edge.target,
-        type: edge.data?.type ?? 'CHILD',
-        hook: edge.data?.hook ?? null, isMutual: edge.data?.isMutual ?? false,
+      relationships: deriveExportRelationships(n, e).map(r => ({
+        id: crypto.randomUUID(), fromId: r.fromId, toId: r.toId,
+        type: r.type, hook: null, isMutual: false,
       })),
     };
     triggerJsonDownload(data, 'dynasty-tree.json');
@@ -134,6 +134,27 @@ function TreeCanvasInner() {
     setRelPicker(null);
     toast.success('Added to the tree');
   }, [addRelative]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey;
+      if (!isMod || e.key.toLowerCase() !== 'z') return;
+
+      const target = e.target as HTMLElement | null;
+      const isEditable = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
+      if (isEditable) return;
+
+      e.preventDefault();
+      if (e.shiftKey) {
+        redo();
+      } else {
+        undo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
 
   return (
     <CanvasContext.Provider value={{ setEditingCharacterId, openAddRelative }}>
