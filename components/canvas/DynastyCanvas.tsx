@@ -27,7 +27,7 @@ import {
   updateCharacter,
   deleteCharacter,
 } from "@/app/actions/character";
-import { createRelativeEdges, deleteRelativeEdges } from "@/app/actions/relationship";
+import { addRelative, deleteRelativeEdges } from "@/app/actions/relationship";
 import type { CharacterData } from "@/types/canvas";
 import type { CharacterNodeType, RelationshipEdgeType, LegacyEdgeType } from "@/store/canvas";
 import { CanvasEmptyState } from "@/components/canvas/CanvasEmptyState";
@@ -197,15 +197,12 @@ export function DynastyCanvas({
     setEdges(result.edges);
 
     try {
-      let pairEdges = result.pairEdges;
-      if ('newData' in input.person) {
-        const { id: realId } = await createCharacter(dynastyId, input.person.newData, { x: 0, y: 0 });
+      const { id: realId } = await addRelative(dynastyId, input.person, result.pairEdges);
+      if (realId !== result.personId) {
         const remap = (v: string) => (v === result.personId ? realId : v);
         setNodes(nds => nds.map(n => (n.id === result.personId ? { ...n, id: realId } : n)));
         setEdges(eds => eds.map(e => ({ ...e, source: remap(e.source), target: remap(e.target) })));
-        pairEdges = pairEdges.map(p => ({ ...p, fromId: remap(p.fromId), toId: remap(p.toId) }));
       }
-      await createRelativeEdges(dynastyId, pairEdges);
       toast.success('Added to the tree');
     } catch {
       setNodes(prevNodes);
