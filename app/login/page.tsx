@@ -1,11 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { signInWithGoogle } from "@/app/actions/auth";
 
-export default function LoginPage() {
+const ERROR_MESSAGES: Record<string, string> = {
+  auth_callback_failed:
+    "We couldn't complete your sign-in. Please try again.",
+};
+
+function LoginContent() {
+  const searchParams = useSearchParams();
+  const urlError = searchParams.get("error");
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    urlError
+      ? ERROR_MESSAGES[urlError] ?? "Sign-in failed. Please try again."
+      : null
+  );
 
   async function handleGoogleSignIn() {
     setPending(true);
@@ -61,7 +73,11 @@ export default function LoginPage() {
             {pending ? "Redirecting…" : "Sign in with Google"}
           </button>
 
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && (
+            <p role="alert" className="text-xs text-red-400">
+              {error}
+            </p>
+          )}
 
           <p className="text-center text-xs text-zinc-500">
             By signing in, you agree to our{" "}
@@ -84,5 +100,13 @@ export default function LoginPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
   );
 }
