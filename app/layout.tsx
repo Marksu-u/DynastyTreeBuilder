@@ -29,6 +29,9 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
   },
+  verification: {
+    google: "HuVWPAQh_dt5pplSZkLyCAADfgKGkk720h9DqhFVNTQ",
+  },
 };
 
 export default function RootLayout({
