@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildFamilyGraph, assignGenerations, layoutGenealogy,
+  buildFamilyGraph, assignGenerations, layoutGenealogy, buildOrderingUnits,
   CARD_W, CARD_H, PARTNER_GAP, ROW_HEIGHT, CLUSTER_GAP,
 } from './genealogy-layout';
 
@@ -286,5 +286,49 @@ describe('railLevels (staggered sibling rails)', () => {
     // MAX_RAIL_LEVEL = floor((ROW_HEIGHT*0.6 - RAIL_OFFSET) / RAIL_STEP) = floor((120-24)/16) = 6
     expect(max).toBe(6);
     expect(railLevels['u10']).toBe(6);
+  });
+});
+
+describe('buildOrderingUnits', () => {
+  const build = (fix: { nodes: any[]; edges: any[] }) => {
+    const g = buildFamilyGraph(fix.nodes, fix.edges);
+    const r = assignGenerations(g);
+    return buildOrderingUnits(g.characterIds, g, r);
+  };
+
+  it('a simple couple is one unit, partners adjacent in strip order', () => {
+    const units = build(nuclear(1));
+    const rank0 = units.filter(u => u.rank === 0);
+    expect(rank0).toHaveLength(1);
+    expect(rank0[0].members).toEqual(['dad', 'mom']);
+    expect(rank0[0].width).toBe(2 * CARD_W + PARTNER_GAP);
+  });
+
+  it('a bridging spouse merges two couples into one unit, sitting in the middle', () => {
+    const nodes = [char('a'), char('X'), char('b'), union('ua'), union('ub')];
+    const edges = [partner('a', 'ua'), partner('X', 'ua'),
+      partner('X', 'ub'), partner('b', 'ub')];
+    const units = build({ nodes, edges });
+    expect(units).toHaveLength(1);
+    expect(new Set(units[0].members)).toEqual(new Set(['a', 'X', 'b']));
+    expect(units[0].members[1]).toBe('X'); // bridge in the middle
+  });
+
+  it('a remarriage star flanks the anchor with its spouses', () => {
+    const nodes = [char('dad'), char('m1'), char('m2'), char('m3'),
+      union('u1'), union('u2'), union('u3')];
+    const edges = [partner('dad', 'u1'), partner('m1', 'u1'),
+      partner('dad', 'u2'), partner('m2', 'u2'),
+      partner('dad', 'u3'), partner('m3', 'u3')];
+    const units = build({ nodes, edges });
+    expect(units).toHaveLength(1);
+    expect(units[0].members).toEqual(['m2', 'dad', 'm1', 'm3']);
+  });
+
+  it('non-married siblings are separate units', () => {
+    const units = build(nuclear(2));
+    const rank1 = units.filter(u => u.rank === 1);
+    expect(rank1).toHaveLength(2);
+    expect(rank1.map(u => u.members)).toEqual([['c1'], ['c2']]);
   });
 });

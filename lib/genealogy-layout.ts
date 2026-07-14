@@ -46,10 +46,103 @@ export interface FamilyGraph {
   parentUnions: Map<string, Union[]>;   // charId → unions where char is a child
 }
 
+export interface Unit {
+  key: string;        // stable: `unit:${firstMemberInInsertionOrder}`
+  rank: number;
+  members: string[];  // strip order, left → right
+  width: number;      // members.length*CARD_W + (members.length-1)*PARTNER_GAP
+}
+
 function push<K, V>(m: Map<K, V[]>, k: K, v: V): void {
   const arr = m.get(k);
   if (arr) arr.push(v);
   else m.set(k, [v]);
+}
+
+/** Deterministic left→right strip order for one unit via recursive alternating
+ *  expansion: root = member with most internal unions (tie → first in `members`);
+ *  place root, then for each internal union alternate the partner right/left,
+ *  recursing outward on the same side. */
+function unitStripOrder(members: string[], graph: FamilyGraph): string[] {
+  if (members.length === 1) return [...members];
+  const set = new Set(members);
+  const incident = new Map<string, string[]>(); // person → other partners (insertion order)
+  for (const u of graph.unions) {
+    const ps = u.partners.filter(p => set.has(p));
+    for (let i = 0; i < ps.length; i++) {
+      for (let j = 0; j < ps.length; j++) {
+        if (i !== j) push(incident, ps[i], ps[j]);
+      }
+    }
+  }
+  let root = members[0];
+  let best = incident.get(root)?.length ?? 0;
+  for (const m of members) {
+    const d = incident.get(m)?.length ?? 0;
+    if (d > best) { best = d; root = m; }
+  }
+  const placed = new Set<string>([root]);
+  const left: string[] = [];
+  const right: string[] = [];
+  const expand = (person: string, dir: 'root' | 'L' | 'R'): void => {
+    let i = 0;
+    for (const other of incident.get(person) ?? []) {
+      if (placed.has(other)) continue;
+      placed.add(other);
+      const goRight = dir === 'root' ? i % 2 === 0 : dir === 'R';
+      if (goRight) right.push(other); else left.unshift(other);
+      expand(other, goRight ? 'R' : 'L');
+      i++;
+    }
+  };
+  expand(root, 'root');
+  for (const m of members) if (!placed.has(m)) right.push(m); // defensive
+  return [...left, root, ...right];
+}
+
+/** Partition each rank of a cluster into contiguous "units" (marriage clusters):
+ *  union-find over same-rank shared partners, so a bridging spouse merges the
+ *  couples it links into one unit. Emission order follows `clusterChars`. */
+export function buildOrderingUnits(
+  clusterChars: string[],
+  graph: FamilyGraph,
+  rank: Map<string, number>,
+): Unit[] {
+  const inCluster = new Set(clusterChars);
+  const parent = new Map<string, string>();
+  for (const c of clusterChars) parent.set(c, c);
+  const find = (x: string): string => {
+    let r = x;
+    while (parent.get(r) !== r) r = parent.get(r)!;
+    while (parent.get(x) !== r) { const n = parent.get(x)!; parent.set(x, r); x = n; }
+    return r;
+  };
+  for (const u of graph.unions) {
+    const ps = u.partners.filter(p => inCluster.has(p));
+    for (let i = 1; i < ps.length; i++) {
+      const ra = find(ps[0]); const rb = find(ps[i]);
+      if (ra !== rb) parent.set(ra, rb);
+    }
+  }
+  const groups = new Map<string, string[]>();
+  for (const c of clusterChars) push(groups, find(c), c);
+
+  const emitted = new Set<string>();
+  const units: Unit[] = [];
+  for (const c of clusterChars) {
+    const root = find(c);
+    if (emitted.has(root)) continue;
+    emitted.add(root);
+    const mem = groups.get(root)!;                 // clusterChars order
+    const order = unitStripOrder(mem, graph);
+    units.push({
+      key: `unit:${mem[0]}`,
+      rank: rank.get(mem[0]) ?? 0,
+      members: order,
+      width: order.length * CARD_W + (order.length - 1) * PARTNER_GAP,
+    });
+  }
+  return units;
 }
 
 export function buildFamilyGraph(nodes: LayoutNodeIn[], edges: LayoutEdgeIn[]): FamilyGraph {
