@@ -60,6 +60,10 @@ function TreeCanvasInner() {
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
 
   const highlight = useDescendantHighlight(nodes, edges);
+  const highlightValue = useMemo(
+    () => ({ activeCharIds: highlight.activeCharIds, activeEdgeIds: highlight.activeEdgeIds }),
+    [highlight.activeCharIds, highlight.activeEdgeIds],
+  );
 
   const characterNodes = useMemo(
     () => nodes.filter((n): n is CharacterNodeType => n.type === 'character'),
@@ -189,9 +193,7 @@ function TreeCanvasInner() {
     <CanvasContext.Provider value={{ setEditingCharacterId, openAddRelative }}>
       <div className="flex h-full w-full">
         <div ref={containerRef} className="relative flex-1 min-w-0 h-full">
-          <HighlightContext.Provider
-            value={{ activeCharIds: highlight.activeCharIds, activeEdgeIds: highlight.activeEdgeIds }}
-          >
+          <HighlightContext.Provider value={highlightValue}>
           <ReactFlow
             nodes={laidOutNodes}
             edges={edges}

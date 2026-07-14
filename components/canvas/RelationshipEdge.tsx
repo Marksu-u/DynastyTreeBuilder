@@ -28,12 +28,15 @@ export const RelationshipEdge = memo(({
 }: EdgeProps<RelationshipEdgeType>) => {
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
+  const { activeEdgeIds } = useHighlight();
+  // All hooks must run before any early return (Rules of Hooks): useInternalNode
+  // returns undefined until a node's internals are measured, so bailing out
+  // before useHighlight would change the hook count between renders.
   if (!sourceNode || !targetNode) return null;
 
   const s = sourceNode.internals.positionAbsolute;
   const t = targetNode.internals.positionAbsolute;
   const relType = data?.type ?? 'CHILD';
-  const { activeEdgeIds } = useHighlight();
   const dimmed = activeEdgeIds !== null && !activeEdgeIds.has(id);
   const emphasized = activeEdgeIds !== null && activeEdgeIds.has(id);
 
