@@ -4,6 +4,7 @@ import { memo } from 'react';
 import { BaseEdge, EdgeProps, Edge, useInternalNode } from '@xyflow/react';
 import { CARD_W, CARD_H, RAIL_OFFSET, RAIL_STEP } from '@/lib/genealogy-layout';
 import type { RelationshipData } from '@/types/canvas';
+import { useHighlight } from './HighlightContext';
 
 export type RelationshipEdgeType = Edge<RelationshipData, 'relationship'>;
 
@@ -32,6 +33,9 @@ export const RelationshipEdge = memo(({
   const s = sourceNode.internals.positionAbsolute;
   const t = targetNode.internals.positionAbsolute;
   const relType = data?.type ?? 'CHILD';
+  const { activeEdgeIds } = useHighlight();
+  const dimmed = activeEdgeIds !== null && !activeEdgeIds.has(id);
+  const emphasized = activeEdgeIds !== null && activeEdgeIds.has(id);
 
   let path: string;
   if (relType === 'PARTNER') {
@@ -69,8 +73,10 @@ export const RelationshipEdge = memo(({
       path={path}
       style={{
         ...baseStyle,
-        opacity: selected ? 1 : 0.8,
+        opacity: dimmed ? 0.12 : selected || emphasized ? 1 : 0.8,
+        strokeWidth: emphasized ? 2.25 : (baseStyle.strokeWidth as number) ?? 1.5,
         filter: selected ? 'drop-shadow(0 0 4px currentColor)' : undefined,
+        transition: 'opacity 120ms',
       }}
       interactionWidth={20}
     />

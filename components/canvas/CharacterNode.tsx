@@ -5,6 +5,7 @@ import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { Pencil, Skull, Plus } from 'lucide-react';
 import { useCanvasStore } from '@/store/canvas';
 import { useCanvasContext } from './CanvasContext';
+import { useHighlight } from './HighlightContext';
 import type { CharacterData } from '@/types/canvas';
 
 type CharacterNodeType = Node<CharacterData, 'character'>;
@@ -27,6 +28,8 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
   const setEditingCharacterId = canvasCtx ? canvasCtx.setEditingCharacterId : setEditingCharacterIdStore;
   const openAddRelative = canvasCtx?.openAddRelative;
   const flags = data.flags ?? [];
+  const { activeCharIds } = useHighlight();
+  const dimmed = activeCharIds !== null && !activeCharIds.has(id);
 
   const isDeceased = flags.includes('DECEASED');
   const isGhost = data.isGhost ?? false;
@@ -60,7 +63,11 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
           ? 'border border-[#EF9F27]/50 hover:border-[#EF9F27]/80'
           : 'border border-zinc-700 hover:border-zinc-600',
       ].join(' ')}
-      style={isGhost ? { opacity: 0.4, filter: 'grayscale(1)' } : undefined}
+      style={{
+        ...(isGhost ? { filter: 'grayscale(1)' } : {}),
+        opacity: isGhost ? 0.4 : dimmed ? 0.35 : 1,
+        transition: 'opacity 120ms',
+      }}
     >
       {/* SVG dashed border — follows border-radius on all four sides */}
       {hasSvgBorder && (
