@@ -342,8 +342,8 @@ describe('orderLayers', () => {
 
   it('is deterministic', () => {
     const { g, r, units } = prep(nuclear(3));
-    const a = orderLayers(units, g, r);
-    const b = orderLayers(units, g, r);
+    const a = orderLayers(units, g);
+    const b = orderLayers(units, g);
     expect([...a.get(1)!].map(u => u.key)).toEqual([...b.get(1)!].map(u => u.key));
   });
 
@@ -358,7 +358,7 @@ describe('orderLayers', () => {
       child('uR', 'cR'), child('uL', 'cL'),
     ];
     const { g, r, units } = prep({ nodes, edges });
-    const ordered = orderLayers(units, g, r);
+    const ordered = orderLayers(units, g);
     const row1 = ordered.get(1)!.map(u => u.members[0]);
     expect(row1).toEqual(['cL', 'cR']);
   });
@@ -368,7 +368,7 @@ describe('orderLayers', () => {
     fix.nodes.push(char('x1'), char('x2'), union('ux'));
     fix.edges.push(partner('x1', 'ux'), partner('x2', 'ux'));
     const { g, r, units } = prep(fix);
-    const ordered = orderLayers(units, g, r);
+    const ordered = orderLayers(units, g);
     const keys = ordered.get(0)!.map(u => u.key);
     expect(keys).toContain('unit:x1');
   });

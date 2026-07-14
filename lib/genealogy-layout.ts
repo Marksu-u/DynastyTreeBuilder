@@ -160,11 +160,16 @@ export function buildOrderingUnits(
  * no such neighbour keep their original relative slot. Runs ≤8 sweeps,
  * keeping the layer arrangement with the fewest parent/child edge crossings
  * seen so far (ties keep the earlier, i.e. lower-numbered, arrangement).
+ *
+ * NOTE: parent/child adjacency is only registered between literally adjacent
+ * ranks (`pu.rank + 1 === cu.rank`), so skip-generation long edges (produced by
+ * `assignGenerations`'s max-based rank bumping) are not represented and the
+ * heuristic is inert for them — a known Sugiyama limitation pending long-edge
+ * splitting.
  */
 export function orderLayers(
   units: Unit[],
   graph: FamilyGraph,
-  rank: Map<string, number>,
 ): Map<number, Unit[]> {
   const unitOf = new Map<string, Unit>();
   for (const u of units) for (const m of u.members) unitOf.set(m, u);
@@ -181,7 +186,13 @@ export function orderLayers(
   const childrenOf = new Map<string, Unit[]>();
   for (const u of units) { parentsOf.set(u.key, []); childrenOf.set(u.key, []); }
   for (const un of graph.unions) {
-    const pUnits = un.partners.map(p => unitOf.get(p)).filter((u): u is Unit => !!u);
+    // Both partners of a merged multi-partner union resolve to the SAME unit;
+    // dedupe by key (first-seen order preserved for determinism) so each
+    // parent→child relationship is registered once, not once per partner.
+    const seen = new Set<string>();
+    const pUnits = un.partners
+      .map(p => unitOf.get(p))
+      .filter((u): u is Unit => !!u && !seen.has(u.key) && (seen.add(u.key), true));
     for (const c of un.children) {
       const cu = unitOf.get(c);
       if (!cu) continue;
