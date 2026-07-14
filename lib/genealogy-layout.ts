@@ -59,6 +59,13 @@ function push<K, V>(m: Map<K, V[]>, k: K, v: V): void {
   else m.set(k, [v]);
 }
 
+function median(xs: number[]): number {
+  if (xs.length === 0) return -1;
+  const s = [...xs].sort((a, b) => a - b);
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
 /** Deterministic left→right strip order for one unit via recursive alternating
  *  expansion: root = member with most internal unions (tie → first in `members`);
  *  place root, then for each internal union alternate the partner right/left,
@@ -143,6 +150,100 @@ export function buildOrderingUnits(
     });
   }
   return units;
+}
+
+/**
+ * Median-heuristic crossing reduction over ordering units. Units are grouped
+ * by rank into layers (initial order = `units` input order); each sweep walks
+ * the layers top-down then bottom-up, reordering every layer by the median
+ * index of its neighbours in the adjacent (already-visited) layer. Units with
+ * no such neighbour keep their original relative slot. Runs ≤8 sweeps,
+ * keeping the layer arrangement with the fewest parent/child edge crossings
+ * seen so far (ties keep the earlier, i.e. lower-numbered, arrangement).
+ */
+export function orderLayers(
+  units: Unit[],
+  graph: FamilyGraph,
+  rank: Map<string, number>,
+): Map<number, Unit[]> {
+  const unitOf = new Map<string, Unit>();
+  for (const u of units) for (const m of u.members) unitOf.set(m, u);
+
+  const rankSet: number[] = [];
+  for (const u of units) if (!rankSet.includes(u.rank)) rankSet.push(u.rank);
+  rankSet.sort((a, b) => a - b);
+
+  const byRank = new Map<number, Unit[]>();
+  for (const r of rankSet) byRank.set(r, []);
+  for (const u of units) byRank.get(u.rank)!.push(u); // initial order = units[] order
+
+  const parentsOf = new Map<string, Unit[]>();
+  const childrenOf = new Map<string, Unit[]>();
+  for (const u of units) { parentsOf.set(u.key, []); childrenOf.set(u.key, []); }
+  for (const un of graph.unions) {
+    const pUnits = un.partners.map(p => unitOf.get(p)).filter((u): u is Unit => !!u);
+    for (const c of un.children) {
+      const cu = unitOf.get(c);
+      if (!cu) continue;
+      for (const pu of pUnits) {
+        if (pu.rank + 1 === cu.rank) {
+          childrenOf.get(pu.key)!.push(cu);
+          parentsOf.get(cu.key)!.push(pu);
+        }
+      }
+    }
+  }
+
+  const crossings = (): number => {
+    let total = 0;
+    for (let k = 0; k + 1 < rankSet.length; k++) {
+      const upper = byRank.get(rankSet[k])!;
+      const lower = byRank.get(rankSet[k + 1])!;
+      const idxU = new Map(upper.map((u, i) => [u.key, i]));
+      const idxL = new Map(lower.map((u, i) => [u.key, i]));
+      const edges: [number, number][] = [];
+      for (const pu of upper) for (const cu of childrenOf.get(pu.key)!) {
+        if (idxL.has(cu.key)) edges.push([idxU.get(pu.key)!, idxL.get(cu.key)!]);
+      }
+      for (let a = 0; a < edges.length; a++) for (let b = a + 1; b < edges.length; b++) {
+        if ((edges[a][0] - edges[b][0]) * (edges[a][1] - edges[b][1]) < 0) total++;
+      }
+    }
+    return total;
+  };
+
+  const clone = () => new Map([...byRank].map(([r, arr]) => [r, [...arr]]));
+  let best = clone();
+  let bestC = crossings();
+
+  for (let sweep = 0; sweep < 8; sweep++) {
+    const down = sweep % 2 === 0;
+    const order = down ? rankSet : [...rankSet].reverse();
+    for (const r of order) {
+      const ref = byRank.get(down ? r - 1 : r + 1);
+      if (!ref) continue;
+      const refIdx = new Map(ref.map((u, i) => [u.key, i]));
+      const adj = down ? parentsOf : childrenOf;
+      const layer = byRank.get(r)!;
+      const med = new Map<string, number>();
+      for (const u of layer) {
+        const idxs = adj.get(u.key)!.map(n => refIdx.get(n.key) ?? -1).filter(i => i >= 0);
+        med.set(u.key, median(idxs));
+      }
+      const origIdx = new Map(layer.map((u, i) => [u.key, i]));
+      const movers = layer.filter(u => med.get(u.key)! >= 0);
+      movers.sort((x, y) => {
+        const d = med.get(x.key)! - med.get(y.key)!;
+        return d !== 0 ? d : origIdx.get(x.key)! - origIdx.get(y.key)!;
+      });
+      let mi = 0;
+      const result = layer.map(u => (med.get(u.key)! >= 0 ? movers[mi++] : u));
+      byRank.set(r, result);
+    }
+    const c = crossings();
+    if (c < bestC) { bestC = c; best = clone(); }
+  }
+  return best;
 }
 
 export function buildFamilyGraph(nodes: LayoutNodeIn[], edges: LayoutEdgeIn[]): FamilyGraph {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildFamilyGraph, assignGenerations, layoutGenealogy, buildOrderingUnits,
+  buildFamilyGraph, assignGenerations, layoutGenealogy, buildOrderingUnits, orderLayers,
   CARD_W, CARD_H, PARTNER_GAP, ROW_HEIGHT, CLUSTER_GAP,
 } from './genealogy-layout';
 
@@ -330,5 +330,46 @@ describe('buildOrderingUnits', () => {
     const rank1 = units.filter(u => u.rank === 1);
     expect(rank1).toHaveLength(2);
     expect(rank1.map(u => u.members)).toEqual([['c1'], ['c2']]);
+  });
+});
+
+describe('orderLayers', () => {
+  const prep = (fix: { nodes: any[]; edges: any[] }) => {
+    const g = buildFamilyGraph(fix.nodes, fix.edges);
+    const r = assignGenerations(g);
+    return { g, r, units: buildOrderingUnits(g.characterIds, g, r) };
+  };
+
+  it('is deterministic', () => {
+    const { g, r, units } = prep(nuclear(3));
+    const a = orderLayers(units, g, r);
+    const b = orderLayers(units, g, r);
+    expect([...a.get(1)!].map(u => u.key)).toEqual([...b.get(1)!].map(u => u.key));
+  });
+
+  it('orders a child under its parent when input order would cross', () => {
+    const nodes = [
+      char('pL'), char('sL'), union('uL'), char('pR'), char('sR'), union('uR'),
+      char('cR'), char('cL'),
+    ];
+    const edges = [
+      partner('pL', 'uL'), partner('sL', 'uL'),
+      partner('pR', 'uR'), partner('sR', 'uR'),
+      child('uR', 'cR'), child('uL', 'cL'),
+    ];
+    const { g, r, units } = prep({ nodes, edges });
+    const ordered = orderLayers(units, g, r);
+    const row1 = ordered.get(1)!.map(u => u.members[0]);
+    expect(row1).toEqual(['cL', 'cR']);
+  });
+
+  it('keeps a no-parent unit in its original slot', () => {
+    const fix = nuclear(1);
+    fix.nodes.push(char('x1'), char('x2'), union('ux'));
+    fix.edges.push(partner('x1', 'ux'), partner('x2', 'ux'));
+    const { g, r, units } = prep(fix);
+    const ordered = orderLayers(units, g, r);
+    const keys = ordered.get(0)!.map(u => u.key);
+    expect(keys).toContain('unit:x1');
   });
 });
