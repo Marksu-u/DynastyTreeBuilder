@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import { BaseEdge, EdgeProps, Edge, useInternalNode } from '@xyflow/react';
-import { CARD_W, CARD_H, RAIL_OFFSET } from '@/lib/genealogy-layout';
+import { CARD_W, CARD_H, RAIL_OFFSET, RAIL_STEP } from '@/lib/genealogy-layout';
 import type { RelationshipData } from '@/types/canvas';
 
 export type RelationshipEdgeType = Edge<RelationshipData, 'relationship'>;
@@ -54,7 +54,10 @@ export const RelationshipEdge = memo(({
   } else {
     // source = union point, target = child card
     const w = targetNode.measured?.width ?? CARD_W;
-    const railY = t.y - RAIL_OFFSET;
+    // Each of a parent's unions gets its own rail height so child groups never
+    // merge into one horizontal bus. Ordinary couples have level 0 (unchanged).
+    const level = (sourceNode.data.railLevel as number | undefined) ?? 0;
+    const railY = t.y - RAIL_OFFSET - level * RAIL_STEP;
     const cx = t.x + w / 2;
     path = `M ${s.x} ${s.y} L ${s.x} ${railY} L ${cx} ${railY} L ${cx} ${t.y}`;
   }
