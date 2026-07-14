@@ -34,4 +34,5 @@ export interface RelationshipData extends Record<string, unknown> {
 /** Union nodes carry only their computed rail level for edge staggering. */
 export interface UnionData extends Record<string, unknown> {
   railLevel?: number;
+  colorIndex?: number;
 }

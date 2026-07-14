@@ -2,7 +2,7 @@
 
 import { memo } from 'react';
 import { BaseEdge, EdgeProps, Edge, useInternalNode } from '@xyflow/react';
-import { CARD_W, CARD_H, RAIL_OFFSET, RAIL_STEP } from '@/lib/genealogy-layout';
+import { CARD_W, CARD_H, RAIL_OFFSET, RAIL_STEP, unionHue } from '@/lib/genealogy-layout';
 import type { RelationshipData } from '@/types/canvas';
 import { useHighlight } from './HighlightContext';
 
@@ -40,11 +40,21 @@ export const RelationshipEdge = memo(({
   const dimmed = activeEdgeIds !== null && !activeEdgeIds.has(id);
   const emphasized = activeEdgeIds !== null && activeEdgeIds.has(id);
 
+  const baseStyle = EDGE_STYLES[relType] ?? FALLBACK_STYLE;
+  let strokeColor = baseStyle.stroke as string | undefined;
+  // A per-union accent hue (set only for a multi-partner anchor's 2nd, 3rd, …
+  // unions) recolors the marriage/child connectors and drops a dot at the child
+  // endpoint so a viewer can trace each union without interacting.
+  let dot: { cx: number; cy: number; hue: string } | null = null;
+
   let path: string;
   if (relType === 'PARTNER') {
     // source = character card, target = union point
     const w = sourceNode.measured?.width ?? CARD_W;
     const h = sourceNode.measured?.height ?? CARD_H;
+    // The color index lives on the UNION, which is the target of a PARTNER edge.
+    const hue = unionHue(targetNode.data.colorIndex as number | undefined);
+    if (hue) strokeColor = hue;
     // Layout invariant: a couple's union point sits exactly at s.y + CARD_H / 2
     // (lib/genealogy-layout.ts union placement). Compare against the layout
     // constant — NOT measured height — so tall cards and solo unions
@@ -74,22 +84,42 @@ export const RelationshipEdge = memo(({
     const railY = t.y - RAIL_OFFSET - level * RAIL_STEP;
     const cx = t.x + w / 2;
     path = `M ${s.x} ${s.y} L ${s.x} ${railY} L ${cx} ${railY} L ${cx} ${t.y}`;
+
+    const hue = unionHue(sourceNode.data.colorIndex as number | undefined);
+    if (hue) {
+      // Adoption semantics win: keep the green dashed line, but still mark the
+      // union with a dot so the union is traceable.
+      if (relType !== 'ADOPTED_CHILD') strokeColor = hue;
+      dot = { cx, cy: t.y, hue };
+    }
   }
 
-  const baseStyle = EDGE_STYLES[relType] ?? FALLBACK_STYLE;
+  const edgeOpacity = dimmed ? 0.12 : selected || emphasized ? 1 : 0.8;
   return (
-    <BaseEdge
-      id={id}
-      path={path}
-      style={{
-        ...baseStyle,
-        opacity: dimmed ? 0.12 : selected || emphasized ? 1 : 0.8,
-        strokeWidth: emphasized ? 2.25 : (baseStyle.strokeWidth as number) ?? 1.5,
-        filter: selected ? 'drop-shadow(0 0 4px currentColor)' : undefined,
-        transition: 'opacity 120ms',
-      }}
-      interactionWidth={20}
-    />
+    <>
+      <BaseEdge
+        id={id}
+        path={path}
+        style={{
+          ...baseStyle,
+          stroke: strokeColor,
+          opacity: edgeOpacity,
+          strokeWidth: emphasized ? 2.25 : (baseStyle.strokeWidth as number) ?? 1.5,
+          filter: selected ? 'drop-shadow(0 0 4px currentColor)' : undefined,
+          transition: 'opacity 120ms',
+        }}
+        interactionWidth={20}
+      />
+      {dot && (
+        <circle
+          cx={dot.cx}
+          cy={dot.cy}
+          r={3}
+          fill={dot.hue}
+          style={{ opacity: edgeOpacity, transition: 'opacity 120ms' }}
+        />
+      )}
+    </>
   );
 });
 

@@ -13,14 +13,14 @@ export function useGenealogyLayout(
   edges: RelationshipEdgeType[],
 ): { nodes: AnyCanvasNode[]; rows: GenerationRow[] } {
   return useMemo(() => {
-    const { positions, rows, railLevels } = layoutGenealogy(nodes, edges);
+    const { positions, rows, railLevels, unionColorIndex } = layoutGenealogy(nodes, edges);
     const laidOut = nodes.map(n => ({
       ...n,
       position: positions[n.id] ?? n.position,
       ...(n.type === 'union'
         ? {
             selectable: false, focusable: false, deletable: false,
-            data: { ...n.data, railLevel: railLevels[n.id] ?? 0 },
+            data: { ...n.data, railLevel: railLevels[n.id] ?? 0, colorIndex: unionColorIndex[n.id] ?? -1 },
           }
         : {}),
     })) as AnyCanvasNode[];

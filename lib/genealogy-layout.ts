@@ -15,6 +15,17 @@ export const MARRIAGE_OFFSET = 20; // first below-row marriage rail sits this fa
 export const MARRIAGE_STEP = 16;   // vertical gap between a 3+-spouse anchor's stacked marriage rails
 export const RAIL_STEP = 16;   // vertical gap between a parent's stacked sibling rails
 
+// Per-union accent hues for colorable unions (a union with at least one
+// multi-partnered person). Index 0 is a real hue — purple/gray is reserved for
+// non-colorable (ordinary monogamous) unions only. Provisional set to be
+// visually tuned later:
+export const UNION_HUES = ['#2BBBAD', '#E0A82E', '#D9639E', '#5AA9E6', '#B07CE8', '#E0805A'];
+
+export function unionHue(colorIndex: number | undefined): string | null {
+  if (colorIndex === undefined || colorIndex < 0) return null;
+  return UNION_HUES[colorIndex % UNION_HUES.length];
+}
+
 export interface LayoutNodeIn { id: string; type?: string }
 export interface LayoutEdgeIn { source: string; target: string; data?: { type?: string } }
 export interface GenerationRow { index: number; y: number; height: number }
@@ -22,6 +33,7 @@ export interface GenealogyLayout {
   positions: Record<string, { x: number; y: number }>;
   rows: GenerationRow[];
   railLevels: Record<string, number>;
+  unionColorIndex: Record<string, number>;
 }
 
 export interface Union { id: string; partners: string[]; children: string[] }
@@ -67,6 +79,47 @@ export function buildFamilyGraph(nodes: LayoutNodeIn[], edges: LayoutEdgeIn[]): 
     for (const c of u.children) push(parentUnions, c, u);
   }
   return { characterIds, unions, unionById, partnerUnions, parentUnions };
+}
+
+/**
+ * Global union-graph coloring. A person is "multi-partnered" when they are a
+ * partner in 2+ unions; a union is "colorable" when at least one of its partners
+ * is multi-partnered (so it triggers from EITHER side). Two colorable unions are
+ * adjacent when they share a person. A greedy pass over `graph.unions` order
+ * gives each colorable union the lowest color index not used by an
+ * already-colored neighbor — guaranteeing all of a person's unions differ,
+ * including the first. Non-colorable unions get no entry (render default).
+ */
+export function computeUnionColors(graph: FamilyGraph): Map<string, number> {
+  const multi = new Set<string>();
+  for (const [person, us] of graph.partnerUnions) {
+    if (us.length >= 2) multi.add(person);
+  }
+  const colorable = graph.unions.filter(u => u.partners.some(p => multi.has(p)));
+  const colorableSet = new Set(colorable.map(u => u.id));
+  const neighbors = new Map<string, Set<string>>();
+  for (const u of colorable) neighbors.set(u.id, new Set());
+  for (const [, us] of graph.partnerUnions) {
+    const cs = us.filter(u => colorableSet.has(u.id));
+    for (let i = 0; i < cs.length; i++) {
+      for (let j = i + 1; j < cs.length; j++) {
+        neighbors.get(cs[i].id)!.add(cs[j].id);
+        neighbors.get(cs[j].id)!.add(cs[i].id);
+      }
+    }
+  }
+  const color = new Map<string, number>();
+  for (const u of colorable) {
+    const used = new Set<number>();
+    for (const nb of neighbors.get(u.id)!) {
+      const c = color.get(nb);
+      if (c !== undefined) used.add(c);
+    }
+    let c = 0;
+    while (used.has(c)) c++;
+    color.set(u.id, c);
+  }
+  return color;
 }
 
 /**
@@ -132,7 +185,10 @@ function layoutCluster(
   clusterChars: string[],
   graph: FamilyGraph,
   rank: Map<string, number>,
-): { positions: Map<string, { x: number; y: number }>; railLevels: Map<string, number> } {
+): {
+  positions: Map<string, { x: number; y: number }>;
+  railLevels: Map<string, number>;
+} {
   const inCluster = new Set(clusterChars);
   const minRank = Math.min(...clusterChars.map(c => rank.get(c) ?? 0));
   const rowY = (r: number) => (r - minRank) * ROW_HEIGHT;
@@ -321,7 +377,9 @@ function layoutCluster(
   for (const [, us] of anchoredUnions) {
     const bearing = us.filter(u => ownedChildren(u).length > 0);
     if (bearing.length < 2) continue;
-    bearing.forEach((u, i) => railLevels.set(u.id, Math.min(i, MAX_RAIL_LEVEL)));
+    bearing.forEach((u, i) => {
+      railLevels.set(u.id, Math.min(i, MAX_RAIL_LEVEL));
+    });
   }
 
   return { positions, railLevels };
@@ -329,10 +387,13 @@ function layoutCluster(
 
 export function layoutGenealogy(nodes: LayoutNodeIn[], edges: LayoutEdgeIn[]): GenealogyLayout {
   const graph = buildFamilyGraph(nodes, edges);
+  const unionColors = computeUnionColors(graph);
   const rank = assignGenerations(graph);
   const clusters = findClusters(graph);
   const positions: Record<string, { x: number; y: number }> = {};
   const railLevels: Record<string, number> = {};
+  const unionColorIndex: Record<string, number> = {};
+  for (const [id, c] of unionColors) unionColorIndex[id] = c;
 
   let offsetX = 0;
   for (const cluster of clusters) {
@@ -364,5 +425,5 @@ export function layoutGenealogy(nodes: LayoutNodeIn[], edges: LayoutEdgeIn[]): G
         index: i, y: i * ROW_HEIGHT, height: CARD_H,
       }));
 
-  return { positions, rows, railLevels };
+  return { positions, rows, railLevels, unionColorIndex };
 }
