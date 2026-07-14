@@ -11,6 +11,7 @@ export const GROUP_GAP = 64;     // gap between child groups of different unions
 export const CLUSTER_GAP = 160;  // gap between disconnected family clusters
 export const ROW_HEIGHT = 200;   // vertical pitch per generation
 export const RAIL_OFFSET = 24;   // sibling rail sits this far above the child row (edge renderer)
+export const RAIL_STEP = 16;   // vertical gap between a parent's stacked sibling rails
 
 export interface LayoutNodeIn { id: string; type?: string }
 export interface LayoutEdgeIn { source: string; target: string; data?: { type?: string } }
@@ -18,6 +19,7 @@ export interface GenerationRow { index: number; y: number; height: number }
 export interface GenealogyLayout {
   positions: Record<string, { x: number; y: number }>;
   rows: GenerationRow[];
+  railLevels: Record<string, number>;
 }
 
 export interface Union { id: string; partners: string[]; children: string[] }
@@ -128,7 +130,7 @@ function layoutCluster(
   clusterChars: string[],
   graph: FamilyGraph,
   rank: Map<string, number>,
-): Map<string, { x: number; y: number }> {
+): { positions: Map<string, { x: number; y: number }>; railLevels: Map<string, number> } {
   const inCluster = new Set(clusterChars);
   const minRank = Math.min(...clusterChars.map(c => rank.get(c) ?? 0));
   const rowY = (r: number) => (r - minRank) * ROW_HEIGHT;
@@ -288,7 +290,17 @@ function layoutCluster(
     }
   }
 
-  return positions;
+  // Staggered rails: only a parent (anchor) with 2+ child-bearing unions needs
+  // them; every ordinary couple stays at level 0 (unchanged geometry).
+  const MAX_RAIL_LEVEL = Math.floor((ROW_HEIGHT * 0.6 - RAIL_OFFSET) / RAIL_STEP);
+  const railLevels = new Map<string, number>();
+  for (const [, us] of anchoredUnions) {
+    const bearing = us.filter(u => ownedChildren(u).length > 0);
+    if (bearing.length < 2) continue;
+    bearing.forEach((u, i) => railLevels.set(u.id, Math.min(i, MAX_RAIL_LEVEL)));
+  }
+
+  return { positions, railLevels };
 }
 
 export function layoutGenealogy(nodes: LayoutNodeIn[], edges: LayoutEdgeIn[]): GenealogyLayout {
@@ -296,14 +308,16 @@ export function layoutGenealogy(nodes: LayoutNodeIn[], edges: LayoutEdgeIn[]): G
   const rank = assignGenerations(graph);
   const clusters = findClusters(graph);
   const positions: Record<string, { x: number; y: number }> = {};
+  const railLevels: Record<string, number> = {};
 
   let offsetX = 0;
   for (const cluster of clusters) {
-    const p = layoutCluster(cluster, graph, rank);
+    const { positions: p, railLevels: rl } = layoutCluster(cluster, graph, rank);
     const xs = [...p.values()].map(v => v.x);
     const minX = xs.length ? Math.min(...xs) : 0;
     const maxX = xs.length ? Math.max(...xs) : 0;
     for (const [id, pos] of p) positions[id] = { x: pos.x - minX + offsetX, y: pos.y };
+    for (const [id, lvl] of rl) railLevels[id] = lvl;
     offsetX += (maxX - minX) + CARD_W + CLUSTER_GAP;
   }
 
@@ -326,5 +340,5 @@ export function layoutGenealogy(nodes: LayoutNodeIn[], edges: LayoutEdgeIn[]): G
         index: i, y: i * ROW_HEIGHT, height: CARD_H,
       }));
 
-  return { positions, rows };
+  return { positions, rows, railLevels };
 }

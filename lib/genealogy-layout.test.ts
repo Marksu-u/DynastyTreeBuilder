@@ -208,3 +208,47 @@ describe('layoutGenealogy — clusters, rows, determinism', () => {
     }
   });
 });
+
+describe('railLevels (staggered sibling rails)', () => {
+  // dad marries mom (u1 -> c1) and mom2 (u2 -> c2). dad anchors both unions.
+  function twoPartners() {
+    const nodes = [
+      char('dad'), char('mom'), char('mom2'),
+      union('u1'), union('u2'),
+      char('c1'), char('c2'),
+    ];
+    const edges = [
+      partner('dad', 'u1'), partner('mom', 'u1'), child('u1', 'c1'),
+      partner('dad', 'u2'), partner('mom2', 'u2'), child('u2', 'c2'),
+    ];
+    return { nodes, edges };
+  }
+
+  it('assigns distinct levels to a parent with two child-bearing unions', () => {
+    const { nodes, edges } = twoPartners();
+    const { railLevels } = layoutGenealogy(nodes, edges);
+    expect(railLevels['u1']).toBe(0);
+    expect(railLevels['u2']).toBe(1);
+  });
+
+  it('leaves an ordinary single-partnership couple unstaggered', () => {
+    const { nodes, edges } = nuclear(2);
+    const { railLevels } = layoutGenealogy(nodes, edges);
+    expect(railLevels['u1'] ?? 0).toBe(0);
+  });
+
+  it('clamps at MAX_RAIL_LEVEL for a very high partner count', () => {
+    const nodes: { id: string; type: string }[] = [char('dad')];
+    const edges: { source: string; target: string; data: { type: string } }[] = [];
+    for (let i = 1; i <= 10; i++) {
+      nodes.push(char(`m${i}`), union(`u${i}`), char(`k${i}`));
+      edges.push(partner('dad', `u${i}`), partner(`m${i}`, `u${i}`), child(`u${i}`, `k${i}`));
+    }
+    const { railLevels } = layoutGenealogy(nodes, edges);
+    const levels = Object.values(railLevels);
+    const max = Math.max(...levels);
+    // MAX_RAIL_LEVEL = floor((ROW_HEIGHT*0.6 - RAIL_OFFSET) / RAIL_STEP) = floor((120-24)/16) = 6
+    expect(max).toBe(6);
+    expect(railLevels['u10']).toBe(6);
+  });
+});
