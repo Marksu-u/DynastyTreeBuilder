@@ -379,7 +379,7 @@ describe('assignX', () => {
     const g = buildFamilyGraph(fix.nodes, fix.edges);
     const r = assignGenerations(g);
     const ordered = orderLayers(buildOrderingUnits(g.characterIds, g, r), g);
-    return { g, r, x: assignX(ordered, g, r) };
+    return { g, r, x: assignX(ordered, g) };
   };
 
   it('centers a child under its parents’ union midpoint', () => {

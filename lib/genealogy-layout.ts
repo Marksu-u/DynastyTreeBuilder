@@ -269,7 +269,6 @@ export function orderLayers(
 export function assignX(
   ordered: Map<number, Unit[]>,
   graph: FamilyGraph,
-  rank: Map<string, number>, // eslint-disable-line @typescript-eslint/no-unused-vars -- kept for call-site symmetry with buildOrderingUnits/orderLayers; each Unit already carries its own .rank
 ): Map<string, number> {
   const rankSet = [...ordered.keys()].sort((a, b) => a - b);
   const unitOf = new Map<string, Unit>();
