@@ -7,6 +7,8 @@ import { signInWithGoogle } from "@/app/actions/auth";
 const ERROR_MESSAGES: Record<string, string> = {
   auth_callback_failed:
     "We couldn't complete your sign-in. Please try again.",
+  sync_failed:
+    "You're signed in, but we couldn't load your account. Please try again shortly.",
 };
 
 function LoginContent() {
