@@ -23,6 +23,8 @@ import { CatalogProvider } from '@/components/canvas/CatalogProvider';
 import { CanvasContext } from '@/components/canvas/CanvasContext';
 import { CanvasEmptyState } from '@/components/canvas/CanvasEmptyState';
 import { useGenealogyLayout } from '@/components/canvas/useGenealogyLayout';
+import { HighlightContext } from '@/components/canvas/HighlightContext';
+import { useDescendantHighlight } from '@/components/canvas/useDescendantHighlight';
 import { partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
 import { parseImportFile, buildCanvasFromExport, deriveExportRelationships } from '@/lib/import-canvas';
 import type { CharacterData } from '@/types/canvas';
@@ -56,6 +58,8 @@ function TreeCanvasInner() {
   const { fitView } = useReactFlow();
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
+
+  const highlight = useDescendantHighlight(nodes, edges);
 
   const characterNodes = useMemo(
     () => nodes.filter((n): n is CharacterNodeType => n.type === 'character'),
@@ -185,11 +189,16 @@ function TreeCanvasInner() {
     <CanvasContext.Provider value={{ setEditingCharacterId, openAddRelative }}>
       <div className="flex h-full w-full">
         <div ref={containerRef} className="relative flex-1 min-w-0 h-full">
+          <HighlightContext.Provider
+            value={{ activeCharIds: highlight.activeCharIds, activeEdgeIds: highlight.activeEdgeIds }}
+          >
           <ReactFlow
             nodes={laidOutNodes}
             edges={edges}
             onNodesChange={onNodesChange as (changes: import('@xyflow/react').NodeChange<AnyCanvasNode>[]) => void}
             onEdgesChange={onEdgesChange}
+            onNodeMouseEnter={highlight.onNodeMouseEnter}
+            onNodeMouseLeave={highlight.onNodeMouseLeave}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             colorMode="dark"
@@ -207,6 +216,7 @@ function TreeCanvasInner() {
             <Controls showInteractive={false} className="!bottom-4 !left-auto !right-4 !top-auto" />
             <GenerationBands rows={rows} nodes={laidOutNodes} houseName="Your Dynasty" />
           </ReactFlow>
+          </HighlightContext.Provider>
 
           <input
             ref={fileInputRef}

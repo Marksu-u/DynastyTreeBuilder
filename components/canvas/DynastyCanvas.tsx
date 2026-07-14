@@ -35,6 +35,8 @@ import { UnionNode } from './UnionNode';
 import type { AnyCanvasNode } from '@/store/canvas';
 import { migrateCanvas } from '@/lib/migrate-canvas';
 import { useGenealogyLayout } from './useGenealogyLayout';
+import { HighlightContext } from './HighlightContext';
+import { useDescendantHighlight } from './useDescendantHighlight';
 import { computeAddRelative, computeRemoveRelative, partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
 import { toPng } from "html-to-image";
 import { triggerJsonDownload } from "@/lib/export";
@@ -75,6 +77,8 @@ export function DynastyCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
+
+  const highlight = useDescendantHighlight(nodes, edges);
 
   const handleToggleSidebar = useCallback((panel: SidebarPanel) => {
     setSidebar((current) => (current === panel ? null : panel));
@@ -266,11 +270,16 @@ export function DynastyCanvas({
     <CanvasContext.Provider value={{ setEditingCharacterId, openAddRelative }}>
       <div className="flex h-full w-full">
       <div ref={containerRef} className="relative flex-1 min-w-0 h-full">
+        <HighlightContext.Provider
+          value={{ activeCharIds: highlight.activeCharIds, activeEdgeIds: highlight.activeEdgeIds }}
+        >
         <ReactFlow
           nodes={laidOutNodes}
           edges={edges}
           onNodesChange={onNodesChange as (changes: NodeChange<AnyCanvasNode>[]) => void}
           onEdgesChange={onEdgesChange}
+          onNodeMouseEnter={highlight.onNodeMouseEnter}
+          onNodeMouseLeave={highlight.onNodeMouseLeave}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           colorMode="dark"
@@ -296,6 +305,7 @@ export function DynastyCanvas({
           />
           <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} />
         </ReactFlow>
+        </HighlightContext.Provider>
 
         <input
           ref={fileInputRef}
