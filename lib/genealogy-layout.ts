@@ -257,6 +257,88 @@ export function orderLayers(
   return best;
 }
 
+/**
+ * Priority x-relaxation: turns the ordered layers into actual x-coordinates.
+ * Units are rigid blocks (fixed internal CARD_W+PARTNER_GAP member offsets);
+ * each of 8 iterations pulls every unit's center toward the median x of its
+ * parent union-points (above) and child-group centers (below), alternating
+ * sweep direction, then a two-pass separation enforces layer order and
+ * non-overlap (GROUP_GAP minimum gap between unit edges). Deterministic and
+ * bounded — no convergence check needed.
+ */
+export function assignX(
+  ordered: Map<number, Unit[]>,
+  graph: FamilyGraph,
+  rank: Map<string, number>, // eslint-disable-line @typescript-eslint/no-unused-vars -- kept for call-site symmetry with buildOrderingUnits/orderLayers; each Unit already carries its own .rank
+): Map<string, number> {
+  const rankSet = [...ordered.keys()].sort((a, b) => a - b);
+  const unitOf = new Map<string, Unit>();
+  for (const layer of ordered.values()) for (const u of layer) {
+    for (const m of u.members) unitOf.set(m, u);
+  }
+
+  const center = new Map<string, number>();
+  for (const r of rankSet) {
+    let x = 0;
+    for (const u of ordered.get(r)!) { center.set(u.key, x + u.width / 2); x += u.width + GROUP_GAP; }
+  }
+
+  const memberLeftX = (m: string): number => {
+    const u = unitOf.get(m)!;
+    const i = u.members.indexOf(m);
+    return center.get(u.key)! - u.width / 2 + i * (CARD_W + PARTNER_GAP);
+  };
+  const unionX = (un: Union): number => {
+    const ps = un.partners.filter(p => unitOf.has(p));
+    if (ps.length >= 2) return (memberLeftX(ps[0]) + memberLeftX(ps[1])) / 2 + CARD_W / 2;
+    if (ps.length === 1) return memberLeftX(ps[0]) + CARD_W / 2;
+    return 0;
+  };
+
+  const separate = (r: number): void => {
+    const layer = ordered.get(r)!;
+    for (let i = 1; i < layer.length; i++) {
+      const min = center.get(layer[i - 1].key)! + layer[i - 1].width / 2 + GROUP_GAP + layer[i].width / 2;
+      if (center.get(layer[i].key)! < min) center.set(layer[i].key, min);
+    }
+    for (let i = layer.length - 2; i >= 0; i--) {
+      const max = center.get(layer[i + 1].key)! - layer[i + 1].width / 2 - GROUP_GAP - layer[i].width / 2;
+      const leftMin = i > 0
+        ? center.get(layer[i - 1].key)! + layer[i - 1].width / 2 + GROUP_GAP + layer[i].width / 2
+        : -Infinity;
+      if (center.get(layer[i].key)! > max) center.set(layer[i].key, Math.max(max, leftMin));
+    }
+  };
+
+  for (let it = 0; it < 8; it++) {
+    const down = it % 2 === 0;
+    const order = down ? rankSet : [...rankSet].reverse();
+    for (const r of order) {
+      for (const u of ordered.get(r)!) {
+        const targets: number[] = [];
+        for (const m of u.members) {
+          for (const pu of graph.parentUnions.get(m) ?? []) targets.push(unionX(pu));
+          for (const cu of graph.partnerUnions.get(m) ?? []) {
+            const kids = cu.children.filter(c => unitOf.has(c));
+            if (kids.length) {
+              const cx = kids.reduce((a, c) => a + memberLeftX(c) + CARD_W / 2, 0) / kids.length;
+              targets.push(cx);
+            }
+          }
+        }
+        if (targets.length) center.set(u.key, median(targets));
+      }
+      separate(r);
+    }
+  }
+
+  const xs = new Map<string, number>();
+  for (const layer of ordered.values()) for (const u of layer) {
+    for (const m of u.members) xs.set(m, memberLeftX(m));
+  }
+  return xs;
+}
+
 export function buildFamilyGraph(nodes: LayoutNodeIn[], edges: LayoutEdgeIn[]): FamilyGraph {
   const characterIds = nodes.filter(n => n.type !== 'union').map(n => n.id);
   const charSet = new Set(characterIds);

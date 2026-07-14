@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildFamilyGraph, assignGenerations, layoutGenealogy, buildOrderingUnits, orderLayers,
+  buildFamilyGraph, assignGenerations, layoutGenealogy, buildOrderingUnits, orderLayers, assignX,
   CARD_W, CARD_H, PARTNER_GAP, ROW_HEIGHT, CLUSTER_GAP,
 } from './genealogy-layout';
 
@@ -371,5 +371,43 @@ describe('orderLayers', () => {
     const ordered = orderLayers(units, g);
     const keys = ordered.get(0)!.map(u => u.key);
     expect(keys).toContain('unit:x1');
+  });
+});
+
+describe('assignX', () => {
+  const run = (fix: { nodes: any[]; edges: any[] }) => {
+    const g = buildFamilyGraph(fix.nodes, fix.edges);
+    const r = assignGenerations(g);
+    const ordered = orderLayers(buildOrderingUnits(g.characterIds, g, r), g);
+    return { g, r, x: assignX(ordered, g, r) };
+  };
+
+  it('centers a child under its parents’ union midpoint', () => {
+    const { x } = run(nuclear(1));
+    const unionMid = ((x.get('dad')! + x.get('mom')!) / 2) + CARD_W / 2;
+    const childMid = x.get('c1')! + CARD_W / 2;
+    expect(Math.abs(childMid - unionMid)).toBeLessThanOrEqual(1);
+  });
+
+  it('leaves no two same-rank cards overlapping', () => {
+    const { g, r, x } = run(nuclear(4));
+    const byRank = new Map<number, string[]>();
+    for (const id of g.characterIds) {
+      const k = r.get(id)!;
+      if (!byRank.has(k)) byRank.set(k, []);
+      byRank.get(k)!.push(id);
+    }
+    for (const ids of byRank.values()) {
+      for (const a of ids) for (const b of ids) {
+        if (a >= b) continue;
+        expect(Math.abs(x.get(a)! - x.get(b)!)).toBeGreaterThanOrEqual(CARD_W + 8);
+      }
+    }
+  });
+
+  it('is deterministic', () => {
+    const { x: a } = run(nuclear(3));
+    const { x: b } = run(nuclear(3));
+    expect([...a.entries()]).toEqual([...b.entries()]);
   });
 });
