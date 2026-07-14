@@ -209,6 +209,42 @@ describe('layoutGenealogy — clusters, rows, determinism', () => {
   });
 });
 
+describe('below-row marriage rails (3+ spouses)', () => {
+  function threeSpouses() {
+    const nodes = [char('dad'), char('m1'), char('m2'), char('m3'),
+      union('u1'), union('u2'), union('u3')];
+    const edges = [
+      partner('dad', 'u1'), partner('m1', 'u1'),
+      partner('dad', 'u2'), partner('m2', 'u2'),
+      partner('dad', 'u3'), partner('m3', 'u3'),
+    ];
+    return { nodes, edges };
+  }
+
+  it('drops a 3-marriage anchor’s union points below the card row, staggered', () => {
+    const { nodes, edges } = threeSpouses();
+    const { positions } = layoutGenealogy(nodes, edges);
+    const rowY = positions.dad.y;
+    const ys = ['u1', 'u2', 'u3'].map(u => positions[u].y);
+    for (const y of ys) expect(y).toBeGreaterThan(rowY + CARD_H); // below the cards
+    expect(new Set(ys).size).toBe(3);                              // three distinct heights
+  });
+
+  it('keeps a 2-marriage anchor’s union points at card-mid (unchanged)', () => {
+    const nodes = [char('dad'), char('m1'), char('m2'), union('u1'), union('u2')];
+    const edges = [partner('dad', 'u1'), partner('m1', 'u1'), partner('dad', 'u2'), partner('m2', 'u2')];
+    const { positions } = layoutGenealogy(nodes, edges);
+    expect(positions.u1.y).toBe(positions.dad.y + CARD_H / 2);
+    expect(positions.u2.y).toBe(positions.dad.y + CARD_H / 2);
+  });
+
+  it('keeps an ordinary couple’s union point at card-mid', () => {
+    const { nodes, edges } = nuclear(2);
+    const { positions } = layoutGenealogy(nodes, edges);
+    expect(positions.u1.y).toBe(positions.dad.y + CARD_H / 2);
+  });
+});
+
 describe('railLevels (staggered sibling rails)', () => {
   // dad marries mom (u1 -> c1) and mom2 (u2 -> c2). dad anchors both unions.
   function twoPartners() {

@@ -50,13 +50,20 @@ export const RelationshipEdge = memo(({
     // constant — NOT measured height — so tall cards and solo unions
     // (placed at s.y + CARD_H) can never flip into the marriage-line branch.
     const marriageY = s.y + CARD_H / 2;
+    const cx = s.x + w / 2;
     if (Math.abs(t.y - marriageY) < 1) {
       // partnered union: horizontal marriage line from the nearest card edge
-      const fromX = t.x < s.x + w / 2 ? s.x : s.x + w;
+      const fromX = t.x < cx ? s.x : s.x + w;
       path = `M ${fromX} ${t.y} L ${t.x} ${t.y}`;
+    } else if (t.y > s.y + CARD_H + 0.5) {
+      // 3+-spouse anchor: union point sits in the gap below the row. Drop from
+      // the card's bottom edge, then run across to the union point — so the
+      // connector never passes behind an intervening card and each marriage
+      // rail sits at its own height.
+      path = `M ${cx} ${s.y + h} L ${cx} ${t.y} L ${t.x} ${t.y}`;
     } else {
       // solo-parent union at the card's layout bottom — stub hides behind the card
-      path = `M ${s.x + w / 2} ${s.y + h} L ${t.x} ${t.y}`;
+      path = `M ${cx} ${s.y + h} L ${t.x} ${t.y}`;
     }
   } else {
     // source = union point, target = child card

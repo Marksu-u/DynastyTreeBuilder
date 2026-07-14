@@ -11,6 +11,8 @@ export const GROUP_GAP = 64;     // gap between child groups of different unions
 export const CLUSTER_GAP = 160;  // gap between disconnected family clusters
 export const ROW_HEIGHT = 200;   // vertical pitch per generation
 export const RAIL_OFFSET = 24;   // sibling rail sits this far above the child row (edge renderer)
+export const MARRIAGE_OFFSET = 20; // first below-row marriage rail sits this far under the card bottom
+export const MARRIAGE_STEP = 16;   // vertical gap between a 3+-spouse anchor's stacked marriage rails
 export const RAIL_STEP = 16;   // vertical gap between a parent's stacked sibling rails
 
 export interface LayoutNodeIn { id: string; type?: string }
@@ -272,16 +274,38 @@ function layoutCluster(
     }
   }
 
-  // unions: midpoint of the two partner card centers at marriage-line height;
-  // solo-parent unions sit directly under the card (vertical descent)
-  // NOTE: RelationshipEdge.tsx keys its marriage-line branch off these exact
+  // Below-row marriage rails: an anchor with 3+ marriages (2-partner unions)
+  // can't keep every spouse adjacent on the row, so a straight at-card-height
+  // marriage line would have to run behind an intervening card (and all the
+  // lines pile up at one height). Drop each such union's point into the gap
+  // below the row at its own staggered height instead. Anchors with <=2
+  // marriages keep the classic card-mid union point — spouse/anchor/spouse
+  // stays adjacent, so those lines are already clean.
+  const MAX_MARRIAGE_LEVEL = Math.max(
+    0,
+    Math.floor(((ROW_HEIGHT - CARD_H) * 0.45 - MARRIAGE_OFFSET) / MARRIAGE_STEP),
+  );
+  const marriageLevels = new Map<string, number>();
+  for (const [, us] of anchoredUnions) {
+    const marriages = us.filter(u => u.partners.filter(p => inCluster.has(p)).length >= 2);
+    if (marriages.length < 3) continue;
+    marriages.forEach((u, i) => marriageLevels.set(u.id, Math.min(i, MAX_MARRIAGE_LEVEL)));
+  }
+
+  // unions: midpoint of the two partner card centers. A normal couple sits at
+  // marriage-line height (card-mid); a staggered marriage drops below the row;
+  // a solo-parent union sits directly under the card (vertical descent).
+  // NOTE: RelationshipEdge.tsx keys its PARTNER branch off these exact
   // CARD_H-based anchors — keep them in lockstep.
   for (const u of clusterUnions) {
     const pts = u.partners.filter(p => positions.has(p)).map(p => positions.get(p)!);
     if (pts.length >= 2) {
+      const ml = marriageLevels.get(u.id);
       positions.set(u.id, {
         x: (pts[0].x + pts[1].x) / 2 + CARD_W / 2,
-        y: pts[0].y + CARD_H / 2,
+        y: ml === undefined
+          ? pts[0].y + CARD_H / 2
+          : pts[0].y + CARD_H + MARRIAGE_OFFSET + ml * MARRIAGE_STEP,
       });
     } else if (pts.length === 1) {
       positions.set(u.id, { x: pts[0].x + CARD_W / 2, y: pts[0].y + CARD_H });
