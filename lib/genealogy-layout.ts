@@ -182,9 +182,23 @@ export function orderLayers(
   for (const r of rankSet) byRank.set(r, []);
   for (const u of units) byRank.get(u.rank)!.push(u); // initial order = units[] order
 
-  const parentsOf = new Map<string, Unit[]>();
-  const childrenOf = new Map<string, Unit[]>();
+  // Adjacency carries a fractional within-unit offset: a child of a merged
+  // multi-marriage unit hangs off ONE union point along the parent strip, so
+  // its median key is parentIndex + (union anchor position within the strip).
+  // This orders same-parent-unit broods by their marriage point instead of
+  // leaving them in insertion order (which crossed the offspring rails).
+  const parentsOf = new Map<string, { key: string; frac: number }[]>();
+  const childrenOf = new Map<string, { key: string; frac: number }[]>();
   for (const u of units) { parentsOf.set(u.key, []); childrenOf.set(u.key, []); }
+  const links: { pu: Unit; pFrac: number; cu: Unit; cFrac: number }[] = [];
+  const unionFrac = (un: Union, pu: Unit): number => {
+    // Mirror unionX: the point sits at the midpoint of the first two placed
+    // partners' cards (or the single partner's card).
+    const idxs = un.partners.map(p => pu.members.indexOf(p)).filter(i => i >= 0).slice(0, 2);
+    if (idxs.length === 0) return 0.5;
+    const mid = idxs.reduce((a, b) => a + b, 0) / idxs.length;
+    return (mid + 0.5) / pu.members.length;
+  };
   for (const un of graph.unions) {
     // Both partners of a merged multi-partner union resolve to the SAME unit;
     // dedupe by key (first-seen order preserved for determinism) so each
@@ -198,8 +212,11 @@ export function orderLayers(
       if (!cu) continue;
       for (const pu of pUnits) {
         if (pu.rank + 1 === cu.rank) {
-          childrenOf.get(pu.key)!.push(cu);
-          parentsOf.get(cu.key)!.push(pu);
+          const pFrac = unionFrac(un, pu);
+          const cFrac = (cu.members.indexOf(c) + 0.5) / cu.members.length;
+          childrenOf.get(pu.key)!.push({ key: cu.key, frac: cFrac });
+          parentsOf.get(cu.key)!.push({ key: pu.key, frac: pFrac });
+          links.push({ pu, pFrac, cu, cFrac });
         }
       }
     }
@@ -208,13 +225,15 @@ export function orderLayers(
   const crossings = (): number => {
     let total = 0;
     for (let k = 0; k + 1 < rankSet.length; k++) {
-      const upper = byRank.get(rankSet[k])!;
-      const lower = byRank.get(rankSet[k + 1])!;
-      const idxU = new Map(upper.map((u, i) => [u.key, i]));
-      const idxL = new Map(lower.map((u, i) => [u.key, i]));
+      const idxU = new Map(byRank.get(rankSet[k])!.map((u, i) => [u.key, i]));
+      const idxL = new Map(byRank.get(rankSet[k + 1])!.map((u, i) => [u.key, i]));
       const edges: [number, number][] = [];
-      for (const pu of upper) for (const cu of childrenOf.get(pu.key)!) {
-        if (idxL.has(cu.key)) edges.push([idxU.get(pu.key)!, idxL.get(cu.key)!]);
+      for (const l of links) {
+        const iu = idxU.get(l.pu.key);
+        const il = idxL.get(l.cu.key);
+        // Fractional endpoints so crossings BETWEEN a unit's own union points
+        // (e.g. two broods of one multi-marriage strip) are counted too.
+        if (iu !== undefined && il !== undefined) edges.push([iu + l.pFrac, il + l.cFrac]);
       }
       for (let a = 0; a < edges.length; a++) for (let b = a + 1; b < edges.length; b++) {
         if ((edges[a][0] - edges[b][0]) * (edges[a][1] - edges[b][1]) < 0) total++;
@@ -238,7 +257,9 @@ export function orderLayers(
       const layer = byRank.get(r)!;
       const med = new Map<string, number>();
       for (const u of layer) {
-        const idxs = adj.get(u.key)!.map(n => refIdx.get(n.key) ?? -1).filter(i => i >= 0);
+        const idxs = adj.get(u.key)!
+          .map(n => { const i = refIdx.get(n.key); return i === undefined ? -1 : i + n.frac; })
+          .filter(i => i >= 0);
         med.set(u.key, median(idxs));
       }
       const origIdx = new Map(layer.map((u, i) => [u.key, i]));
@@ -258,20 +279,28 @@ export function orderLayers(
 }
 
 /**
- * Priority x-relaxation: turns the ordered layers into actual x-coordinates.
- * Units are rigid blocks (fixed internal CARD_W+PARTNER_GAP member offsets);
- * each of 8 iterations pulls every unit's center toward the median x of its
- * parent union-points (above) and child-group centers (below), alternating
- * sweep direction, then a single left→right separation pass enforces layer
- * order and non-overlap (GROUP_GAP minimum gap between unit edges). That pass
- * only ever shoves units rightward, so it introduces a slight rightward bias;
- * this is harmless because absolute x is normalized downstream (layoutGenealogy
- * subtracts each cluster's minX). Deterministic and bounded — no convergence
- * check needed.
+ * Priority x-assignment (Sugiyama priority method): turns the ordered layers
+ * into actual x-coordinates. Units are rigid blocks (fixed internal
+ * CARD_W+PARTNER_GAP member offsets). Eight alternating sweeps: a down sweep
+ * aligns each unit under the median of its parents' union points; an up sweep
+ * centers each unit over the median of its child-group centers. Because a
+ * sweep visits layers in propagation order, alignment cascades through a whole
+ * single-child chain in one pass, and the final (up) sweep leaves every
+ * ancestor centered over its descendants — vertical bloodlines.
  *
- * Each distinct union contributes at most one target per unit, regardless of how
- * many of the unit's own members are party to it (deduped by union id), so a
- * multi-partner unit doesn't get outsized pull from its own children/parents.
+ * A unit moves toward its target by pushing lower-priority neighbours along
+ * the row (in either direction, min gap GROUP_GAP preserved), clamping against
+ * the first neighbour of equal/higher priority; priority = number of distinct
+ * unions pulling the unit in the sweep direction, so e.g. a childless heir
+ * packs up against their child-bearing sibling instead of dangling across the
+ * canvas. Layer order and non-overlap hold after every placement — there is no
+ * global shove pass to bias the layout, and the iteration has a genuine fixed
+ * point (the old always-rightward separation pass diverged). Deterministic:
+ * fixed sweep count, ties broken by layer index.
+ *
+ * Each distinct union contributes at most one target per unit, regardless of
+ * how many of the unit's own members are party to it (deduped by union id), so
+ * a multi-partner unit doesn't get outsized pull from its own children/parents.
  */
 export function assignX(
   ordered: Map<number, Unit[]>,
@@ -303,14 +332,65 @@ export function assignX(
     return null;
   };
 
-  // Single left→right pass: push each unit right of its left neighbour by the
-  // minimum gap. After this pass every unit already clears its left neighbour,
-  // so a right→left correction would never fire — it is omitted deliberately.
-  const separate = (r: number): void => {
-    const layer = ordered.get(r)!;
-    for (let i = 1; i < layer.length; i++) {
-      const min = center.get(layer[i - 1].key)! + layer[i - 1].width / 2 + GROUP_GAP + layer[i].width / 2;
-      if (center.get(layer[i].key)! < min) center.set(layer[i].key, min);
+  /** Median of this unit's targets in one direction (down = parents' union
+   *  points above, up = own unions' child-group centers below), plus the
+   *  target count (the unit's priority). Deduped by union id. */
+  const desired = (u: Unit, down: boolean): { x: number; n: number } | null => {
+    const targets: number[] = [];
+    const seen = new Set<string>();
+    for (const m of u.members) {
+      for (const un of (down ? graph.parentUnions : graph.partnerUnions).get(m) ?? []) {
+        if (seen.has(un.id)) continue;
+        seen.add(un.id);
+        if (down) {
+          const ux = unionX(un);
+          if (ux !== null) targets.push(ux);
+        } else {
+          const kids = un.children.filter(c => unitOf.has(c));
+          if (kids.length) {
+            targets.push(kids.reduce((a, c) => a + memberLeftX(c) + CARD_W / 2, 0) / kids.length);
+          }
+        }
+      }
+    }
+    return targets.length ? { x: median(targets), n: targets.length } : null;
+  };
+
+  const minGap = (a: Unit, b: Unit): number => a.width / 2 + GROUP_GAP + b.width / 2;
+
+  /** Move layer[i] toward `target`, shoving strictly-lower-priority neighbours
+   *  along (min gap preserved) and clamping against the first equal/higher-
+   *  priority one. Layer order and non-overlap hold before and after. */
+  const place = (layer: Unit[], prio: number[], i: number, target: number): void => {
+    const cur = center.get(layer[i].key)!;
+    if (target === cur) return;
+    const dir = target > cur ? 1 : -1;
+    // Walk in the movement direction to find how far layer[i] may go: stop at
+    // the first neighbour that no longer needs pushing, or clamp so that a
+    // packed run ends flush against an equal/higher-priority blocker.
+    let limit = target;
+    let need = target;
+    for (let j = i + dir; j >= 0 && j < layer.length; j += dir) {
+      need += dir * minGap(layer[j - dir], layer[j]);
+      const cj = center.get(layer[j].key)!;
+      if (dir * cj >= dir * need) break; // enough room from here on
+      if (prio[j] >= prio[i]) {
+        let cap = cj;
+        for (let k = j - dir; dir * k >= dir * i; k -= dir) cap -= dir * minGap(layer[k], layer[k + dir]);
+        limit = cap;
+        break;
+      }
+    }
+    const nx = dir > 0 ? Math.min(target, limit) : Math.max(target, limit);
+    if (dir * nx <= dir * cur) return;
+    center.set(layer[i].key, nx);
+    let c = nx;
+    for (let j = i + dir; j >= 0 && j < layer.length; j += dir) {
+      const min = c + dir * minGap(layer[j - dir], layer[j]);
+      const cj = center.get(layer[j].key)!;
+      if (dir * cj >= dir * min) break;
+      center.set(layer[j].key, min);
+      c = min;
     }
   };
 
@@ -318,30 +398,12 @@ export function assignX(
     const down = it % 2 === 0;
     const order = down ? rankSet : [...rankSet].reverse();
     for (const r of order) {
-      for (const u of ordered.get(r)!) {
-        const targets: number[] = [];
-        const seenParentUnions = new Set<string>();
-        const seenPartnerUnions = new Set<string>();
-        for (const m of u.members) {
-          for (const pu of graph.parentUnions.get(m) ?? []) {
-            if (seenParentUnions.has(pu.id)) continue;
-            seenParentUnions.add(pu.id);
-            const ux = unionX(pu);
-            if (ux !== null) targets.push(ux);
-          }
-          for (const cu of graph.partnerUnions.get(m) ?? []) {
-            if (seenPartnerUnions.has(cu.id)) continue;
-            seenPartnerUnions.add(cu.id);
-            const kids = cu.children.filter(c => unitOf.has(c));
-            if (kids.length) {
-              const cx = kids.reduce((a, c) => a + memberLeftX(c) + CARD_W / 2, 0) / kids.length;
-              targets.push(cx);
-            }
-          }
-        }
-        if (targets.length) center.set(u.key, median(targets));
-      }
-      separate(r);
+      const layer = ordered.get(r)!;
+      const des = layer.map(u => desired(u, down));
+      const prio = des.map(d => (d ? d.n : -1));
+      const idx = layer.map((_, i) => i).filter(i => des[i] !== null);
+      idx.sort((a, b) => prio[b] - prio[a] || a - b);
+      for (const i of idx) place(layer, prio, i, des[i]!.x);
     }
   }
 

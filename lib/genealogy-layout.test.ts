@@ -363,6 +363,24 @@ describe('orderLayers', () => {
     expect(row1).toEqual(['cL', 'cR']);
   });
 
+  it('orders the broods of a multi-marriage unit by their union’s strip position', () => {
+    // dad's strip is [w2, dad, w1, w3]; union points along it are m2 (dad+w2),
+    // then m1 (dad+w1), then m3 (dad+w3). Children arrive in insertion order
+    // a (m1), b (m2), c (m3) — the layer must reorder them to [b, a, c] so each
+    // brood hangs under its own marriage point instead of crossing rails.
+    const nodes = [char('dad'), char('w1'), char('w2'), char('w3'),
+      union('m1'), union('m2'), union('m3'),
+      char('a'), char('b'), char('c')];
+    const edges = [
+      partner('dad', 'm1'), partner('w1', 'm1'), child('m1', 'a'),
+      partner('dad', 'm2'), partner('w2', 'm2'), child('m2', 'b'),
+      partner('dad', 'm3'), partner('w3', 'm3'), child('m3', 'c'),
+    ];
+    const { g, r, units } = prep({ nodes, edges });
+    const ordered = orderLayers(units, g);
+    expect(ordered.get(1)!.map(u => u.members[0])).toEqual(['b', 'a', 'c']);
+  });
+
   it('keeps a no-parent unit in its original slot', () => {
     const fix = nuclear(1);
     fix.nodes.push(char('x1'), char('x2'), union('ux'));
@@ -426,10 +444,70 @@ describe('assignX', () => {
       partner('kp1', 'u_k'), partner('s2', 'u_k'), child('u_k', 'g1'), child('u_k', 'g2'),
     ];
     const P = layoutGenealogy(nodes, edges).positions;
-    // kp1 should sit within a card-width of its birth-parents' marriage point.
-    // Pre-fix double-counting puts it 236px away (> CARD_W); the fix brings it to ~59px.
+    // The birth union must stay centered over its two children's cards; kp1's
+    // own descendants (deduped per union) must not pull it past that fan —
+    // i.e. kp1 sits no further from u_p than half the sibling span.
     const kp1Center = P['kp1'].x + CARD_W / 2;
-    expect(Math.abs(kp1Center - P['u_p'].x)).toBeLessThan(CARD_W); // pre-fix: 236, post-fix: 59
+    const kp2Center = P['kp2'].x + CARD_W / 2;
+    expect(Math.abs(P['u_p'].x - (kp1Center + kp2Center) / 2)).toBeLessThanOrEqual(1);
+    expect(Math.abs(kp1Center - P['u_p'].x))
+      .toBeLessThanOrEqual(Math.abs(kp2Center - kp1Center) / 2 + 1);
+  });
+});
+
+describe('layoutGenealogy — dynasty verticality', () => {
+  // Carqia-shaped royal spine: root couple, then a chain of solo-parent single
+  // children (a→b→c→d), then d's two children: a childless heir and a brother
+  // with three wives and nine grandchildren dragging the bottom row wide.
+  function royalSpine() {
+    const nodes = [
+      char('r1'), char('r2'), union('u_r'),
+      char('a'), union('u_a'), char('b'), union('u_b'),
+      char('c'), union('u_c'), char('d'), union('u_d'),
+      char('heir'), char('bro'),
+      char('w1'), char('w2'), char('w3'),
+      union('m1'), union('m2'), union('m3'),
+    ];
+    const edges = [
+      partner('r1', 'u_r'), partner('r2', 'u_r'), child('u_r', 'a'),
+      partner('a', 'u_a'), child('u_a', 'b'),
+      partner('b', 'u_b'), child('u_b', 'c'),
+      partner('c', 'u_c'), child('u_c', 'd'),
+      partner('d', 'u_d'), child('u_d', 'heir'), child('u_d', 'bro'),
+      partner('bro', 'm1'), partner('w1', 'm1'),
+      partner('bro', 'm2'), partner('w2', 'm2'),
+      partner('bro', 'm3'), partner('w3', 'm3'),
+    ];
+    for (let i = 1; i <= 3; i++) {
+      for (let j = 1; j <= 3; j++) {
+        nodes.push(char(`g${i}${j}`));
+        edges.push(child(`m${i}`, `g${i}${j}`));
+      }
+    }
+    return { nodes, edges };
+  }
+
+  it('keeps a solo-parent single-child chain vertically aligned (no staircase)', () => {
+    const p = layoutGenealogy(royalSpine().nodes, royalSpine().edges).positions;
+    for (const [par, kid] of [['a', 'b'], ['b', 'c'], ['c', 'd']] as const) {
+      expect(Math.abs(p[kid].x - p[par].x), `${par} → ${kid}`).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('centers a chain parent over its children group', () => {
+    const p = layoutGenealogy(royalSpine().nodes, royalSpine().edges).positions;
+    const kidsAvg = (p.heir.x + p.bro.x) / 2;
+    expect(Math.abs(p.d.x - kidsAvg)).toBeLessThanOrEqual(1);
+  });
+
+  it('packs a childless sibling next to its sibling unit (no canvas-length offspring rail)', () => {
+    const p = layoutGenealogy(royalSpine().nodes, royalSpine().edges).positions;
+    // heir sits left of bro's marriage strip; when packed adjacent the
+    // heir→bro card-center distance is CARD_W/2 + GROUP_GAP + (CARD_W +
+    // PARTNER_GAP) + CARD_W/2 (bro is 2nd in his [w2,bro,w1,w3] strip).
+    const packed = CARD_W / 2 + 64 /* GROUP_GAP */ + (CARD_W + PARTNER_GAP) + CARD_W / 2;
+    expect(p.bro.x - p.heir.x).toBeGreaterThan(0);
+    expect(p.bro.x - p.heir.x).toBeLessThanOrEqual(packed + 1);
   });
 });
 
