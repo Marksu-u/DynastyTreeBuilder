@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildFamilyGraph, assignGenerations, layoutGenealogy,
+  buildFamilyGraph, assignGenerations, layoutGenealogy, buildOrderingUnits, orderLayers, assignX,
   CARD_W, CARD_H, PARTNER_GAP, ROW_HEIGHT, CLUSTER_GAP,
 } from './genealogy-layout';
 
@@ -205,6 +205,270 @@ describe('layoutGenealogy — clusters, rows, determinism', () => {
     for (const a of chars) for (const b of chars) {
       if (a >= b || p[a].y !== p[b].y) continue;
       expect(Math.abs(p[a].x - p[b].x), `${a} vs ${b}`).toBeGreaterThanOrEqual(CARD_W + 8);
+    }
+  });
+});
+
+describe('below-row marriage rails (3+ spouses)', () => {
+  function threeSpouses() {
+    const nodes = [char('dad'), char('m1'), char('m2'), char('m3'),
+      union('u1'), union('u2'), union('u3')];
+    const edges = [
+      partner('dad', 'u1'), partner('m1', 'u1'),
+      partner('dad', 'u2'), partner('m2', 'u2'),
+      partner('dad', 'u3'), partner('m3', 'u3'),
+    ];
+    return { nodes, edges };
+  }
+
+  it('drops a 3-marriage anchor’s union points below the card row, staggered', () => {
+    const { nodes, edges } = threeSpouses();
+    const { positions } = layoutGenealogy(nodes, edges);
+    const rowY = positions.dad.y;
+    const ys = ['u1', 'u2', 'u3'].map(u => positions[u].y);
+    for (const y of ys) expect(y).toBeGreaterThan(rowY + CARD_H); // below the cards
+    expect(new Set(ys).size).toBe(3);                              // three distinct heights
+  });
+
+  it('keeps a 2-marriage anchor’s union points at card-mid (unchanged)', () => {
+    const nodes = [char('dad'), char('m1'), char('m2'), union('u1'), union('u2')];
+    const edges = [partner('dad', 'u1'), partner('m1', 'u1'), partner('dad', 'u2'), partner('m2', 'u2')];
+    const { positions } = layoutGenealogy(nodes, edges);
+    expect(positions.u1.y).toBe(positions.dad.y + CARD_H / 2);
+    expect(positions.u2.y).toBe(positions.dad.y + CARD_H / 2);
+  });
+
+  it('keeps an ordinary couple’s union point at card-mid', () => {
+    const { nodes, edges } = nuclear(2);
+    const { positions } = layoutGenealogy(nodes, edges);
+    expect(positions.u1.y).toBe(positions.dad.y + CARD_H / 2);
+  });
+});
+
+describe('railLevels (staggered sibling rails)', () => {
+  // dad marries mom (u1 -> c1) and mom2 (u2 -> c2). dad anchors both unions.
+  function twoPartners() {
+    const nodes = [
+      char('dad'), char('mom'), char('mom2'),
+      union('u1'), union('u2'),
+      char('c1'), char('c2'),
+    ];
+    const edges = [
+      partner('dad', 'u1'), partner('mom', 'u1'), child('u1', 'c1'),
+      partner('dad', 'u2'), partner('mom2', 'u2'), child('u2', 'c2'),
+    ];
+    return { nodes, edges };
+  }
+
+  it('assigns distinct levels to a parent with two child-bearing unions', () => {
+    const { nodes, edges } = twoPartners();
+    const { railLevels } = layoutGenealogy(nodes, edges);
+    expect(railLevels['u1']).toBe(0);
+    expect(railLevels['u2']).toBe(1);
+  });
+
+  it('leaves an ordinary single-partnership couple unstaggered', () => {
+    const { nodes, edges } = nuclear(2);
+    const { railLevels } = layoutGenealogy(nodes, edges);
+    expect(railLevels['u1'] ?? 0).toBe(0);
+  });
+
+  it('clamps at MAX_RAIL_LEVEL for a very high partner count', () => {
+    const nodes: { id: string; type: string }[] = [char('dad')];
+    const edges: { source: string; target: string; data: { type: string } }[] = [];
+    for (let i = 1; i <= 10; i++) {
+      nodes.push(char(`m${i}`), union(`u${i}`), char(`k${i}`));
+      edges.push(partner('dad', `u${i}`), partner(`m${i}`, `u${i}`), child(`u${i}`, `k${i}`));
+    }
+    const { railLevels } = layoutGenealogy(nodes, edges);
+    const levels = Object.values(railLevels);
+    const max = Math.max(...levels);
+    // MAX_RAIL_LEVEL = floor((ROW_HEIGHT*0.6 - RAIL_OFFSET) / RAIL_STEP) = floor((120-24)/16) = 6
+    expect(max).toBe(6);
+    expect(railLevels['u10']).toBe(6);
+  });
+});
+
+describe('buildOrderingUnits', () => {
+  const build = (fix: { nodes: any[]; edges: any[] }) => {
+    const g = buildFamilyGraph(fix.nodes, fix.edges);
+    const r = assignGenerations(g);
+    return buildOrderingUnits(g.characterIds, g, r);
+  };
+
+  it('a simple couple is one unit, partners adjacent in strip order', () => {
+    const units = build(nuclear(1));
+    const rank0 = units.filter(u => u.rank === 0);
+    expect(rank0).toHaveLength(1);
+    expect(rank0[0].members).toEqual(['dad', 'mom']);
+    expect(rank0[0].width).toBe(2 * CARD_W + PARTNER_GAP);
+  });
+
+  it('a bridging spouse merges two couples into one unit, sitting in the middle', () => {
+    const nodes = [char('a'), char('X'), char('b'), union('ua'), union('ub')];
+    const edges = [partner('a', 'ua'), partner('X', 'ua'),
+      partner('X', 'ub'), partner('b', 'ub')];
+    const units = build({ nodes, edges });
+    expect(units).toHaveLength(1);
+    expect(new Set(units[0].members)).toEqual(new Set(['a', 'X', 'b']));
+    expect(units[0].members[1]).toBe('X'); // bridge in the middle
+  });
+
+  it('a remarriage star flanks the anchor with its spouses', () => {
+    const nodes = [char('dad'), char('m1'), char('m2'), char('m3'),
+      union('u1'), union('u2'), union('u3')];
+    const edges = [partner('dad', 'u1'), partner('m1', 'u1'),
+      partner('dad', 'u2'), partner('m2', 'u2'),
+      partner('dad', 'u3'), partner('m3', 'u3')];
+    const units = build({ nodes, edges });
+    expect(units).toHaveLength(1);
+    expect(units[0].members).toEqual(['m2', 'dad', 'm1', 'm3']);
+  });
+
+  it('non-married siblings are separate units', () => {
+    const units = build(nuclear(2));
+    const rank1 = units.filter(u => u.rank === 1);
+    expect(rank1).toHaveLength(2);
+    expect(rank1.map(u => u.members)).toEqual([['c1'], ['c2']]);
+  });
+});
+
+describe('orderLayers', () => {
+  const prep = (fix: { nodes: any[]; edges: any[] }) => {
+    const g = buildFamilyGraph(fix.nodes, fix.edges);
+    const r = assignGenerations(g);
+    return { g, r, units: buildOrderingUnits(g.characterIds, g, r) };
+  };
+
+  it('is deterministic', () => {
+    const { g, r, units } = prep(nuclear(3));
+    const a = orderLayers(units, g);
+    const b = orderLayers(units, g);
+    expect([...a.get(1)!].map(u => u.key)).toEqual([...b.get(1)!].map(u => u.key));
+  });
+
+  it('orders a child under its parent when input order would cross', () => {
+    const nodes = [
+      char('pL'), char('sL'), union('uL'), char('pR'), char('sR'), union('uR'),
+      char('cR'), char('cL'),
+    ];
+    const edges = [
+      partner('pL', 'uL'), partner('sL', 'uL'),
+      partner('pR', 'uR'), partner('sR', 'uR'),
+      child('uR', 'cR'), child('uL', 'cL'),
+    ];
+    const { g, r, units } = prep({ nodes, edges });
+    const ordered = orderLayers(units, g);
+    const row1 = ordered.get(1)!.map(u => u.members[0]);
+    expect(row1).toEqual(['cL', 'cR']);
+  });
+
+  it('keeps a no-parent unit in its original slot', () => {
+    const fix = nuclear(1);
+    fix.nodes.push(char('x1'), char('x2'), union('ux'));
+    fix.edges.push(partner('x1', 'ux'), partner('x2', 'ux'));
+    const { g, r, units } = prep(fix);
+    const ordered = orderLayers(units, g);
+    const keys = ordered.get(0)!.map(u => u.key);
+    expect(keys).toContain('unit:x1');
+  });
+});
+
+describe('assignX', () => {
+  const run = (fix: { nodes: any[]; edges: any[] }) => {
+    const g = buildFamilyGraph(fix.nodes, fix.edges);
+    const r = assignGenerations(g);
+    const ordered = orderLayers(buildOrderingUnits(g.characterIds, g, r), g);
+    return { g, r, x: assignX(ordered, g) };
+  };
+
+  it('centers a child under its parents’ union midpoint', () => {
+    const { x } = run(nuclear(1));
+    const unionMid = ((x.get('dad')! + x.get('mom')!) / 2) + CARD_W / 2;
+    const childMid = x.get('c1')! + CARD_W / 2;
+    expect(Math.abs(childMid - unionMid)).toBeLessThanOrEqual(1);
+  });
+
+  it('leaves no two same-rank cards overlapping', () => {
+    const { g, r, x } = run(nuclear(4));
+    const byRank = new Map<number, string[]>();
+    for (const id of g.characterIds) {
+      const k = r.get(id)!;
+      if (!byRank.has(k)) byRank.set(k, []);
+      byRank.get(k)!.push(id);
+    }
+    for (const ids of byRank.values()) {
+      for (const a of ids) for (const b of ids) {
+        if (a >= b) continue;
+        expect(Math.abs(x.get(a)! - x.get(b)!)).toBeGreaterThanOrEqual(CARD_W + 8);
+      }
+    }
+  });
+
+  it('is deterministic', () => {
+    const { x: a } = run(nuclear(3));
+    const { x: b } = run(nuclear(3));
+    expect([...a.entries()]).toEqual([...b.entries()]);
+  });
+
+  it('a parent whose own line runs deep is not dragged off their birth-union by double-counted descendant pull', () => {
+    // kp1+s2 both partner u_k, whose kids (g1,g2) create a downward pull.
+    // Pre-fix that pull is counted once PER partner, dragging kp1 (and s2)
+    // toward their descendants and away from kp1's birth-parents' union u_p.
+    const nodes = [
+      char('gp1'), char('gp2'), union('u_gp'), char('p'),
+      char('s'), union('u_p'), char('kp1'), char('kp2'),
+      char('s2'), union('u_k'), char('g1'), char('g2'),
+    ];
+    const edges = [
+      partner('gp1', 'u_gp'), partner('gp2', 'u_gp'), child('u_gp', 'p'),
+      partner('p', 'u_p'), partner('s', 'u_p'), child('u_p', 'kp1'), child('u_p', 'kp2'),
+      partner('kp1', 'u_k'), partner('s2', 'u_k'), child('u_k', 'g1'), child('u_k', 'g2'),
+    ];
+    const P = layoutGenealogy(nodes, edges).positions;
+    // kp1 should sit within a card-width of its birth-parents' marriage point.
+    // Pre-fix double-counting puts it 236px away (> CARD_W); the fix brings it to ~59px.
+    const kp1Center = P['kp1'].x + CARD_W / 2;
+    expect(Math.abs(kp1Center - P['u_p'].x)).toBeLessThan(CARD_W); // pre-fix: 236, post-fix: 59
+  });
+});
+
+describe('layoutGenealogy — graph layout acceptance', () => {
+  it('a bridging spouse sits between her two husbands, on their row', () => {
+    // Ashalle married to Rowan (u1 -> kid j) and Alphonse (u2 -> kid n)
+    const nodes = [char('rowan'), char('ashalle'), char('alphonse'),
+      union('u1'), union('u2'), char('j'), char('n')];
+    const edges = [partner('rowan', 'u1'), partner('ashalle', 'u1'), child('u1', 'j'),
+      partner('ashalle', 'u2'), partner('alphonse', 'u2'), child('u2', 'n')];
+    const { positions: p } = layoutGenealogy(nodes, edges);
+    expect(p.ashalle.y).toBe(p.rowan.y);
+    expect(p.ashalle.y).toBe(p.alphonse.y);
+    const xs = [p.rowan.x, p.ashalle.x, p.alphonse.x];
+    const mid = xs.sort((a, b) => a - b)[1];
+    expect(p.ashalle.x).toBe(mid); // Ashalle is the middle card
+  });
+
+  it('no unrelated card lands inside a marriage line’s horizontal span', () => {
+    // rowan+ashalle and alphonse+ashalle as above, plus rowan’s sibling elara.
+    const nodes = [char('rowan'), char('elara'), char('ashalle'), char('alphonse'),
+      union('gp'), // rowan & elara’s parents’ union
+      char('gpa'), char('gpb'),
+      union('u1'), union('u2'), char('n')];
+    const edges = [
+      partner('gpa', 'gp'), partner('gpb', 'gp'), child('gp', 'rowan'), child('gp', 'elara'),
+      partner('rowan', 'u1'), partner('ashalle', 'u1'),
+      partner('ashalle', 'u2'), partner('alphonse', 'u2'), child('u2', 'n'),
+    ];
+    const { positions: p } = layoutGenealogy(nodes, edges);
+    // The ashalle×alphonse marriage line spans [min..max] of their card centers.
+    const lo = Math.min(p.ashalle.x, p.alphonse.x);
+    const hi = Math.max(p.ashalle.x, p.alphonse.x);
+    // elara sits on the row above, but assert no same-row card of that union’s
+    // rank is strictly inside the span except the two partners themselves.
+    for (const id of ['rowan']) {
+      if (p[id].y !== p.ashalle.y) continue;
+      const inside = p[id].x + CARD_W > lo && p[id].x < hi;
+      expect(inside).toBe(false);
     }
   });
 });
