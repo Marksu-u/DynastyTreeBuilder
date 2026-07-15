@@ -411,44 +411,25 @@ describe('assignX', () => {
     expect([...a.entries()]).toEqual([...b.entries()]);
   });
 
-  it('a spouse with no parent-union does not add extra pull weight to the shared target', () => {
-    const build = (withSpouse: boolean) => {
-      const nodes = [
-        char('gp1'), char('gp2'), union('u_gp'), char('p'),
-        union('u_own'), char('k1'), char('k2'),
-        ...(withSpouse ? [char('s')] : []),
-      ];
-      const edges = [
-        partner('gp1', 'u_gp'), partner('gp2', 'u_gp'), child('u_gp', 'p'),
-        partner('p', 'u_own'), ...(withSpouse ? [partner('s', 'u_own')] : []),
-        child('u_own', 'k1'), child('u_own', 'k2'),
-      ];
-      return layoutGenealogy(nodes, edges).positions;
-    };
-    const withoutSpouse = build(false);
-    const withSpouse = build(true);
-    // p's x should be governed by the SAME two targets (parent union, own kids)
-    // regardless of whether a childless-parent spouse also partners the union —
-    // that spouse must not double the weight of the "own kids" target.
-    expect(Math.abs(withSpouse['p'].x - withoutSpouse['p'].x)).toBeLessThanOrEqual(1);
-  });
-
-  it('a married-out sibling does not scatter their childless-parent-union sibling far from the shared parent union', () => {
+  it('a parent whose own line runs deep is not dragged off their birth-union by double-counted descendant pull', () => {
+    // kp1+s2 both partner u_k, whose kids (g1,g2) create a downward pull.
+    // Pre-fix that pull is counted once PER partner, dragging kp1 (and s2)
+    // toward their descendants and away from kp1's birth-parents' union u_p.
     const nodes = [
-      char('gp1'), char('gp2'), union('u_gp'), char('p'), char('sib'),
-      char('s'), union('u_own'), char('k1'), char('k2'),
+      char('gp1'), char('gp2'), union('u_gp'), char('p'),
+      char('s'), union('u_p'), char('kp1'), char('kp2'),
+      char('s2'), union('u_k'), char('g1'), char('g2'),
     ];
     const edges = [
-      partner('gp1', 'u_gp'), partner('gp2', 'u_gp'), child('u_gp', 'p'), child('u_gp', 'sib'),
-      partner('p', 'u_own'), partner('s', 'u_own'), child('u_own', 'k1'), child('u_own', 'k2'),
+      partner('gp1', 'u_gp'), partner('gp2', 'u_gp'), child('u_gp', 'p'),
+      partner('p', 'u_p'), partner('s', 'u_p'), child('u_p', 'kp1'), child('u_p', 'kp2'),
+      partner('kp1', 'u_k'), partner('s2', 'u_k'), child('u_k', 'g1'), child('u_k', 'g2'),
     ];
-    const { positions } = layoutGenealogy(nodes, edges);
-    const gpUnionX = positions['u_gp'].x;
-    // Both direct children of u_gp should end up within a small multiple of a
-    // card width of their shared parent union's point — not torn across
-    // several rows' worth of horizontal space by p's own descendants.
-    expect(Math.abs(positions['p'].x - gpUnionX)).toBeLessThan(CARD_W * 4);
-    expect(Math.abs(positions['sib'].x - gpUnionX)).toBeLessThan(CARD_W * 4);
+    const P = layoutGenealogy(nodes, edges).positions;
+    // kp1 should sit within a card-width of its birth-parents' marriage point.
+    // Pre-fix double-counting puts it 236px away (> CARD_W); the fix brings it to ~59px.
+    const kp1Center = P['kp1'].x + CARD_W / 2;
+    expect(Math.abs(kp1Center - P['u_p'].x)).toBeLessThan(CARD_W); // pre-fix: 236, post-fix: 59
   });
 });
 
