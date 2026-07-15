@@ -410,6 +410,46 @@ describe('assignX', () => {
     const { x: b } = run(nuclear(3));
     expect([...a.entries()]).toEqual([...b.entries()]);
   });
+
+  it('a spouse with no parent-union does not add extra pull weight to the shared target', () => {
+    const build = (withSpouse: boolean) => {
+      const nodes = [
+        char('gp1'), char('gp2'), union('u_gp'), char('p'),
+        union('u_own'), char('k1'), char('k2'),
+        ...(withSpouse ? [char('s')] : []),
+      ];
+      const edges = [
+        partner('gp1', 'u_gp'), partner('gp2', 'u_gp'), child('u_gp', 'p'),
+        partner('p', 'u_own'), ...(withSpouse ? [partner('s', 'u_own')] : []),
+        child('u_own', 'k1'), child('u_own', 'k2'),
+      ];
+      return layoutGenealogy(nodes, edges).positions;
+    };
+    const withoutSpouse = build(false);
+    const withSpouse = build(true);
+    // p's x should be governed by the SAME two targets (parent union, own kids)
+    // regardless of whether a childless-parent spouse also partners the union —
+    // that spouse must not double the weight of the "own kids" target.
+    expect(Math.abs(withSpouse['p'].x - withoutSpouse['p'].x)).toBeLessThanOrEqual(1);
+  });
+
+  it('a married-out sibling does not scatter their childless-parent-union sibling far from the shared parent union', () => {
+    const nodes = [
+      char('gp1'), char('gp2'), union('u_gp'), char('p'), char('sib'),
+      char('s'), union('u_own'), char('k1'), char('k2'),
+    ];
+    const edges = [
+      partner('gp1', 'u_gp'), partner('gp2', 'u_gp'), child('u_gp', 'p'), child('u_gp', 'sib'),
+      partner('p', 'u_own'), partner('s', 'u_own'), child('u_own', 'k1'), child('u_own', 'k2'),
+    ];
+    const { positions } = layoutGenealogy(nodes, edges);
+    const gpUnionX = positions['u_gp'].x;
+    // Both direct children of u_gp should end up within a small multiple of a
+    // card width of their shared parent union's point — not torn across
+    // several rows' worth of horizontal space by p's own descendants.
+    expect(Math.abs(positions['p'].x - gpUnionX)).toBeLessThan(CARD_W * 4);
+    expect(Math.abs(positions['sib'].x - gpUnionX)).toBeLessThan(CARD_W * 4);
+  });
 });
 
 describe('layoutGenealogy — graph layout acceptance', () => {

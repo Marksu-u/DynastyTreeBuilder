@@ -268,6 +268,10 @@ export function orderLayers(
  * this is harmless because absolute x is normalized downstream (layoutGenealogy
  * subtracts each cluster's minX). Deterministic and bounded — no convergence
  * check needed.
+ *
+ * Each distinct union contributes at most one target per unit, regardless of how
+ * many of the unit's own members are party to it (deduped by union id), so a
+ * multi-partner unit doesn't get outsized pull from its own children/parents.
  */
 export function assignX(
   ordered: Map<number, Unit[]>,
@@ -316,12 +320,18 @@ export function assignX(
     for (const r of order) {
       for (const u of ordered.get(r)!) {
         const targets: number[] = [];
+        const seenParentUnions = new Set<string>();
+        const seenPartnerUnions = new Set<string>();
         for (const m of u.members) {
           for (const pu of graph.parentUnions.get(m) ?? []) {
+            if (seenParentUnions.has(pu.id)) continue;
+            seenParentUnions.add(pu.id);
             const ux = unionX(pu);
             if (ux !== null) targets.push(ux);
           }
           for (const cu of graph.partnerUnions.get(m) ?? []) {
+            if (seenPartnerUnions.has(cu.id)) continue;
+            seenPartnerUnions.add(cu.id);
             const kids = cu.children.filter(c => unitOf.has(c));
             if (kids.length) {
               const cx = kids.reduce((a, c) => a + memberLeftX(c) + CARD_W / 2, 0) / kids.length;
