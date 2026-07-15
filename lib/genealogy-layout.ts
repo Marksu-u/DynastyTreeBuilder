@@ -262,9 +262,12 @@ export function orderLayers(
  * Units are rigid blocks (fixed internal CARD_W+PARTNER_GAP member offsets);
  * each of 8 iterations pulls every unit's center toward the median x of its
  * parent union-points (above) and child-group centers (below), alternating
- * sweep direction, then a two-pass separation enforces layer order and
- * non-overlap (GROUP_GAP minimum gap between unit edges). Deterministic and
- * bounded — no convergence check needed.
+ * sweep direction, then a single left→right separation pass enforces layer
+ * order and non-overlap (GROUP_GAP minimum gap between unit edges). That pass
+ * only ever shoves units rightward, so it introduces a slight rightward bias;
+ * this is harmless because absolute x is normalized downstream (layoutGenealogy
+ * subtracts each cluster's minX). Deterministic and bounded — no convergence
+ * check needed.
  */
 export function assignX(
   ordered: Map<number, Unit[]>,
@@ -287,25 +290,23 @@ export function assignX(
     const i = u.members.indexOf(m);
     return center.get(u.key)! - u.width / 2 + i * (CARD_W + PARTNER_GAP);
   };
-  const unionX = (un: Union): number => {
+  const unionX = (un: Union): number | null => {
     const ps = un.partners.filter(p => unitOf.has(p));
+    // For a 3+-partner union the point is defined by the first two placed
+    // partners' card centers (deterministic via edge-insertion order).
     if (ps.length >= 2) return (memberLeftX(ps[0]) + memberLeftX(ps[1])) / 2 + CARD_W / 2;
     if (ps.length === 1) return memberLeftX(ps[0]) + CARD_W / 2;
-    return 0;
+    return null;
   };
 
+  // Single left→right pass: push each unit right of its left neighbour by the
+  // minimum gap. After this pass every unit already clears its left neighbour,
+  // so a right→left correction would never fire — it is omitted deliberately.
   const separate = (r: number): void => {
     const layer = ordered.get(r)!;
     for (let i = 1; i < layer.length; i++) {
       const min = center.get(layer[i - 1].key)! + layer[i - 1].width / 2 + GROUP_GAP + layer[i].width / 2;
       if (center.get(layer[i].key)! < min) center.set(layer[i].key, min);
-    }
-    for (let i = layer.length - 2; i >= 0; i--) {
-      const max = center.get(layer[i + 1].key)! - layer[i + 1].width / 2 - GROUP_GAP - layer[i].width / 2;
-      const leftMin = i > 0
-        ? center.get(layer[i - 1].key)! + layer[i - 1].width / 2 + GROUP_GAP + layer[i].width / 2
-        : -Infinity;
-      if (center.get(layer[i].key)! > max) center.set(layer[i].key, Math.max(max, leftMin));
     }
   };
 
@@ -316,7 +317,10 @@ export function assignX(
       for (const u of ordered.get(r)!) {
         const targets: number[] = [];
         for (const m of u.members) {
-          for (const pu of graph.parentUnions.get(m) ?? []) targets.push(unionX(pu));
+          for (const pu of graph.parentUnions.get(m) ?? []) {
+            const ux = unionX(pu);
+            if (ux !== null) targets.push(ux);
+          }
           for (const cu of graph.partnerUnions.get(m) ?? []) {
             const kids = cu.children.filter(c => unitOf.has(c));
             if (kids.length) {
