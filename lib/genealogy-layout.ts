@@ -500,32 +500,6 @@ function layoutCluster(
     push(anchoredUnions, anchor, u);
   }
 
-  // spouse-ins: non-anchor partners with no parents in the cluster — drawn
-  // beside the anchor. Partners WITH parents are placed by their own lineage.
-  const spouseIns = new Set<string>();
-  for (const u of clusterUnions) {
-    const anchor = anchorOf.get(u.id);
-    for (const p of u.partners) {
-      if (p !== anchor && inCluster.has(p) && (graph.parentUnions.get(p) ?? []).length === 0) {
-        spouseIns.add(p);
-      }
-    }
-  }
-
-  // The partner strip around an anchor: unions alternate sides (1st right,
-  // 2nd left, 3rd right …) so remarriages flank the anchor.
-  function stripOf(person: string): { order: string[]; groups: Union[] } {
-    const unions = anchoredUnions.get(person) ?? [];
-    const right: string[] = []; const left: string[] = [];
-    const groupsRight: Union[] = []; const groupsLeft: Union[] = [];
-    unions.forEach((u, i) => {
-      const spouses = u.partners.filter(p => p !== person && spouseIns.has(p));
-      if (i % 2 === 0) { right.push(...spouses); groupsRight.push(u); }
-      else { left.unshift(...spouses); groupsLeft.unshift(u); }
-    });
-    return { order: [...left, person, ...right], groups: [...groupsLeft, ...groupsRight] };
-  }
-
   // A child with several parent-unions is owned (placed) by its first one.
   function ownedChildren(u: Union): string[] {
     return u.children.filter(
@@ -533,90 +507,20 @@ function layoutCluster(
     );
   }
 
-  const measured = new Map<string, number>();
-  const measuring = new Set<string>();
-
-  function measureChildGroup(u: Union): number {
-    const kids = ownedChildren(u);
-    if (kids.length === 0) return 0;
-    let w = 0;
-    kids.forEach((k, i) => { w += (i > 0 ? SIBLING_GAP : 0) + measurePerson(k); });
-    return w;
-  }
-
-  function measurePerson(id: string): number {
-    if (measured.has(id)) return measured.get(id)!;
-    if (measuring.has(id)) return CARD_W; // defensive: cyclic corrupt data
-    measuring.add(id);
-    const { order, groups } = stripOf(id);
-    const stripW = order.length * CARD_W + (order.length - 1) * PARTNER_GAP;
-    let childW = 0; let nonEmpty = 0;
-    for (const u of groups) {
-      const gw = measureChildGroup(u);
-      if (gw > 0) { childW += (nonEmpty > 0 ? GROUP_GAP : 0) + gw; nonEmpty++; }
-    }
-    const w = Math.max(stripW, childW);
-    measuring.delete(id);
-    measured.set(id, w);
-    return w;
-  }
+  // ── graph placement: units → ordering → x-relaxation ──
+  const units = buildOrderingUnits(clusterChars, graph, rank);
+  const ordered = orderLayers(units, graph);
+  const xByChar = assignX(ordered, graph);
 
   const positions = new Map<string, { x: number; y: number }>();
-
-  function placeChildGroup(u: Union, xLeft: number): void {
-    let x = xLeft;
-    for (const k of ownedChildren(u)) {
-      const w = measurePerson(k);
-      placePerson(k, x);
-      x += w + SIBLING_GAP;
-    }
-  }
-
-  function placePerson(id: string, xLeft: number): number {
-    if (positions.has(id)) return measured.get(id) ?? CARD_W;
-    const w = measurePerson(id);
-    const { order, groups } = stripOf(id);
-    const stripW = order.length * CARD_W + (order.length - 1) * PARTNER_GAP;
-
-    // child groups first — center the combined child row within the block
-    let childW = 0; let nonEmpty = 0;
-    for (const u of groups) {
-      const gw = measureChildGroup(u);
-      if (gw > 0) { childW += (nonEmpty > 0 ? GROUP_GAP : 0) + gw; nonEmpty++; }
-    }
-    let cx = xLeft + Math.max(0, (w - childW) / 2);
-    for (const u of groups) {
-      const gw = measureChildGroup(u);
-      if (gw === 0) continue;
-      placeChildGroup(u, cx);
-      cx += gw + GROUP_GAP;
-    }
-
-    // partner strip centered within the block
-    let sx = xLeft + (w - stripW) / 2;
-    const y = rowY(rank.get(id) ?? 0);
-    for (const member of order) {
-      if (!positions.has(member)) positions.set(member, { x: sx, y });
-      sx += CARD_W + PARTNER_GAP;
-    }
-    return w;
-  }
-
-  // roots: no parents in the cluster and not drawn as someone's spouse
-  const roots = clusterChars.filter(
-    c => (graph.parentUnions.get(c) ?? []).length === 0 && !spouseIns.has(c),
-  );
-  let x = 0;
-  for (const r of roots) {
-    if (positions.has(r)) continue;
-    x += placePerson(r, x) + GROUP_GAP;
-  }
-  // completeness guarantee: exotic structures (e.g. polygamy chains among
-  // parentless spouses) fall back to a plain right-appended slot on their row
   for (const c of clusterChars) {
-    if (!positions.has(c)) {
-      positions.set(c, { x, y: rowY(rank.get(c) ?? 0) });
-      x += CARD_W + SIBLING_GAP;
+    positions.set(c, { x: xByChar.get(c) ?? 0, y: rowY(rank.get(c) ?? 0) });
+  }
+  // completeness guarantee (corrupt data): append anything unplaced on its row
+  {
+    let x = Math.max(0, ...[...positions.values()].map(p => p.x + CARD_W + SIBLING_GAP));
+    for (const c of clusterChars) {
+      if (!positions.has(c)) { positions.set(c, { x, y: rowY(rank.get(c) ?? 0) }); x += CARD_W + SIBLING_GAP; }
     }
   }
 

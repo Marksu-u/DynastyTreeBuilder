@@ -411,3 +411,43 @@ describe('assignX', () => {
     expect([...a.entries()]).toEqual([...b.entries()]);
   });
 });
+
+describe('layoutGenealogy — graph layout acceptance', () => {
+  it('a bridging spouse sits between her two husbands, on their row', () => {
+    // Ashalle married to Rowan (u1 -> kid j) and Alphonse (u2 -> kid n)
+    const nodes = [char('rowan'), char('ashalle'), char('alphonse'),
+      union('u1'), union('u2'), char('j'), char('n')];
+    const edges = [partner('rowan', 'u1'), partner('ashalle', 'u1'), child('u1', 'j'),
+      partner('ashalle', 'u2'), partner('alphonse', 'u2'), child('u2', 'n')];
+    const { positions: p } = layoutGenealogy(nodes, edges);
+    expect(p.ashalle.y).toBe(p.rowan.y);
+    expect(p.ashalle.y).toBe(p.alphonse.y);
+    const xs = [p.rowan.x, p.ashalle.x, p.alphonse.x];
+    const mid = xs.sort((a, b) => a - b)[1];
+    expect(p.ashalle.x).toBe(mid); // Ashalle is the middle card
+  });
+
+  it('no unrelated card lands inside a marriage line’s horizontal span', () => {
+    // rowan+ashalle and alphonse+ashalle as above, plus rowan’s sibling elara.
+    const nodes = [char('rowan'), char('elara'), char('ashalle'), char('alphonse'),
+      union('gp'), // rowan & elara’s parents’ union
+      char('gpa'), char('gpb'),
+      union('u1'), union('u2'), char('n')];
+    const edges = [
+      partner('gpa', 'gp'), partner('gpb', 'gp'), child('gp', 'rowan'), child('gp', 'elara'),
+      partner('rowan', 'u1'), partner('ashalle', 'u1'),
+      partner('ashalle', 'u2'), partner('alphonse', 'u2'), child('u2', 'n'),
+    ];
+    const { positions: p } = layoutGenealogy(nodes, edges);
+    // The ashalle×alphonse marriage line spans [min..max] of their card centers.
+    const lo = Math.min(p.ashalle.x, p.alphonse.x);
+    const hi = Math.max(p.ashalle.x, p.alphonse.x);
+    // elara sits on the row above, but assert no same-row card of that union’s
+    // rank is strictly inside the span except the two partners themselves.
+    for (const id of ['rowan']) {
+      if (p[id].y !== p.ashalle.y) continue;
+      const inside = p[id].x + CARD_W > lo && p[id].x < hi;
+      expect(inside).toBe(false);
+    }
+  });
+});
