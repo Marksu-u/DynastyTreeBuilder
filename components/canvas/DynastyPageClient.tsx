@@ -3,6 +3,7 @@
 import { useRef, useCallback, useState } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import Link from "next/link";
+import { Loader2, Check, CloudOff } from "lucide-react";
 import { DynastyCanvas } from "./DynastyCanvas";
 import { DynastySettingsDialog } from "@/components/dashboard/DynastySettingsDialog";
 import { ExportButton } from "./ExportButton";
@@ -36,6 +37,17 @@ export function DynastyPageClient({
 }: Props) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [isPublic, setIsPublic] = useState(initialIsPublic);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const handleSaveStatusChange = useCallback((status: 'saved' | 'saving' | 'error', error?: string) => {
+    setSaveStatus(status);
+    if (status === 'error') {
+      setSaveError(error || 'Server error. Please try again later.');
+    } else {
+      setSaveError(null);
+    }
+  }, []);
 
   const handleExportJson = useCallback(async () => {
     const data = await exportDynasty(dynastyId);
@@ -57,6 +69,28 @@ export function DynastyPageClient({
             </Link>
             <span className="text-zinc-700">/</span>
             <span className="text-sm font-medium text-zinc-200">{dynastyName}</span>
+            <div className="flex items-center gap-1.5 ml-2">
+              {saveStatus === 'saving' && (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400" />
+                  <span className="text-xs text-zinc-500">Saving…</span>
+                </>
+              )}
+              {saveStatus === 'saved' && (
+                <>
+                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  <span className="text-xs text-zinc-500">Saved</span>
+                </>
+              )}
+              {saveStatus === 'error' && (
+                <>
+                  <CloudOff className="h-3.5 w-3.5 text-red-500" />
+                  <span className="text-xs text-red-400 font-medium" title={saveError || undefined}>
+                    {saveError || "Error saving"}
+                  </span>
+                </>
+              )}
+            </div>
             <div className="ml-auto flex items-center gap-2">
               <ExportButton
                 dynastyName={dynastyName}
@@ -80,6 +114,7 @@ export function DynastyPageClient({
               initialNodes={initialNodes}
               initialEdges={initialEdges}
               userId={userId}
+              onSaveStatusChange={handleSaveStatusChange}
             />
           </div>
         </div>

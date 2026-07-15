@@ -46,12 +46,50 @@ import { parseImportFile } from "@/lib/import-canvas";
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
 const edgeTypes = { relationship: RelationshipEdge } as const;
 
+function getFriendlyErrorMessage(err: any): string {
+  if (typeof window !== "undefined" && !navigator.onLine) {
+    return "Network disconnected. Please check your internet connection.";
+  }
+  
+  const msg = err?.message || "";
+  
+  // Rate limit check
+  if (msg.includes("Too many requests") || msg.includes("Slow down")) {
+    return "Too many requests. Please slow down and try again.";
+  }
+  
+  // Rule or validation breaks
+  if (
+    msg.includes("not found") || 
+    msg.includes("invalid") || 
+    msg.includes("rule") ||
+    msg.includes("validation") ||
+    msg.includes("limit") ||
+    msg.includes("restrict")
+  ) {
+    return msg;
+  }
+  
+  // General server/masked errors
+  if (
+    msg.includes("Server Action") || 
+    msg.includes("masked") || 
+    msg.includes("digest") || 
+    !msg
+  ) {
+    return "Server error. Please try again later.";
+  }
+  
+  return msg;
+}
+
 type Props = {
   dynastyId: string;
   dynastyName: string;
   initialNodes: CharacterNodeType[];
   initialEdges: LegacyEdgeType[];
   userId?: string;
+  onSaveStatusChange?: (status: 'saved' | 'saving' | 'error', errorReason?: string) => void;
 };
 
 export function DynastyCanvas({
@@ -60,6 +98,7 @@ export function DynastyCanvas({
   initialNodes,
   initialEdges,
   userId,
+  onSaveStatusChange,
 }: Props) {
   const isLoggedIn = !!userId;
   const migrated = useMemo(
@@ -74,6 +113,7 @@ export function DynastyCanvas({
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
   const [sidebar, setSidebar] = useState<SidebarPanel | null>(null);
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
@@ -82,6 +122,41 @@ export function DynastyCanvas({
   const highlightValue = useMemo(
     () => ({ activeCharIds: highlight.activeCharIds, activeEdgeIds: highlight.activeEdgeIds }),
     [highlight.activeCharIds, highlight.activeEdgeIds],
+  );
+
+  const performSave = useCallback(
+    async <T,>(action: () => Promise<T>, successMessage?: string, errorMessage?: string): Promise<T> => {
+      setPendingCount((c) => c + 1);
+      onSaveStatusChange?.('saving');
+      try {
+        const res = await action();
+        setPendingCount((c) => {
+          const nextCount = c - 1;
+          if (nextCount === 0) {
+            onSaveStatusChange?.('saved');
+          }
+          return nextCount;
+        });
+        if (successMessage) {
+          toast.success(successMessage);
+        }
+        return res;
+      } catch (err) {
+        const friendlyError = getFriendlyErrorMessage(err);
+        setPendingCount((c) => {
+          const nextCount = c - 1;
+          onSaveStatusChange?.('error', friendlyError);
+          return nextCount;
+        });
+        if (errorMessage) {
+          toast.error(`${errorMessage}: ${friendlyError}`);
+        } else {
+          toast.error(`Failed to save: ${friendlyError}`);
+        }
+        throw err;
+      }
+    },
+    [onSaveStatusChange]
   );
 
   const handleToggleSidebar = useCallback((panel: SidebarPanel) => {
@@ -99,9 +174,46 @@ export function DynastyCanvas({
 
   const onNodesChange = useCallback(
     (changes: NodeChange<AnyCanvasNode>[]) => {
-      setNodes((nds) => applyNodeChanges(changes, nds) as AnyCanvasNode[]);
+      const isRemove = (c: NodeChange<AnyCanvasNode>): c is NodeChange<AnyCanvasNode> & { type: 'remove' } => c.type === 'remove';
+      const removeIds = changes.filter(isRemove).map((c) => c.id);
+
+      if (removeIds.length === 0) {
+        setNodes((nds) => applyNodeChanges(changes, nds) as AnyCanvasNode[]);
+        return;
+      }
+
+      const characterIds = removeIds.filter(id => {
+        const node = nodes.find(n => n.id === id);
+        return node && node.type === 'character';
+      });
+
+      if (characterIds.length === 0) {
+        setNodes((nds) => applyNodeChanges(changes, nds) as AnyCanvasNode[]);
+        return;
+      }
+
+      const prevNodes = nodes;
+      const prevEdges = edges;
+
+      const nextEdges = edges.filter((e) => !removeIds.includes(e.source) && !removeIds.includes(e.target));
+      const referencedUnions = new Set(nextEdges.flatMap((e) => [e.source, e.target]));
+      const nextNodes = nodes
+        .filter((n) => !removeIds.includes(n.id))
+        .filter((n) => n.type !== 'union' || referencedUnions.has(n.id));
+
+      setNodes(nextNodes);
+      setEdges(nextEdges);
+
+      performSave(
+        () => Promise.all(characterIds.map((id) => deleteCharacter(id, dynastyId))),
+        characterIds.length === 1 ? 'Character removed' : 'Characters removed',
+        'Failed to delete — reverted'
+      ).catch(() => {
+        setNodes(prevNodes);
+        setEdges(prevEdges);
+      });
     },
-    []
+    [nodes, edges, dynastyId, performSave]
   );
 
   const onEdgesChange = useCallback(
@@ -111,6 +223,15 @@ export function DynastyCanvas({
       const rest = changes.filter((c) => !isRemove(c));
 
       if (removeIds.length === 0) {
+        setEdges((eds) => applyEdgeChanges(changes, eds) as RelationshipEdgeType[]);
+        return;
+      }
+
+      const selectedNodeIds = new Set(nodes.filter((n) => n.selected && n.type === 'character').map((n) => n.id));
+      const removedEdges = edges.filter((e) => removeIds.includes(e.id));
+      const isSideEffect = removedEdges.some((e) => selectedNodeIds.has(e.source) || selectedNodeIds.has(e.target));
+
+      if (isSideEffect) {
         setEdges((eds) => applyEdgeChanges(changes, eds) as RelationshipEdgeType[]);
         return;
       }
@@ -128,14 +249,17 @@ export function DynastyCanvas({
       setEdges(applyEdgeChanges(rest, result.edges) as RelationshipEdgeType[]);
 
       if (result.pairEdges.length > 0) {
-        deleteRelativeEdges(dynastyId, result.pairEdges).catch(() => {
+        performSave(
+          () => deleteRelativeEdges(dynastyId, result.pairEdges),
+          'Relationships updated',
+          'Failed to delete — reverted'
+        ).catch(() => {
           setNodes(prevNodes);
           setEdges(prevEdges);
-          toast.error('Failed to delete — reverted');
         });
       }
     },
-    [nodes, edges, dynastyId]
+    [nodes, edges, dynastyId, performSave]
   );
 
   const handleAddCharacter = useCallback(
@@ -143,49 +267,69 @@ export function DynastyCanvas({
       const tempId = crypto.randomUUID();
       setNodes((nds) => [...nds, { id: tempId, type: "character", position: { x: 0, y: 0 }, data }]);
       try {
-        const { id } = await createCharacter(dynastyId, data, { x: 0, y: 0 });
+        const { id } = await performSave(
+          () => createCharacter(dynastyId, data, { x: 0, y: 0 }),
+          `${data.name} added to the dynasty`,
+          "Failed to save character"
+        );
         setNodes((nds) => nds.map((n) => (n.id === tempId ? { ...n, id } : n)));
-        toast.success(`${data.name} added to the dynasty`);
       } catch {
         setNodes((nds) => nds.filter((n) => n.id !== tempId));
-        toast.error("Failed to save character");
       }
     },
-    [dynastyId]
+    [dynastyId, performSave]
   );
 
   const handleUpdateCharacter = useCallback(
     async (data: CharacterData) => {
       if (!editingCharacterId) return;
       const id = editingCharacterId;
+      const prevNodes = nodes;
       setNodes((nds) =>
         nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...data } } : n))
       );
       setEditingCharacterId(null);
 
       try {
-        await updateCharacter(id, dynastyId, data);
+        await performSave(
+          () => updateCharacter(id, dynastyId, data),
+          "Changes saved",
+          "Failed to save changes"
+        );
       } catch {
-        toast.error("Failed to save changes");
+        setNodes(prevNodes);
       }
     },
-    [editingCharacterId, dynastyId]
+    [editingCharacterId, dynastyId, nodes, performSave]
   );
 
   const handleDeleteCharacter = useCallback(async () => {
     if (!editingCharacterId) return;
     const id = editingCharacterId;
-    setNodes((nds) => nds.filter((n) => n.id !== id));
-    setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+    const prevNodes = nodes;
+    const prevEdges = edges;
+
+    const nextEdges = edges.filter((e) => e.source !== id && e.target !== id);
+    const referencedUnions = new Set(nextEdges.flatMap((e) => [e.source, e.target]));
+    const nextNodes = nodes
+      .filter((n) => n.id !== id)
+      .filter((n) => n.type !== 'union' || referencedUnions.has(n.id));
+
+    setNodes(nextNodes);
+    setEdges(nextEdges);
     setEditingCharacterId(null);
 
     try {
-      await deleteCharacter(id, dynastyId);
-      toast.success("Character removed");
+      await performSave(
+        () => deleteCharacter(id, dynastyId),
+        "Character removed",
+        "Failed to delete character"
+      );
     } catch {
-      toast.error("Failed to delete character");
+      setNodes(prevNodes);
+      setEdges(prevEdges);
     }
-  }, [editingCharacterId, dynastyId]);
+  }, [editingCharacterId, dynastyId, nodes, edges, performSave]);
 
   const openAddRelative = useCallback((anchorId: string, kind: RelativeKind) => {
     setRelPicker({ anchorId, kind });
@@ -205,19 +349,21 @@ export function DynastyCanvas({
     setEdges(result.edges);
 
     try {
-      const { id: realId } = await addRelative(dynastyId, input.person, result.pairEdges);
+      const { id: realId } = await performSave(
+        () => addRelative(dynastyId, input.person, result.pairEdges),
+        'Added to the tree',
+        'Failed to save — reverted'
+      );
       if (realId !== result.personId) {
         const remap = (v: string) => (v === result.personId ? realId : v);
         setNodes(nds => nds.map(n => (n.id === result.personId ? { ...n, id: realId } : n)));
         setEdges(eds => eds.map(e => ({ ...e, source: remap(e.source), target: remap(e.target) })));
       }
-      toast.success('Added to the tree');
     } catch {
       setNodes(prevNodes);
       setEdges(prevEdges);
-      toast.error('Failed to save — reverted');
     }
-  }, [nodes, edges, dynastyId]);
+  }, [nodes, edges, dynastyId, performSave]);
 
   const handleExport = useCallback(async () => {
     const element = containerRef.current?.querySelector<HTMLElement>('.react-flow');
