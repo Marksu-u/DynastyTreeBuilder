@@ -489,14 +489,12 @@ function layoutCluster(
 
   // A union is anchored to its blood-line partner (the one with parents in the
   // cluster); if none or several qualify, the first partner in node order.
-  const anchorOf = new Map<string, string>();
   const anchoredUnions = new Map<string, Union[]>();
   for (const u of clusterUnions) {
     const partners = u.partners.filter(p => inCluster.has(p));
     if (partners.length === 0) continue;
     const blood = partners.filter(p => (graph.parentUnions.get(p) ?? []).length > 0);
     const anchor = blood.length === 1 ? blood[0] : partners[0];
-    anchorOf.set(u.id, anchor);
     push(anchoredUnions, anchor, u);
   }
 
@@ -514,7 +512,8 @@ function layoutCluster(
 
   const positions = new Map<string, { x: number; y: number }>();
   for (const c of clusterChars) {
-    positions.set(c, { x: xByChar.get(c) ?? 0, y: rowY(rank.get(c) ?? 0) });
+    const x = xByChar.get(c);
+    if (x !== undefined) positions.set(c, { x, y: rowY(rank.get(c) ?? 0) });
   }
   // completeness guarantee (corrupt data): append anything unplaced on its row
   {
