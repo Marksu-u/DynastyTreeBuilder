@@ -132,8 +132,6 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
               className={`truncate text-sm font-semibold leading-tight ${
                 isGhost
                   ? 'text-zinc-500 italic'
-                  : isDeceased
-                  ? 'text-zinc-400 line-through decoration-zinc-500'
                   : 'text-zinc-100'
               }`}
             >
