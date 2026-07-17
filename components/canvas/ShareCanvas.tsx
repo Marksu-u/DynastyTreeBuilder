@@ -11,6 +11,8 @@ import { GenerationBands } from "./GenerationBands";
 import { migrateCanvas } from "@/lib/migrate-canvas";
 import { useGenealogyLayout } from "./useGenealogyLayout";
 import { UnionNode } from "./UnionNode";
+import { HighlightContext } from "./HighlightContext";
+import { useDescendantHighlight } from "./useDescendantHighlight";
 import "@xyflow/react/dist/style.css";
 import type { AnyCanvasNode, RelationshipEdgeType, CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
 
@@ -34,6 +36,15 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
     migrated.edges as RelationshipEdgeType[],
   );
 
+  const highlight = useDescendantHighlight(
+    migrated.nodes as AnyCanvasNode[],
+    migrated.edges as RelationshipEdgeType[],
+  );
+  const highlightValue = useMemo(
+    () => ({ activeCharIds: highlight.activeCharIds, activeEdgeIds: highlight.activeEdgeIds }),
+    [highlight.activeCharIds, highlight.activeEdgeIds],
+  );
+
   return (
     <CatalogProvider isLoggedIn={false}>
     <div className="relative h-full w-full">
@@ -51,6 +62,7 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
         </div>
       </div>
 
+      <HighlightContext.Provider value={highlightValue}>
       <ReactFlow
         nodes={laidOutNodes}
         edges={migrated.edges}
@@ -59,11 +71,14 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
+        onNodeMouseEnter={highlight.onNodeMouseEnter}
+        onNodeMouseLeave={highlight.onNodeMouseLeave}
         colorMode="dark"
         fitView
         fitViewOptions={{ padding: 0.2 }}
         className="bg-zinc-950"
         proOptions={{ hideAttribution: false }}
+        defaultEdgeOptions={{ type: 'smoothstep' }}
       >
         <Background
           variant={BackgroundVariant.Dots}
@@ -77,7 +92,9 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
         />
         <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} />
       </ReactFlow>
+      </HighlightContext.Provider>
     </div>
     </CatalogProvider>
   );
 }
+
