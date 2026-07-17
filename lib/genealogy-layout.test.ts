@@ -363,6 +363,27 @@ describe('orderLayers', () => {
     expect(row1).toEqual(['cL', 'cR']);
   });
 
+  it('re-orients/reverses partners within a unit to align with their parent lineages', () => {
+    // left parents: pL + sL -> uL -> cL (left child)
+    // right parents: pR + sR -> uR -> cR (right child)
+    // cR and cL are married, so they are in a single unit.
+    // If the unit's members are initially in the wrong order [cR, cL] (which crosses),
+    // they should be re-oriented to [cL, cR] (which aligns with left/right parents).
+    const nodes = [
+      char('pL'), char('sL'), union('uL'), char('pR'), char('sR'), union('uR'),
+      char('cR'), char('cL'), union('uC')
+    ];
+    const edges = [
+      partner('pL', 'uL'), partner('sL', 'uL'), child('uL', 'cL'),
+      partner('pR', 'uR'), partner('sR', 'uR'), child('uR', 'cR'),
+      partner('cR', 'uC'), partner('cL', 'uC')
+    ];
+    const { g, r, units } = prep({ nodes, edges });
+    const ordered = orderLayers(units, g);
+    const childUnit = ordered.get(1)!.find(u => u.members.includes('cL'))!;
+    expect(childUnit.members).toEqual(['cL', 'cR']);
+  });
+
   it('orders the broods of a multi-marriage unit by their union’s strip position', () => {
     // dad's strip is [w2, dad, w1, w3]; union points along it are m2 (dad+w2),
     // then m1 (dad+w1), then m3 (dad+w3). Children arrive in insertion order

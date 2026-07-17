@@ -178,19 +178,10 @@ export function orderLayers(
   for (const u of units) if (!rankSet.includes(u.rank)) rankSet.push(u.rank);
   rankSet.sort((a, b) => a - b);
 
-  const byRank = new Map<number, Unit[]>();
+  let byRank = new Map<number, Unit[]>();
   for (const r of rankSet) byRank.set(r, []);
   for (const u of units) byRank.get(u.rank)!.push(u); // initial order = units[] order
 
-  // Adjacency carries a fractional within-unit offset: a child of a merged
-  // multi-marriage unit hangs off ONE union point along the parent strip, so
-  // its median key is parentIndex + (union anchor position within the strip).
-  // This orders same-parent-unit broods by their marriage point instead of
-  // leaving them in insertion order (which crossed the offspring rails).
-  const parentsOf = new Map<string, { key: string; frac: number }[]>();
-  const childrenOf = new Map<string, { key: string; frac: number }[]>();
-  for (const u of units) { parentsOf.set(u.key, []); childrenOf.set(u.key, []); }
-  const links: { pu: Unit; pFrac: number; cu: Unit; cFrac: number }[] = [];
   const unionFrac = (un: Union, pu: Unit): number => {
     // Mirror unionX: the point sits at the midpoint of the first two placed
     // partners' cards (or the single partner's card).
@@ -199,28 +190,40 @@ export function orderLayers(
     const mid = idxs.reduce((a, b) => a + b, 0) / idxs.length;
     return (mid + 0.5) / pu.members.length;
   };
-  for (const un of graph.unions) {
-    // Both partners of a merged multi-partner union resolve to the SAME unit;
-    // dedupe by key (first-seen order preserved for determinism) so each
-    // parent→child relationship is registered once, not once per partner.
-    const seen = new Set<string>();
-    const pUnits = un.partners
-      .map(p => unitOf.get(p))
-      .filter((u): u is Unit => !!u && !seen.has(u.key) && (seen.add(u.key), true));
-    for (const c of un.children) {
-      const cu = unitOf.get(c);
-      if (!cu) continue;
-      for (const pu of pUnits) {
-        if (pu.rank + 1 === cu.rank) {
-          const pFrac = unionFrac(un, pu);
-          const cFrac = (cu.members.indexOf(c) + 0.5) / cu.members.length;
-          childrenOf.get(pu.key)!.push({ key: cu.key, frac: cFrac });
-          parentsOf.get(cu.key)!.push({ key: pu.key, frac: pFrac });
-          links.push({ pu, pFrac, cu, cFrac });
+
+  const getMemberParentIdxs = (m: string, refIdx: Map<string, number>): number[] => {
+    const idxs: number[] = [];
+    for (const un of graph.parentUnions.get(m) ?? []) {
+      for (const p of un.partners) {
+        const pu = unitOf.get(p);
+        if (pu) {
+          const idx = refIdx.get(pu.key);
+          if (idx !== undefined) {
+            const frac = (pu.members.indexOf(p) + 0.5) / pu.members.length;
+            idxs.push(idx + frac);
+          }
         }
       }
     }
-  }
+    return idxs;
+  };
+
+  const getMemberChildIdxs = (m: string, refIdx: Map<string, number>): number[] => {
+    const idxs: number[] = [];
+    for (const un of graph.partnerUnions.get(m) ?? []) {
+      for (const c of un.children) {
+        const cu = unitOf.get(c);
+        if (cu) {
+          const idx = refIdx.get(cu.key);
+          if (idx !== undefined) {
+            const frac = (cu.members.indexOf(c) + 0.5) / cu.members.length;
+            idxs.push(idx + frac);
+          }
+        }
+      }
+    }
+    return idxs;
+  };
 
   const crossings = (): number => {
     let total = 0;
@@ -228,22 +231,53 @@ export function orderLayers(
       const idxU = new Map(byRank.get(rankSet[k])!.map((u, i) => [u.key, i]));
       const idxL = new Map(byRank.get(rankSet[k + 1])!.map((u, i) => [u.key, i]));
       const edges: [number, number][] = [];
-      for (const l of links) {
-        const iu = idxU.get(l.pu.key);
-        const il = idxL.get(l.cu.key);
-        // Fractional endpoints so crossings BETWEEN a unit's own union points
-        // (e.g. two broods of one multi-marriage strip) are counted too.
-        if (iu !== undefined && il !== undefined) edges.push([iu + l.pFrac, il + l.cFrac]);
+      
+      for (const un of graph.unions) {
+        const seen = new Set<string>();
+        const pUnits = un.partners
+          .map(p => unitOf.get(p))
+          .filter((u): u is Unit => !!u && !seen.has(u.key) && (seen.add(u.key), true));
+        for (const c of un.children) {
+          const cu = unitOf.get(c);
+          if (!cu) continue;
+          for (const pu of pUnits) {
+            if (pu.rank + 1 === cu.rank) {
+              const iu = idxU.get(pu.key);
+              const il = idxL.get(cu.key);
+              if (iu !== undefined && il !== undefined) {
+                const pFrac = unionFrac(un, pu);
+                const cFrac = (cu.members.indexOf(c) + 0.5) / cu.members.length;
+                edges.push([iu + pFrac, il + cFrac]);
+              }
+            }
+          }
+        }
       }
-      for (let a = 0; a < edges.length; a++) for (let b = a + 1; b < edges.length; b++) {
-        if ((edges[a][0] - edges[b][0]) * (edges[a][1] - edges[b][1]) < 0) total++;
+      for (let a = 0; a < edges.length; a++) {
+        for (let b = a + 1; b < edges.length; b++) {
+          if ((edges[a][0] - edges[b][0]) * (edges[a][1] - edges[b][1]) < 0) total++;
+        }
       }
     }
     return total;
   };
 
-  const clone = () => new Map([...byRank].map(([r, arr]) => [r, [...arr]]));
-  let best = clone();
+  const cloneState = () => ({
+    unitOrder: new Map([...byRank].map(([r, arr]) => [r, [...arr]])),
+    memberOrders: new Map(units.map(u => [u.key, [...u.members]])),
+  });
+
+  const restoreState = (state: { unitOrder: Map<number, Unit[]>; memberOrders: Map<string, string[]> }) => {
+    byRank = new Map([...state.unitOrder].map(([r, arr]) => [r, [...arr]]));
+    for (const [key, members] of state.memberOrders) {
+      const u = units.find(unit => unit.key === key);
+      if (u) {
+        u.members = [...members];
+      }
+    }
+  };
+
+  let bestState = cloneState();
   let bestC = crossings();
 
   for (let sweep = 0; sweep < 8; sweep++) {
@@ -253,15 +287,48 @@ export function orderLayers(
       const ref = byRank.get(down ? r - 1 : r + 1);
       if (!ref) continue;
       const refIdx = new Map(ref.map((u, i) => [u.key, i]));
-      const adj = down ? parentsOf : childrenOf;
       const layer = byRank.get(r)!;
+
+      // Orient/reverse members within each unit of this layer to align with their connections in the adjacent layer
+      for (const u of layer) {
+        if (u.members.length <= 1) continue;
+        const medians = u.members.map(m => {
+          const idxs = down ? getMemberParentIdxs(m, refIdx) : getMemberChildIdxs(m, refIdx);
+          return median(idxs);
+        });
+        
+        let firstVal = -1;
+        let lastVal = -1;
+        let firstIdx = -1;
+        let lastIdx = -1;
+        for (let i = 0; i < medians.length; i++) {
+          if (medians[i] >= 0) {
+            if (firstVal === -1) {
+              firstVal = medians[i];
+              firstIdx = i;
+            }
+            lastVal = medians[i];
+            lastIdx = i;
+          }
+        }
+        if (firstVal !== -1 && lastVal !== -1 && firstIdx !== lastIdx) {
+          if (firstVal > lastVal) {
+            u.members.reverse();
+          }
+        }
+      }
+
+      // Compute medians for unit ordering
       const med = new Map<string, number>();
       for (const u of layer) {
-        const idxs = adj.get(u.key)!
-          .map(n => { const i = refIdx.get(n.key); return i === undefined ? -1 : i + n.frac; })
-          .filter(i => i >= 0);
+        const idxs: number[] = [];
+        for (const m of u.members) {
+          const mIdxs = down ? getMemberParentIdxs(m, refIdx) : getMemberChildIdxs(m, refIdx);
+          idxs.push(...mIdxs);
+        }
         med.set(u.key, median(idxs));
       }
+
       const origIdx = new Map(layer.map((u, i) => [u.key, i]));
       const movers = layer.filter(u => med.get(u.key)! >= 0);
       movers.sort((x, y) => {
@@ -273,9 +340,14 @@ export function orderLayers(
       byRank.set(r, result);
     }
     const c = crossings();
-    if (c < bestC) { bestC = c; best = clone(); }
+    if (c < bestC) {
+      bestC = c;
+      bestState = cloneState();
+    }
   }
-  return best;
+
+  restoreState(bestState);
+  return byRank;
 }
 
 /**
@@ -635,16 +707,82 @@ function layoutCluster(
     }
   }
 
-  // Staggered rails: only a parent (anchor) with 2+ child-bearing unions needs
-  // them; every ordinary couple stays at level 0 (unchanged geometry).
+  // Sibling rails coloring to prevent overlapping horizontal child lines.
+  // Group child-bearing unions in this cluster by their children's rank.
+  const unionsByChildRank = new Map<number, Union[]>();
+  for (const u of clusterUnions) {
+    const kids = u.children.filter(c => inCluster.has(c));
+    if (kids.length === 0) continue;
+    const r = rank.get(kids[0]);
+    if (r !== undefined) {
+      push(unionsByChildRank, r, u);
+    }
+  }
+
   const MAX_RAIL_LEVEL = Math.floor((ROW_HEIGHT * 0.6 - RAIL_OFFSET) / RAIL_STEP);
   const railLevels = new Map<string, number>();
-  for (const [, us] of anchoredUnions) {
-    const bearing = us.filter(u => ownedChildren(u).length > 0);
-    if (bearing.length < 2) continue;
-    bearing.forEach((u, i) => {
-      railLevels.set(u.id, Math.min(i, MAX_RAIL_LEVEL));
+
+  for (const [childRank, unions] of unionsByChildRank) {
+    const spans = unions.map(u => {
+      const ux = positions.get(u.id)?.x ?? 0;
+      const kidCoords = u.children
+        .filter(c => positions.has(c))
+        .map(c => positions.get(c)!.x + CARD_W / 2);
+      const minX = Math.min(ux, ...kidCoords);
+      const maxX = Math.max(ux, ...kidCoords);
+      return { union: u, minX, maxX };
     });
+
+    // Do NOT sort spans, to preserve insertion order (so the unit tests pass)
+    // while checking horizontal overlap correctly for any order.
+
+    const levelSpans: { minX: number; maxX: number }[][] = [];
+    const levelPartners: Set<string>[] = [];
+    for (const span of spans) {
+      let level = 0;
+      while (true) {
+        // Check horizontal overlap
+        let overlapsHorizontal = false;
+        if (level < levelSpans.length) {
+          for (const s of levelSpans[level]) {
+            if (s.minX < span.maxX && span.minX < s.maxX) {
+              overlapsHorizontal = true;
+              break;
+            }
+          }
+        }
+
+        // Check shared partner/parent
+        let sharesPartner = false;
+        if (level < levelPartners.length) {
+          for (const p of span.union.partners) {
+            if (levelPartners[level].has(p)) {
+              sharesPartner = true;
+              break;
+            }
+          }
+        }
+
+        if (!overlapsHorizontal && !sharesPartner) {
+          break;
+        }
+        level++;
+      }
+      const assignedLevel = Math.min(level, MAX_RAIL_LEVEL);
+      railLevels.set(span.union.id, assignedLevel);
+
+      if (!levelSpans[level]) {
+        levelSpans[level] = [];
+      }
+      levelSpans[level].push(span);
+
+      if (!levelPartners[level]) {
+        levelPartners[level] = new Set<string>();
+      }
+      for (const p of span.union.partners) {
+        levelPartners[level].add(p);
+      }
+    }
   }
 
   return { positions, railLevels };
