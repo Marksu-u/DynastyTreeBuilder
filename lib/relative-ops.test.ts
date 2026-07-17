@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeAddRelative, computeRemoveRelative, partnerUnionsOf } from './relative-ops';
+import { computeAddRelative, computeRemoveRelative, partnerUnionsOf, computeDeleteCharacter } from './relative-ops';
 import type { AnyCanvasNode, RelationshipEdgeType } from '@/store/canvas';
 import type { CharacterData } from '@/types/canvas';
 
@@ -255,4 +255,61 @@ describe('computeRemoveRelative', () => {
       { fromId: 'wife', toId: 'kid1', type: 'PARENT' },
     ]);
   });
+
+  it('removes one PARTNER edge from a childless marriage: garbage-collects the union and other partner edge', () => {
+    const testNodes = [charNode('A'), charNode('B'), unionNode('u1')];
+    const testEdges = [edge('e1', 'A', 'u1', 'PARTNER'), edge('e2', 'B', 'u1', 'PARTNER')];
+    const r = computeRemoveRelative(testNodes, testEdges, ['e1']);
+    if (!r.ok) throw new Error(r.error);
+    expect(r.nodes.find(n => n.id === 'u1')).toBeUndefined();
+    expect(r.edges).toHaveLength(0);
+    expect(r.pairEdges).toEqual([{ fromId: 'A', toId: 'B', type: 'SPOUSE' }]);
+  });
 });
+
+describe('computeDeleteCharacter', () => {
+  it('deleting one partner from a childless union: garbage-collects the union and other partner edge', () => {
+    const testNodes = [charNode('anchor'), charNode('wife'), unionNode('u1')];
+    const testEdges = [edge('e1', 'anchor', 'u1', 'PARTNER'), edge('e2', 'wife', 'u1', 'PARTNER')];
+    
+    const res = computeDeleteCharacter(testNodes, testEdges, 'anchor');
+    expect(res.nodes.map(n => n.id)).toEqual(['wife']);
+    expect(res.edges).toEqual([]);
+  });
+
+  it('deleting one partner from a union with a child: keeps the union as a solo-parent union', () => {
+    const testNodes = [charNode('anchor'), charNode('wife'), unionNode('u1'), charNode('kid1')];
+    const testEdges = [
+      edge('e1', 'anchor', 'u1', 'PARTNER'),
+      edge('e2', 'wife', 'u1', 'PARTNER'),
+      edge('e3', 'u1', 'kid1', 'CHILD')
+    ];
+
+    const res = computeDeleteCharacter(testNodes, testEdges, 'anchor');
+    expect(res.nodes.map(n => n.id).sort()).toEqual(['kid1', 'u1', 'wife']);
+    expect(res.edges.map(e => e.id).sort()).toEqual(['e2', 'e3']);
+  });
+
+  it('deleting a solo parent: garbage-collects the union and child edge, leaving the child standalone', () => {
+    const testNodes = [charNode('anchor'), unionNode('u1'), charNode('kid1')];
+    const testEdges = [edge('e1', 'anchor', 'u1', 'PARTNER'), edge('e2', 'u1', 'kid1', 'CHILD')];
+
+    const res = computeDeleteCharacter(testNodes, testEdges, 'anchor');
+    expect(res.nodes.map(n => n.id)).toEqual(['kid1']);
+    expect(res.edges).toEqual([]);
+  });
+
+  it('deleting a child: keeps the union for parents', () => {
+    const testNodes = [charNode('anchor'), charNode('wife'), unionNode('u1'), charNode('kid1')];
+    const testEdges = [
+      edge('e1', 'anchor', 'u1', 'PARTNER'),
+      edge('e2', 'wife', 'u1', 'PARTNER'),
+      edge('e3', 'u1', 'kid1', 'CHILD')
+    ];
+
+    const res = computeDeleteCharacter(testNodes, testEdges, 'kid1');
+    expect(res.nodes.map(n => n.id).sort()).toEqual(['anchor', 'u1', 'wife']);
+    expect(res.edges.map(e => e.id).sort()).toEqual(['e1', 'e2']);
+  });
+});
+

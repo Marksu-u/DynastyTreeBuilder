@@ -47,11 +47,11 @@ export const PositionSchema = z.object({
 
 export const CharacterDataSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  alias: z.string().optional(),
+  alias: z.string().nullable().optional(),
   flags: z.array(CharacterFlagSchema),
   style: z.string().trim().max(60, "Role is too long"),
   gender: CharacterGenderSchema,
-  note: z.string().optional(),
+  note: z.string().nullable().optional(),
 });
 
 export const DynastySettingsSchema = z.object({

@@ -7,7 +7,7 @@ import {
 } from '@xyflow/react';
 import type { CharacterData, RelationshipData, UnionData, LegacyRelationshipType } from '@/types/canvas';
 import { migrateCanvas } from '@/lib/migrate-canvas';
-import { computeAddRelative, type AddRelativeInput } from '@/lib/relative-ops';
+import { computeAddRelative, computeDeleteCharacter, computeRemoveRelative, type AddRelativeInput } from '@/lib/relative-ops';
 
 export type CharacterNodeType = Node<CharacterData, 'character'>;
 export type UnionNodeType = Node<UnionData, 'union'>;
@@ -74,18 +74,76 @@ export const useCanvasStore = create<CanvasState>()(
       isDirty: false,
 
       onNodesChange: (changes) => {
-        const hasRemoval = changes.some(c => c.type === 'remove');
+        const isRemove = (c: NodeChange<AnyCanvasNode>): c is { id: string; type: 'remove' } => c.type === 'remove';
+        const removeIds = changes.filter(isRemove).map((c) => c.id);
+        const rest = changes.filter((c) => !isRemove(c));
+
+        if (removeIds.length === 0) {
+          set({
+            nodes: applyNodeChanges(changes, get().nodes) as AnyCanvasNode[],
+          });
+          return;
+        }
+
+        const state = get();
+        let nextNodes = state.nodes;
+        let nextEdges = state.edges;
+
+        for (const id of removeIds) {
+          const node = state.nodes.find(n => n.id === id);
+          if (node && node.type === 'character') {
+            const res = computeDeleteCharacter(nextNodes, nextEdges, id);
+            nextNodes = res.nodes;
+            nextEdges = res.edges;
+          } else {
+            nextNodes = nextNodes.filter(n => n.id !== id);
+          }
+        }
+
         set({
-          nodes: applyNodeChanges(changes, get().nodes) as AnyCanvasNode[],
-          ...(hasRemoval ? { isDirty: true } : {}),
+          nodes: applyNodeChanges(rest, nextNodes) as AnyCanvasNode[],
+          edges: nextEdges,
+          past: [...state.past.slice(-(MAX_HISTORY - 1)), snap(state)],
+          future: [],
+          isDirty: true,
         });
       },
 
       onEdgesChange: (changes) => {
-        const hasRemoval = changes.some(c => c.type === 'remove');
+        const isRemove = (c: EdgeChange<RelationshipEdgeType>): c is { id: string; type: 'remove' } => c.type === 'remove';
+        const removeIds = changes.filter(isRemove).map((c) => c.id);
+        const rest = changes.filter((c) => !isRemove(c));
+
+        if (removeIds.length === 0) {
+          set({
+            edges: applyEdgeChanges(changes, get().edges) as RelationshipEdgeType[],
+          });
+          return;
+        }
+
+        const state = get();
+        const selectedNodeIds = new Set(state.nodes.filter((n) => n.selected && n.type === 'character').map((n) => n.id));
+        const removedEdges = state.edges.filter((e) => removeIds.includes(e.id));
+        const isSideEffect = removedEdges.some((e) => selectedNodeIds.has(e.source) || selectedNodeIds.has(e.target));
+
+        if (isSideEffect) {
+          set({
+            edges: applyEdgeChanges(changes, state.edges) as RelationshipEdgeType[],
+          });
+          return;
+        }
+
+        const result = computeRemoveRelative(state.nodes, state.edges, removeIds);
+        if (!result.ok) {
+          return;
+        }
+
         set({
-          edges: applyEdgeChanges(changes, get().edges) as RelationshipEdgeType[],
-          ...(hasRemoval ? { isDirty: true } : {}),
+          nodes: result.nodes,
+          edges: applyEdgeChanges(rest, result.edges) as RelationshipEdgeType[],
+          past: [...state.past.slice(-(MAX_HISTORY - 1)), snap(state)],
+          future: [],
+          isDirty: true,
         });
       },
 
@@ -113,11 +171,7 @@ export const useCanvasStore = create<CanvasState>()(
 
       deleteCharacter: (id) => {
         const state = get();
-        const newEdges = state.edges.filter(e => e.source !== id && e.target !== id);
-        // Remove orphaned union nodes (unions with no remaining partners or children)
-        const referencedUnions = new Set(newEdges.flatMap(e => [e.source, e.target]));
-        const newNodes = state.nodes.filter(n => n.type !== 'union' || referencedUnions.has(n.id))
-          .filter(n => n.id !== id);
+        const { nodes: newNodes, edges: newEdges } = computeDeleteCharacter(state.nodes, state.edges, id);
         set({
           nodes: newNodes, edges: newEdges,
           past: [...state.past.slice(-(MAX_HISTORY - 1)), snap(state)],

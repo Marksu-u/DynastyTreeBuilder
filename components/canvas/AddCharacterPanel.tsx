@@ -66,9 +66,9 @@ export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onD
     onSubmit({
       ...form,
       name: form.name.trim(),
-      alias: form.alias?.trim() || undefined,
+      alias: form.alias?.trim() || null,
       style: form.style?.trim() || '',
-      note: form.note?.trim() || undefined,
+      note: form.note?.trim() || null,
     });
     onOpenChange(false);
   }

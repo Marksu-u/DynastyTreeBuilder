@@ -37,7 +37,7 @@ import { migrateCanvas } from '@/lib/migrate-canvas';
 import { useGenealogyLayout } from './useGenealogyLayout';
 import { HighlightContext } from './HighlightContext';
 import { useDescendantHighlight } from './useDescendantHighlight';
-import { computeAddRelative, computeRemoveRelative, partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
+import { computeAddRelative, computeRemoveRelative, computeDeleteCharacter, partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
 import { toPng } from "html-to-image";
 import { triggerJsonDownload } from "@/lib/export";
 import { exportDynasty, replaceDynastyFromExport } from "@/app/actions/dynasty";
@@ -195,11 +195,14 @@ export function DynastyCanvas({
       const prevNodes = nodes;
       const prevEdges = edges;
 
-      const nextEdges = edges.filter((e) => !removeIds.includes(e.source) && !removeIds.includes(e.target));
-      const referencedUnions = new Set(nextEdges.flatMap((e) => [e.source, e.target]));
-      const nextNodes = nodes
-        .filter((n) => !removeIds.includes(n.id))
-        .filter((n) => n.type !== 'union' || referencedUnions.has(n.id));
+      let nextNodes = nodes;
+      let nextEdges = edges;
+      for (const id of characterIds) {
+        const res = computeDeleteCharacter(nextNodes, nextEdges, id);
+        nextNodes = res.nodes;
+        nextEdges = res.edges;
+      }
+      nextNodes = nextNodes.filter((n) => !removeIds.includes(n.id));
 
       setNodes(nextNodes);
       setEdges(nextEdges);
@@ -309,11 +312,7 @@ export function DynastyCanvas({
     const prevNodes = nodes;
     const prevEdges = edges;
 
-    const nextEdges = edges.filter((e) => e.source !== id && e.target !== id);
-    const referencedUnions = new Set(nextEdges.flatMap((e) => [e.source, e.target]));
-    const nextNodes = nodes
-      .filter((n) => n.id !== id)
-      .filter((n) => n.type !== 'union' || referencedUnions.has(n.id));
+    const { nodes: nextNodes, edges: nextEdges } = computeDeleteCharacter(nodes, edges, id);
 
     setNodes(nextNodes);
     setEdges(nextEdges);

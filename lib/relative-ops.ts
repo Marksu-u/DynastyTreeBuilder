@@ -234,7 +234,8 @@ export function computeRemoveRelative(
     if (partnersLeft === 0 && childrenLeft > 0) {
       return { ok: false, error: 'Remove the children first, or add another partner before removing this one' };
     }
-    if (partnersLeft === 0 && childrenLeft === 0) {
+    // A union is orphaned/garbage if it has 0 partners OR it has exactly 1 partner and 0 children
+    if (partnersLeft === 0 || (partnersLeft === 1 && childrenLeft === 0)) {
       garbageUnionIds.add(unionId);
     }
   }
@@ -242,7 +243,48 @@ export function computeRemoveRelative(
   return {
     ok: true,
     nodes: nodes.filter(n => !(n.type === 'union' && garbageUnionIds.has(n.id))),
-    edges: edges.filter(e => !removeIdSet.has(e.id)),
+    edges: edges.filter(e => !removeIdSet.has(e.id) && !garbageUnionIds.has(e.source) && !garbageUnionIds.has(e.target)),
     pairEdges,
   };
 }
+
+export interface DeleteCharacterResult {
+  nodes: AnyCanvasNode[];
+  edges: RelationshipEdgeType[];
+}
+
+export function computeDeleteCharacter(
+  nodes: AnyCanvasNode[],
+  edges: RelationshipEdgeType[],
+  characterId: string,
+): DeleteCharacterResult {
+  // 1. Filter out edges directly connected to characterId
+  let nextEdges = edges.filter(e => e.source !== characterId && e.target !== characterId);
+
+  // 2. Identify orphaned union nodes based on the remaining edges
+  const unionNodes = nodes.filter(n => n.type === 'union');
+  const invalidUnionIds = new Set<string>();
+
+  for (const union of unionNodes) {
+    const partnersCount = nextEdges.filter(
+      e => e.target === union.id && e.data?.type === 'PARTNER'
+    ).length;
+    const childrenCount = nextEdges.filter(
+      e => e.source === union.id && (e.data?.type === 'CHILD' || e.data?.type === 'ADOPTED_CHILD')
+    ).length;
+
+    // A union is orphaned if it has 0 partners, OR it has 1 partner and 0 children
+    if (partnersCount === 0 || (partnersCount === 1 && childrenCount === 0)) {
+      invalidUnionIds.add(union.id);
+    }
+  }
+
+  // 3. Filter out characterId and any invalid/orphaned union nodes from nodes
+  const nextNodes = nodes.filter(n => n.id !== characterId && !invalidUnionIds.has(n.id));
+
+  // 4. Remove any edges connected to the deleted/invalid union nodes
+  nextEdges = nextEdges.filter(e => !invalidUnionIds.has(e.source) && !invalidUnionIds.has(e.target));
+
+  return { nodes: nextNodes, edges: nextEdges };
+}
+
