@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState, useEffect, RefObject } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { Download, ChevronDown } from "lucide-react";
-import { toPng } from "html-to-image";
+import { exportCanvasToPng } from "@/lib/export";
 import { toast } from "sonner";
 
 interface Props {
@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function ExportButton({ dynastyName, canvasRef, onExportJson }: Props) {
-  const { fitView } = useReactFlow();
+  const reactFlow = useReactFlow();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -30,31 +30,8 @@ export function ExportButton({ dynastyName, canvasRef, onExportJson }: Props) {
 
   const handleExportPng = useCallback(async () => {
     setOpen(false);
-    await fitView({ duration: 0, padding: 0.15 });
-    await new Promise<void>((r) => requestAnimationFrame(() => r()));
-
-    const element = canvasRef.current?.querySelector<HTMLElement>(".react-flow");
-    if (!element) return;
-
-    try {
-      const dataUrl = await toPng(element, {
-        backgroundColor: "#09090b",
-        filter: (node) => {
-          if (node instanceof Element && node.classList.contains("react-flow__panel")) {
-            return false;
-          }
-          return true;
-        },
-      });
-      const link = document.createElement("a");
-      link.download = `${dynastyName}.png`;
-      link.href = dataUrl;
-      link.click();
-      toast.success("Exported as PNG");
-    } catch {
-      toast.error("Export failed");
-    }
-  }, [fitView, canvasRef, dynastyName]);
+    await exportCanvasToPng(reactFlow, canvasRef, dynastyName);
+  }, [reactFlow, canvasRef, dynastyName]);
 
   const handleExportJson = useCallback(async () => {
     setOpen(false);

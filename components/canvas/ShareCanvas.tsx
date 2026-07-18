@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
-import { ReactFlow, Background, BackgroundVariant, Controls } from "@xyflow/react";
+import { useMemo, useRef, useCallback } from "react";
+import { ReactFlow, Background, BackgroundVariant, Controls, useReactFlow } from "@xyflow/react";
 import Link from "next/link";
 import { CharacterNode } from "./CharacterNode";
 import { RelationshipEdge } from "./RelationshipEdge";
 import { ReportButton } from "./ReportButton";
+import { Download } from "lucide-react";
+import { exportCanvasToPng } from "@/lib/export";
 import { CatalogProvider } from "./CatalogProvider";
 import { GenerationBands } from "./GenerationBands";
 import { migrateCanvas } from "@/lib/migrate-canvas";
@@ -27,6 +29,9 @@ type Props = {
 };
 
 export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const reactFlow = useReactFlow();
+
   const migrated = useMemo(
     () => migrateCanvas(nodes as never, edges as never),
     [nodes, edges],
@@ -45,9 +50,13 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
     [highlight.activeCharIds, highlight.activeEdgeIds],
   );
 
+  const handleExport = useCallback(async () => {
+    await exportCanvasToPng(reactFlow, containerRef, dynastyName);
+  }, [reactFlow, dynastyName]);
+
   return (
     <CatalogProvider isLoggedIn={false}>
-    <div className="relative h-full w-full">
+    <div ref={containerRef} className="relative h-full w-full">
       <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2">
         <div className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/90 px-4 py-1.5 text-xs text-zinc-400 backdrop-blur-sm">
           <span>
@@ -57,6 +66,15 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
           <Link href="/login" className="underline hover:text-zinc-200">
             Sign in to build your own →
           </Link>
+          <span className="text-zinc-700">·</span>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-1 hover:text-zinc-200 transition-colors"
+            title="Export to PNG"
+          >
+            <Download size={12} className="mr-0.5" />
+            <span>Export PNG</span>
+          </button>
           <span className="text-zinc-700">·</span>
           <ReportButton shareSlug={shareSlug} />
         </div>
