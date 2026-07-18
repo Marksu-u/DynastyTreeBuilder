@@ -6,9 +6,8 @@ import {
   Background, BackgroundVariant, Controls,
   useReactFlow,
 } from '@xyflow/react';
-import { toPng } from 'html-to-image';
 import { toast } from 'sonner';
-import { triggerJsonDownload } from '@/lib/export';
+import { triggerJsonDownload, exportCanvasToPng } from '@/lib/export';
 import { useCanvasStore } from '@/store/canvas';
 import type { AnyCanvasNode, CharacterNodeType } from '@/store/canvas';
 import { CharacterNode } from '@/components/canvas/CharacterNode';
@@ -55,7 +54,8 @@ function TreeCanvasInner() {
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const { fitView } = useReactFlow();
+  const reactFlow = useReactFlow();
+  const { fitView } = reactFlow;
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
 
@@ -76,22 +76,8 @@ function TreeCanvasInner() {
   );
 
   const handleExport = useCallback(async () => {
-    await fitView({ duration: 0, padding: 0.15 });
-    await new Promise<void>(r => requestAnimationFrame(() => r()));
-    const element = containerRef.current?.querySelector<HTMLElement>('.react-flow');
-    if (!element) return;
-    try {
-      const dataUrl = await toPng(element, {
-        backgroundColor: '#09090b',
-        filter: node => !(node instanceof Element && node.classList.contains('react-flow__panel')),
-      });
-      const link = document.createElement('a');
-      link.download = 'dynasty-tree.png';
-      link.href = dataUrl;
-      link.click();
-      toast.success('Exported as PNG');
-    } catch { toast.error('Export failed'); }
-  }, [fitView]);
+    await exportCanvasToPng(reactFlow, containerRef, 'dynasty-tree');
+  }, [reactFlow]);
 
   const handleExportJson = useCallback(() => {
     const n = laidOutNodes; const e = edges;

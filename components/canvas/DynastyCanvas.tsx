@@ -11,6 +11,7 @@ import {
   type EdgeRemoveChange,
   applyNodeChanges,
   applyEdgeChanges,
+  useReactFlow,
 } from "@xyflow/react";
 import { toast } from "sonner";
 import { CharacterNode } from "./CharacterNode";
@@ -38,8 +39,7 @@ import { useGenealogyLayout } from './useGenealogyLayout';
 import { HighlightContext } from './HighlightContext';
 import { useDescendantHighlight } from './useDescendantHighlight';
 import { computeAddRelative, computeRemoveRelative, computeDeleteCharacter, partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
-import { toPng } from "html-to-image";
-import { triggerJsonDownload } from "@/lib/export";
+import { triggerJsonDownload, exportCanvasToPng } from "@/lib/export";
 import { exportDynasty, replaceDynastyFromExport } from "@/app/actions/dynasty";
 import { parseImportFile } from "@/lib/import-canvas";
 
@@ -101,6 +101,7 @@ export function DynastyCanvas({
   onSaveStatusChange,
 }: Props) {
   const isLoggedIn = !!userId;
+  const reactFlow = useReactFlow();
   const migrated = useMemo(
     () => migrateCanvas(initialNodes as never, initialEdges as never),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -365,20 +366,8 @@ export function DynastyCanvas({
   }, [nodes, edges, dynastyId, performSave]);
 
   const handleExport = useCallback(async () => {
-    const element = containerRef.current?.querySelector<HTMLElement>('.react-flow');
-    if (!element) return;
-    try {
-      const dataUrl = await toPng(element, {
-        backgroundColor: '#09090b',
-        filter: node => !(node instanceof Element && node.classList.contains('react-flow__panel')),
-      });
-      const link = document.createElement('a');
-      link.download = `${dynastyName}.png`;
-      link.href = dataUrl;
-      link.click();
-      toast.success('Exported as PNG');
-    } catch { toast.error('Export failed'); }
-  }, [dynastyName]);
+    await exportCanvasToPng(reactFlow, containerRef, dynastyName);
+  }, [reactFlow, dynastyName]);
 
   const handleExportJson = useCallback(async () => {
     try {
