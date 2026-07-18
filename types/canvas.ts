@@ -15,11 +15,11 @@ export type LegacyRelationshipType = 'PARENT' | 'SPOUSE' | 'ADOPTED';
 
 export interface CharacterData extends Record<string, unknown> {
   name: string;
-  alias?: string;
+  alias?: string | null;
   flags: CharacterFlag[];
   style: CharacterStyle;
   gender: CharacterGender;
-  note?: string;
+  note?: string | null;
   isReadOnly?: boolean;
   /** Ghost nodes represent unknown parents — rendered differently, not persisted to DB */
   isGhost?: boolean;
