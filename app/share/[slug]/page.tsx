@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ReactFlowProvider } from "@xyflow/react";
 import { prisma } from "@/lib/prisma";
@@ -111,6 +112,12 @@ export default async function SharePage({
           <span className="rounded border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
             {SETTING_LABELS[dynasty.setting] ?? dynasty.setting}
           </span>
+          <Link
+            href="/"
+            className="ml-auto text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+          >
+            Dynasty Tree Builder
+          </Link>
         </header>
         <div className="flex-1 overflow-hidden">
           <ShareCanvas

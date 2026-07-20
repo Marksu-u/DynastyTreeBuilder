@@ -57,14 +57,17 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
   return (
     <CatalogProvider isLoggedIn={false}>
     <div ref={containerRef} className="relative h-full w-full">
-      <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2">
-        <div className="flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/90 px-4 py-1.5 text-xs text-zinc-400 backdrop-blur-sm">
+      <div className="absolute inset-x-0 top-3 z-10 flex justify-center px-3">
+        <div className="flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/90 px-4 py-1.5 text-xs text-zinc-400 backdrop-blur-sm">
           <span>
             👁 Viewing <span className="text-zinc-200">{dynastyName}</span> · Read only
           </span>
           <span className="text-zinc-700">·</span>
-          <Link href="/login" className="underline hover:text-zinc-200">
-            Sign in to build your own →
+          <Link
+            href="/tree"
+            className="font-medium text-zinc-200 underline hover:text-white"
+          >
+            Build your own — no account →
           </Link>
           <span className="text-zinc-700">·</span>
           <button
