@@ -1,7 +1,8 @@
 import { LegalDoc, Section, Mail } from "@/components/legal/LegalDoc";
 
 export const metadata = {
-  title: "Mentions Légales · Bag Of Holding Tools",
+  title: { absolute: "Mentions Légales · Bag Of Holding Tools" },
+  robots: { index: false, follow: true },
 };
 
 export default function LegalNoticePage() {

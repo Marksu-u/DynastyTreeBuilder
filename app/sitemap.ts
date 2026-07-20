@@ -1,33 +1,13 @@
 import type { MetadataRoute } from "next";
-import { prisma } from "@/lib/prisma";
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+export default function sitemap(): MetadataRoute.Sitemap {
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-  const staticRoutes: MetadataRoute.Sitemap = [
+  // Shared dynasties are deliberately absent: they are user content served with
+  // `noindex`, so listing them would only feed Search Console excluded-page noise.
+  return [
     { url: siteUrl, changeFrequency: "monthly", priority: 1.0 },
     { url: `${siteUrl}/tree`, changeFrequency: "monthly", priority: 0.6 },
-  ];
-
-  let publicDynasties: { slug: string; updatedAt: Date }[] = [];
-  try {
-    publicDynasties = await prisma.dynasty.findMany({
-      where: { isPublic: true },
-      select: { slug: true, updatedAt: true },
-    });
-  } catch (error) {
-    console.warn("sitemap: failed to load public dynasties, returning static routes only", error);
-    return staticRoutes;
-  }
-
-  return [
-    ...staticRoutes,
-    ...publicDynasties.map((dynasty) => ({
-      url: `${siteUrl}/share/${dynasty.slug}`,
-      lastModified: dynasty.updatedAt,
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
-    })),
   ];
 }

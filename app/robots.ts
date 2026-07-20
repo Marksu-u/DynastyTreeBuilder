@@ -7,8 +7,10 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
+      // /share stays crawlable on purpose: a disallowed URL can never be read,
+      // so its `noindex` would never be seen and the URL could still surface.
       allow: ["/", "/share/"],
-      disallow: ["/dashboard/", "/api/"],
+      disallow: ["/dashboard/", "/api/", "/login"],
     },
     sitemap: `${siteUrl}/sitemap.xml`,
   };

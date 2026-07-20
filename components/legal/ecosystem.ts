@@ -10,5 +10,6 @@ export type EcosystemTool = {
 };
 
 export const ECOSYSTEM_TOOLS: EcosystemTool[] = [
+  { name: "Any Map Builder", url: "https://anymapbuilder.vercel.app" },
   { name: "Dynasty Tree Builder", url: "/" },
 ];

@@ -2,7 +2,8 @@ import { Fragment } from "react";
 import { LegalDoc, Section, Bullets } from "@/components/legal/LegalDoc";
 
 export const metadata = {
-  title: "Politique des Cookies · Bag Of Holding Tools",
+  title: { absolute: "Politique des Cookies · Bag Of Holding Tools" },
+  robots: { index: false, follow: true },
 };
 
 export default function CookiesPage() {

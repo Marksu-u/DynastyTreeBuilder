@@ -31,10 +31,34 @@ export async function generateMetadata({
     where: { slug },
     select: { name: true, setting: true, isPublic: true },
   });
-  if (!dynasty || !dynasty.isPublic) return {};
+
+  // Shared trees are user content: linkable and previewable, but kept out of
+  // search indexes. `follow` still lets crawlers walk back to the marketing pages.
+  const robots = { index: false, follow: true } as const;
+
+  if (!dynasty || !dynasty.isPublic) {
+    return { title: "Tree not found", robots };
+  }
+
+  const setting = SETTING_LABELS[dynasty.setting] ?? dynasty.setting;
+  const description = `Explore the ${dynasty.name} dynasty tree — a ${setting.toLowerCase()} family tree built with Dynasty Tree Builder.`;
+
   return {
-    title: `${dynasty.name} · Dynasty Tree Builder`,
-    description: `Explore the ${dynasty.name} family tree`,
+    title: dynasty.name,
+    description,
+    robots,
+    alternates: { canonical: `/share/${slug}` },
+    openGraph: {
+      title: `${dynasty.name} · Dynasty Tree Builder`,
+      description,
+      type: "article",
+      url: `/share/${slug}`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${dynasty.name} · Dynasty Tree Builder`,
+      description,
+    },
   };
 }
 

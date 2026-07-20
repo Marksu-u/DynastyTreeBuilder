@@ -1,8 +1,12 @@
 import { Fragment } from "react";
 import { LegalDoc, Section, Bullets, Mail } from "@/components/legal/LegalDoc";
 
+// These bilingual documents are shared verbatim across every Bag Of Holding
+// Tools site, so they are kept out of the index to avoid duplicate content.
+// `absolute` stops the root layout template appending a second suffix.
 export const metadata = {
-  title: "Charte de Confidentialité · Bag Of Holding Tools",
+  title: { absolute: "Charte de Confidentialité · Bag Of Holding Tools" },
+  robots: { index: false, follow: true },
 };
 
 const EMAIL = "marc.gapasinpro@gmail.com";

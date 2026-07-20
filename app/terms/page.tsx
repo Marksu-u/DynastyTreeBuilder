@@ -1,7 +1,8 @@
 import { LegalDoc, Section, Bullets, Mail } from "@/components/legal/LegalDoc";
 
 export const metadata = {
-  title: "Conditions Générales d'Utilisation · Bag Of Holding Tools",
+  title: { absolute: "Conditions Générales d'Utilisation · Bag Of Holding Tools" },
+  robots: { index: false, follow: true },
 };
 
 const EMAIL = "marc.gapasinpro@gmail.com";
