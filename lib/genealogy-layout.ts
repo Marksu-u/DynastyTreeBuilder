@@ -406,26 +406,49 @@ export function assignX(
 
   /** Median of this unit's targets in one direction (down = parents' union
    *  points above, up = own unions' child-group centers below), plus the
-   *  target count (the unit's priority). Deduped by union id. */
+   *  target count (the unit's priority). Deduped by union id.
+   *
+   *  Down-direction targets are weighted by sibling-group size (how many of
+   *  that parent union's children are in the layout): when a unit bridges two
+   *  DIFFERENT birth families (a married-in couple whose two members each have
+   *  their own parents), blending both pulls equally used to drag the whole
+   *  unit toward the average of two distant families — stranding whichever
+   *  side has more OTHER children mid-canvas. Anchoring fully to the larger
+   *  family instead keeps that (more disruptive) sibling group tight; only an
+   *  exact tie falls back to the old blended average (the classic symmetric
+   *  intermarriage case, where splitting the difference is the right call). */
   const desired = (u: Unit, down: boolean): { x: number; n: number } | null => {
-    const targets: number[] = [];
-    const seen = new Set<string>();
-    for (const m of u.members) {
-      for (const un of (down ? graph.parentUnions : graph.partnerUnions).get(m) ?? []) {
-        if (seen.has(un.id)) continue;
-        seen.add(un.id);
-        if (down) {
-          const ux = unionX(un);
-          if (ux !== null) targets.push(ux);
-        } else {
+    if (!down) {
+      const targets: number[] = [];
+      const seen = new Set<string>();
+      for (const m of u.members) {
+        for (const un of graph.partnerUnions.get(m) ?? []) {
+          if (seen.has(un.id)) continue;
+          seen.add(un.id);
           const kids = un.children.filter(c => unitOf.has(c));
           if (kids.length) {
             targets.push(kids.reduce((a, c) => a + memberLeftX(c) + CARD_W / 2, 0) / kids.length);
           }
         }
       }
+      return targets.length ? { x: median(targets), n: targets.length } : null;
     }
-    return targets.length ? { x: median(targets), n: targets.length } : null;
+    const seen = new Set<string>();
+    const candidates: { x: number; weight: number }[] = [];
+    for (const m of u.members) {
+      for (const un of graph.parentUnions.get(m) ?? []) {
+        if (seen.has(un.id)) continue;
+        seen.add(un.id);
+        const ux = unionX(un);
+        if (ux === null) continue;
+        const weight = un.children.filter(c => unitOf.has(c)).length;
+        candidates.push({ x: ux, weight });
+      }
+    }
+    if (candidates.length === 0) return null;
+    const maxWeight = Math.max(...candidates.map(c => c.weight));
+    const winners = candidates.filter(c => c.weight === maxWeight);
+    return { x: median(winners.map(c => c.x)), n: candidates.length };
   };
 
   const minGap = (a: Unit, b: Unit): number => a.width / 2 + GROUP_GAP + b.width / 2;

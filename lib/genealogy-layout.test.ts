@@ -450,6 +450,46 @@ describe('assignX', () => {
     expect([...a.entries()]).toEqual([...b.entries()]);
   });
 
+  it('anchors a bridging marriage to the larger birth family, keeping those siblings tight', () => {
+    // Real-shape regression fixture (mirrors a live dynasty that exposed this):
+    // Aldric+Miriel have 3 children (Rhoswen, Corvin, Sera); Ilmaren+Vespera
+    // have 2 (Adaira, Lysandre). Corvin marries Adaira — a merged rank-1 unit
+    // pulled toward BOTH birth families. One of Corvin's siblings (Rhoswen)
+    // additionally has her own 3-child family, which amplifies the pull in the
+    // unweighted baseline (Rhoswen+Corvin+Sera end up 1716px apart for real).
+    // The larger family (3 > 2) should anchor the bridge outright, keeping
+    // Rhoswen/Corvin/Sera a tight strip.
+    const nodes = [
+      char('aldric'), char('miriel'), union('u_am'),
+      char('yelena'), union('u_ay'), char('dain'), char('marta'), union('u_dm'), char('wyn'),
+      char('ilmaren'), char('vespera'), union('u_iv'),
+      char('hale'), char('bettany'), union('u_hb'), char('joran'),
+      char('rhoswen'), char('perrin'), union('u_rp'), char('ilya'), char('bram'), char('nessa'),
+      union('u_ij'), char('talia'),
+      char('corvin'), char('adaira'), union('u_ca'), char('kestrel'),
+      char('sera'), char('lysandre'),
+    ];
+    const edges = [
+      partner('aldric', 'u_am'), partner('miriel', 'u_am'),
+      child('u_am', 'rhoswen'), child('u_am', 'corvin'), child('u_am', 'sera'),
+      partner('aldric', 'u_ay'), partner('yelena', 'u_ay'), child('u_ay', 'dain'),
+      partner('dain', 'u_dm'), partner('marta', 'u_dm'), child('u_dm', 'wyn'),
+      partner('ilmaren', 'u_iv'), partner('vespera', 'u_iv'),
+      child('u_iv', 'adaira'), child('u_iv', 'lysandre'),
+      partner('hale', 'u_hb'), partner('bettany', 'u_hb'), child('u_hb', 'joran'),
+      partner('rhoswen', 'u_rp'), partner('perrin', 'u_rp'),
+      child('u_rp', 'ilya'), child('u_rp', 'bram'), child('u_rp', 'nessa', true),
+      partner('ilya', 'u_ij'), partner('joran', 'u_ij'), child('u_ij', 'talia'),
+      partner('corvin', 'u_ca'), partner('adaira', 'u_ca'), child('u_ca', 'kestrel'),
+    ];
+    const p = layoutGenealogy(nodes, edges).positions;
+    const bigXs = [p.rhoswen.x, p.corvin.x, p.sera.x];
+    const span = Math.max(...bigXs) - Math.min(...bigXs);
+    // Loose enough for ordinary strip/group spacing (3 units, 2 gaps), tight
+    // enough to fail against the unweighted baseline (real span was 1716px).
+    expect(span).toBeLessThanOrEqual(900);
+  });
+
   it('a parent whose own line runs deep is not dragged off their birth-union by double-counted descendant pull', () => {
     // kp1+s2 both partner u_k, whose kids (g1,g2) create a downward pull.
     // Pre-fix that pull is counted once PER partner, dragging kp1 (and s2)
