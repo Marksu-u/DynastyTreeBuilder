@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Footer } from "@/components/legal/Footer";
+import { SOURCE_REPO_URL } from "@/components/legal/ecosystem";
 
 export const metadata: Metadata = {
   title: { absolute: "Dynasty Tree Builder — D&D & TTRPG Family Tree Maker" },
@@ -115,6 +116,10 @@ const softwareJsonLd = {
   },
   featureList: FEATURES.map((feature) => feature.title),
   isAccessibleForFree: true,
+  // Ties this page to the public repo as one entity, so a crawler that meets
+  // either surface can resolve the other instead of guessing what the tool is.
+  sameAs: [SOURCE_REPO_URL],
+  codeRepository: SOURCE_REPO_URL,
   publisher: {
     "@type": "Organization",
     name: "Bag Of Holding Tools",

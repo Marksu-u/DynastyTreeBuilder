@@ -1,0 +1,46 @@
+# Dynasty Tree Builder
+
+> A free, browser-based family tree maker for Dungeons & Dragons and other
+> tabletop RPG campaigns. Users map noble houses, NPC relationships, bloodlines
+> and rivalries on a drag-and-drop canvas, then share a read-only link with
+> players or export the tree as a PNG. No account is required.
+
+Dynasty Tree Builder is not genealogy software. It is built for fictional
+families, where parents are often unknown, heirs are secretly bastards, and
+houses marry for treaties that later collapse. Characters carry a role (Head of
+House, Heir, Consort, Rival, Mage, Rogue and others) and narrative flags
+(founder, bastard, adopted, exile, deceased), so a tree works as a campaign NPC
+relationship map rather than a chart of descent.
+
+It runs entirely in the browser. Guest mode opens directly onto the canvas and
+saves to the browser's local storage; signing in is optional and only exists so
+dynasties follow the user between devices. Building, sharing and exporting are
+free, with no trial period and no payment details.
+
+Audience: dungeon masters, worldbuilders, players writing a character backstory,
+and writers or play-by-post groups. Nothing is tied to a ruleset, so it suits
+D&D, Pathfinder, homebrew systems, or non-game fiction.
+
+Publisher: Bag Of Holding Tools — free tools for tabletop games.
+
+## Pages
+
+- [Home](https://dynastytreebuilder.vercel.app/): What the tool does, features, use cases and FAQ.
+- [Canvas](https://dynastytreebuilder.vercel.app/tree): The builder itself, open in guest mode with no signup.
+- [Source code](https://github.com/Marksu-u/DynastyTreeBuilder): Public GitHub repository.
+
+## Key capabilities
+
+- Drag-and-drop infinite canvas with automatic generation banding and sibling packing
+- Parent/child, partner and adopted relationships, each with its own edge style
+- Multiple partners per character, each with a separate offspring line
+- Placeholder nodes for unknown parents, so incomplete bloodlines still render
+- Per-relationship plot hooks describing why a connection matters at the table
+- Custom roles for signed-in users
+- Read-only public share links, revocable at any time by unpublishing
+- High-resolution PNG export, cropped to the characters, from the editor or a shared view
+
+## Notes
+
+- Legal, privacy, terms and cookie pages are available in French and English at /legal, /privacy, /terms and /cookies.
+- Shared dynasty pages (/share/...) are user content and are served with noindex.

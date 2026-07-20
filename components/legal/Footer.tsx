@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ECOSYSTEM_TOOLS } from "./ecosystem";
+import { ECOSYSTEM_TOOLS, SOURCE_REPO_URL } from "./ecosystem";
 
 const LABELS = {
   fr: {
@@ -10,6 +10,7 @@ const LABELS = {
     privacy: "Confidentialité",
     terms: "CGU",
     cookies: "Cookies",
+    source: "Code source",
   },
   en: {
     partOf: "is part of",
@@ -19,6 +20,7 @@ const LABELS = {
     privacy: "Privacy",
     terms: "Terms",
     cookies: "Cookies",
+    source: "Source on GitHub",
   },
 };
 
@@ -59,6 +61,14 @@ export function Footer({
             <Link href="/cookies" className="hover:text-zinc-300">
               {t.cookies}
             </Link>
+            <a
+              href={SOURCE_REPO_URL}
+              target="_blank"
+              rel="noopener"
+              className="hover:text-zinc-300"
+            >
+              {t.source}
+            </a>
           </nav>
         </div>
 

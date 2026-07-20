@@ -12,3 +12,5 @@ export const ECOSYSTEM_TOOLS: EcosystemTool[] = [
   // { name: "Any Map Builder", url: "https://anymapbuilder.vercel.app" },
   { name: "Dynasty Tree Builder", url: "/" },
 ];
+
+export const SOURCE_REPO_URL = "https://github.com/Marksu-u/DynastyTreeBuilder";
