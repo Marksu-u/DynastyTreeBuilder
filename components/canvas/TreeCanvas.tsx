@@ -23,7 +23,7 @@ import { CanvasContext } from '@/components/canvas/CanvasContext';
 import { CanvasEmptyState } from '@/components/canvas/CanvasEmptyState';
 import { useGenealogyLayout } from '@/components/canvas/useGenealogyLayout';
 import { HighlightContext } from '@/components/canvas/HighlightContext';
-import { useDescendantHighlight } from '@/components/canvas/useDescendantHighlight';
+import { useBloodlineHighlight } from '@/components/canvas/useBloodlineHighlight';
 import { partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
 import { parseImportFile, buildCanvasFromExport, deriveExportRelationships } from '@/lib/import-canvas';
 import type { CharacterData } from '@/types/canvas';
@@ -59,10 +59,10 @@ function TreeCanvasInner() {
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
 
-  const highlight = useDescendantHighlight(nodes, edges);
+  const highlight = useBloodlineHighlight(nodes, edges);
   const highlightValue = useMemo(
-    () => ({ activeCharIds: highlight.activeCharIds, activeEdgeIds: highlight.activeEdgeIds }),
-    [highlight.activeCharIds, highlight.activeEdgeIds],
+    () => ({ chars: highlight.chars, edges: highlight.edges }),
+    [highlight.chars, highlight.edges],
   );
 
   const characterNodes = useMemo(

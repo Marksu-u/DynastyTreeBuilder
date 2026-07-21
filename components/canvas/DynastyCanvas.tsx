@@ -37,7 +37,7 @@ import type { AnyCanvasNode } from '@/store/canvas';
 import { migrateCanvas } from '@/lib/migrate-canvas';
 import { useGenealogyLayout } from './useGenealogyLayout';
 import { HighlightContext } from './HighlightContext';
-import { useDescendantHighlight } from './useDescendantHighlight';
+import { useBloodlineHighlight } from './useBloodlineHighlight';
 import { computeAddRelative, computeRemoveRelative, computeDeleteCharacter, partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
 import { triggerJsonDownload, exportCanvasToPng } from "@/lib/export";
 import { exportDynasty, replaceDynastyFromExport } from "@/app/actions/dynasty";
@@ -119,10 +119,10 @@ export function DynastyCanvas({
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
 
-  const highlight = useDescendantHighlight(nodes, edges);
+  const highlight = useBloodlineHighlight(nodes, edges);
   const highlightValue = useMemo(
-    () => ({ activeCharIds: highlight.activeCharIds, activeEdgeIds: highlight.activeEdgeIds }),
-    [highlight.activeCharIds, highlight.activeEdgeIds],
+    () => ({ chars: highlight.chars, edges: highlight.edges }),
+    [highlight.chars, highlight.edges],
   );
 
   const performSave = useCallback(

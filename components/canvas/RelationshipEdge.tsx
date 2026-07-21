@@ -4,7 +4,7 @@ import { memo } from 'react';
 import { BaseEdge, EdgeProps, Edge, useInternalNode } from '@xyflow/react';
 import { CARD_W, CARD_H, RAIL_OFFSET, RAIL_STEP, unionHue } from '@/lib/genealogy-layout';
 import type { RelationshipData } from '@/types/canvas';
-import { useHighlight } from './HighlightContext';
+import { useHighlight, TIER_COLOR } from './HighlightContext';
 
 export type RelationshipEdgeType = Edge<RelationshipData, 'relationship'>;
 
@@ -28,7 +28,7 @@ export const RelationshipEdge = memo(({
 }: EdgeProps<RelationshipEdgeType>) => {
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
-  const { activeEdgeIds } = useHighlight();
+  const { edges: activeEdges } = useHighlight();
   // All hooks must run before any early return (Rules of Hooks): useInternalNode
   // returns undefined until a node's internals are measured, so bailing out
   // before useHighlight would change the hook count between renders.
@@ -37,8 +37,9 @@ export const RelationshipEdge = memo(({
   const s = sourceNode.internals.positionAbsolute;
   const t = targetNode.internals.positionAbsolute;
   const relType = data?.type ?? 'CHILD';
-  const dimmed = activeEdgeIds !== null && !activeEdgeIds.has(id);
-  const emphasized = activeEdgeIds !== null && activeEdgeIds.has(id);
+  const active = activeEdges?.get(id);
+  const dimmed = activeEdges !== null && !active;
+  const emphasized = !!active;
 
   const baseStyle = EDGE_STYLES[relType] ?? FALLBACK_STYLE;
   let strokeColor = baseStyle.stroke as string | undefined;
@@ -95,6 +96,14 @@ export const RelationshipEdge = memo(({
   }
 
   const edgeOpacity = dimmed ? 0.12 : selected || emphasized ? 1 : 0.8;
+  // A highlighted connector takes the direction tint so ancestry and descent
+  // read apart at a glance. Adoption is tinted too — its dashed stroke keeps
+  // marking it as adoption while the lineage is lit, and the green returns as
+  // soon as the highlight clears.
+  if (active && active.tier !== 'spouse') {
+    strokeColor = TIER_COLOR[active.tier];
+    if (dot) dot = { ...dot, hue: strokeColor };
+  }
   return (
     <>
       <BaseEdge

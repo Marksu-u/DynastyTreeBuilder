@@ -14,7 +14,7 @@ import { migrateCanvas } from "@/lib/migrate-canvas";
 import { useGenealogyLayout } from "./useGenealogyLayout";
 import { UnionNode } from "./UnionNode";
 import { HighlightContext } from "./HighlightContext";
-import { useDescendantHighlight } from "./useDescendantHighlight";
+import { useBloodlineHighlight } from "./useBloodlineHighlight";
 import "@xyflow/react/dist/style.css";
 import type { AnyCanvasNode, RelationshipEdgeType, CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
 
@@ -41,13 +41,13 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
     migrated.edges as RelationshipEdgeType[],
   );
 
-  const highlight = useDescendantHighlight(
+  const highlight = useBloodlineHighlight(
     migrated.nodes as AnyCanvasNode[],
     migrated.edges as RelationshipEdgeType[],
   );
   const highlightValue = useMemo(
-    () => ({ activeCharIds: highlight.activeCharIds, activeEdgeIds: highlight.activeEdgeIds }),
-    [highlight.activeCharIds, highlight.activeEdgeIds],
+    () => ({ chars: highlight.chars, edges: highlight.edges }),
+    [highlight.chars, highlight.edges],
   );
 
   const handleExport = useCallback(async () => {

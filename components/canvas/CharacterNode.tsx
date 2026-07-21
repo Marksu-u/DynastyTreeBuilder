@@ -5,7 +5,7 @@ import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { Pencil, Skull, Plus } from 'lucide-react';
 import { useCanvasStore } from '@/store/canvas';
 import { useCanvasContext } from './CanvasContext';
-import { useHighlight } from './HighlightContext';
+import { useHighlight, tierStyle } from './HighlightContext';
 import type { CharacterData } from '@/types/canvas';
 
 type CharacterNodeType = Node<CharacterData, 'character'>;
@@ -28,8 +28,8 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
   const setEditingCharacterId = canvasCtx ? canvasCtx.setEditingCharacterId : setEditingCharacterIdStore;
   const openAddRelative = canvasCtx?.openAddRelative;
   const flags = data.flags ?? [];
-  const { activeCharIds } = useHighlight();
-  const dimmed = activeCharIds !== null && !activeCharIds.has(id);
+  const { chars } = useHighlight();
+  const hl = tierStyle(chars?.get(id), chars !== null);
 
   const isDeceased = flags.includes('DECEASED');
   const isGhost = data.isGhost ?? false;
@@ -57,7 +57,7 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
         'relative w-[180px] rounded-lg bg-zinc-800/95 px-3 py-3 shadow-lg transition-colors duration-100',
         selected
           ? 'border border-blue-400 ring-2 ring-blue-400/20'
-          : hasSvgBorder
+          : hasSvgBorder || hl.tint
           ? ''
           : isFounder
           ? 'border border-[#EF9F27]/50 hover:border-[#EF9F27]/80'
@@ -65,8 +65,15 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
       ].join(' ')}
       style={{
         ...(isGhost ? { filter: 'grayscale(1)' } : {}),
-        opacity: isGhost ? 0.4 : dimmed ? 0.35 : 1,
-        transition: 'opacity 120ms',
+        opacity: isGhost ? 0.4 : hl.opacity,
+        // A tinted border marks direction (ancestors cool, descendants teal,
+        // the hovered card gold). It replaces the resting border rather than
+        // stacking with it, so the card never gains a second outline — except
+        // on flag cards, which keep their SVG dashed border underneath.
+        ...(hl.tint && !selected
+          ? { border: `1px solid ${hl.tint}`, boxShadow: `0 0 0 1px ${hl.tint}33` }
+          : {}),
+        transition: 'opacity 120ms, border-color 120ms, box-shadow 120ms',
       }}
     >
       {/* SVG dashed border — follows border-radius on all four sides */}
@@ -132,8 +139,11 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
               className={`truncate text-sm font-semibold leading-tight ${
                 isGhost
                   ? 'text-zinc-500 italic'
+                  : hl.tint
+                  ? ''
                   : 'text-zinc-100'
               }`}
+              style={!isGhost && hl.tint ? { color: hl.tint } : undefined}
             >
               {isGhost ? 'Unknown' : data.name}
             </p>
