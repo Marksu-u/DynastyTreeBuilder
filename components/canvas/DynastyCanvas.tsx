@@ -121,8 +121,8 @@ export function DynastyCanvas({
 
   const highlight = useBloodlineHighlight(nodes, edges);
   const highlightValue = useMemo(
-    () => ({ chars: highlight.chars, edges: highlight.edges }),
-    [highlight.chars, highlight.edges],
+    () => ({ chars: highlight.chars, edges: highlight.edges, pinned: highlight.pinned, onUnionHover: highlight.onUnionHover }),
+    [highlight.chars, highlight.edges, highlight.pinned, highlight.onUnionHover],
   );
 
   const performSave = useCallback(
@@ -416,6 +416,10 @@ export function DynastyCanvas({
           onEdgesChange={onEdgesChange}
           onNodeMouseEnter={highlight.onNodeMouseEnter}
           onNodeMouseLeave={highlight.onNodeMouseLeave}
+          onNodeClick={highlight.onNodeClick}
+          onEdgeMouseEnter={highlight.onEdgeMouseEnter}
+          onEdgeMouseLeave={highlight.onEdgeMouseLeave}
+          onPaneClick={highlight.onPaneClick}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           colorMode="dark"

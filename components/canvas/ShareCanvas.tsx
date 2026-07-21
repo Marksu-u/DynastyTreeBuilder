@@ -46,8 +46,8 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
     migrated.edges as RelationshipEdgeType[],
   );
   const highlightValue = useMemo(
-    () => ({ chars: highlight.chars, edges: highlight.edges }),
-    [highlight.chars, highlight.edges],
+    () => ({ chars: highlight.chars, edges: highlight.edges, pinned: highlight.pinned, onUnionHover: highlight.onUnionHover }),
+    [highlight.chars, highlight.edges, highlight.pinned, highlight.onUnionHover],
   );
 
   const handleExport = useCallback(async () => {
@@ -94,6 +94,10 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
         elementsSelectable={false}
         onNodeMouseEnter={highlight.onNodeMouseEnter}
         onNodeMouseLeave={highlight.onNodeMouseLeave}
+        onNodeClick={highlight.onNodeClick}
+        onEdgeMouseEnter={highlight.onEdgeMouseEnter}
+        onEdgeMouseLeave={highlight.onEdgeMouseLeave}
+        onPaneClick={highlight.onPaneClick}
         colorMode="dark"
         fitView
         fitViewOptions={{ padding: 0.2 }}

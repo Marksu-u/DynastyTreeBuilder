@@ -28,7 +28,7 @@ export const RelationshipEdge = memo(({
 }: EdgeProps<RelationshipEdgeType>) => {
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
-  const { edges: activeEdges } = useHighlight();
+  const { edges: activeEdges, onUnionHover } = useHighlight();
   // All hooks must run before any early return (Rules of Hooks): useInternalNode
   // returns undefined until a node's internals are measured, so bailing out
   // before useHighlight would change the hook count between renders.
@@ -117,7 +117,24 @@ export const RelationshipEdge = memo(({
           filter: selected ? 'drop-shadow(0 0 4px currentColor)' : undefined,
           transition: 'opacity 120ms',
         }}
-        interactionWidth={20}
+        interactionWidth={0}
+      />
+      {/* Hover hit-area. React Flow marks every edge `.inactive` when a canvas
+          sets `elementsSelectable={false}` (the read-only share view), which
+          zeroes pointer-events for the whole edge subtree AND suppresses
+          `onEdgeMouseEnter`. Declaring pointerEvents here re-enables
+          hit-testing for this path alone, and the edge reports its own hover
+          through the highlight context — so lighting a marriage works the same
+          in every canvas, with selection still off. Transparent and wide so
+          thin connectors stay easy to hit. */}
+      <path
+        d={path}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={20}
+        style={{ pointerEvents: 'stroke' }}
+        onMouseEnter={() => onUnionHover?.(relType === 'PARTNER' ? target : source)}
+        onMouseLeave={() => onUnionHover?.(null)}
       />
       {dot && (
         <circle

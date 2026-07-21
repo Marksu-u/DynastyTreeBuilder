@@ -4,12 +4,18 @@ import { createContext, useContext } from 'react';
 import type { BloodlineEntry, BloodTier } from '@/lib/descendant-subtree';
 
 export interface HighlightContextValue {
-  /** null = nothing hovered; otherwise every character on the active lineage
-   *  spine, keyed by id, with their tier and generational distance. */
+  /** null = nothing hovered/pinned; otherwise every character on the active
+   *  lineage spine, keyed by id, with their tier and generational distance. */
   chars: Map<string, BloodlineEntry> | null;
-  /** null = nothing hovered; otherwise the active edge ids mapped to the tier of
+  /** null = nothing active; otherwise the active edge ids mapped to the tier of
    *  the union they belong to, so connectors can be tinted by direction. */
   edges: Map<string, BloodlineEntry> | null;
+  /** True while a highlight is locked by a click rather than a hover. */
+  pinned: boolean;
+  /** Connectors report their own hover here. React Flow suppresses edge events
+   *  entirely on a canvas with `elementsSelectable={false}`, so the edge owns
+   *  this rather than relying on `onEdgeMouseEnter`. Pass null on leave. */
+  onUnionHover?: (unionId: string | null) => void;
 }
 
 /** Ancestors read cool, descendants read teal, the hovered person holds the
@@ -46,6 +52,7 @@ export function tierStyle(entry: BloodlineEntry | undefined, active: boolean): {
 export const HighlightContext = createContext<HighlightContextValue>({
   chars: null,
   edges: null,
+  pinned: false,
 });
 
 export function useHighlight() {
