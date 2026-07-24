@@ -15,6 +15,7 @@ export function DeleteAccountDialog({ email }: Props) {
   const [open, setOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [succeeded, setSucceeded] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const armed = isDeletionConfirmed(confirmText, email);
@@ -23,6 +24,7 @@ export function DeleteAccountDialog({ email }: Props) {
     if (value) {
       setConfirmText("");
       setError(null);
+      setSucceeded(false);
     }
     setOpen(value);
   }
@@ -37,6 +39,7 @@ export function DeleteAccountDialog({ email }: Props) {
         return;
       }
       toast.success("Your account and all its data have been deleted.");
+      setSucceeded(true);
       window.location.href = "/";
     });
   }
@@ -76,22 +79,28 @@ export function DeleteAccountDialog({ email }: Props) {
           </Dialog.Description>
 
           <label
-            htmlFor="confirm-email"
+            htmlFor="delete-confirm"
             className="mb-1.5 block text-xs font-medium text-zinc-400"
           >
             Type <span className="text-zinc-200">{email}</span> to confirm
           </label>
           <input
-            id="confirm-email"
-            type="email"
+            id="delete-confirm"
+            name="delete-confirm"
+            type="text"
             autoComplete="off"
+            spellCheck={false}
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
             placeholder={email}
             className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-red-700"
           />
 
-          {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
+          {error && (
+            <p role="alert" className="mt-3 text-xs text-red-400">
+              {error}
+            </p>
+          )}
 
           <div className="mt-6 flex justify-end gap-2">
             <Dialog.Close asChild>
@@ -101,10 +110,10 @@ export function DeleteAccountDialog({ email }: Props) {
             </Dialog.Close>
             <button
               onClick={handleDelete}
-              disabled={!armed || isPending}
+              disabled={!armed || isPending || succeeded}
               className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-40 disabled:hover:bg-red-600 transition-colors"
             >
-              {isPending ? "Deleting…" : "Delete forever"}
+              {isPending || succeeded ? "Deleting…" : "Delete forever"}
             </button>
           </div>
         </Dialog.Content>
