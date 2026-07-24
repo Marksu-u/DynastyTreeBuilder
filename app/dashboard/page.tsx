@@ -35,7 +35,12 @@ export default async function DashboardPage() {
             Dynasty Tree Builder
           </Link>
           <div className="flex items-center gap-4">
-            <span className="text-xs text-zinc-500">{user.email}</span>
+            <Link
+              href="/account"
+              className="text-xs text-zinc-500 hover:text-zinc-300"
+            >
+              {user.email}
+            </Link>
             <form action={signOut}>
               <button
                 type="submit"
