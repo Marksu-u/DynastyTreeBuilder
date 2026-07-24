@@ -17,24 +17,25 @@ CREATE OR REPLACE FUNCTION public.handle_account_deletion()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $func$
 BEGIN
   -- Dynasty Tree Builder: cascades dynasties/characters/relationships/custom_* rows.
   DELETE FROM public.users WHERE "supabaseId" = OLD.id::text;
   -- Future tools: add one DELETE line each, keyed on OLD.id::text.
+  -- Always schema-qualify the table (search_path is intentionally empty).
   RETURN OLD;
 END;
 $func$;
 
--- Bind the trigger only when the auth schema exists. On Prisma's shadow database
--- (no auth schema) this block is a clean no-op, so migrate validation still passes.
+-- Bind the trigger only when auth.users actually exists. to_regclass resolves
+-- against pg_class, which (unlike information_schema) is NOT privilege-filtered,
+-- so this cannot silently skip trigger creation when the migration role lacks
+-- visibility into the auth schema. On Prisma's shadow database (no auth schema)
+-- it returns NULL and this block is a clean no-op, so migrate validation passes.
 DO $do$
 BEGIN
-  IF EXISTS (
-    SELECT FROM information_schema.tables
-    WHERE table_schema = 'auth' AND table_name = 'users'
-  ) THEN
+  IF to_regclass('auth.users') IS NOT NULL THEN
     DROP TRIGGER IF EXISTS on_auth_user_deleted ON auth.users;
     CREATE TRIGGER on_auth_user_deleted
       AFTER DELETE ON auth.users
@@ -42,3 +43,7 @@ BEGIN
       EXECUTE FUNCTION public.handle_account_deletion();
   END IF;
 END $do$;
+
+-- Manual rollback, if this trigger ever needs to be removed in production:
+--   DROP TRIGGER IF EXISTS on_auth_user_deleted ON auth.users;
+--   DROP FUNCTION IF EXISTS public.handle_account_deletion();
