@@ -1,0 +1,114 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { X, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+import { deleteAccount } from "@/app/actions/auth";
+import { isDeletionConfirmed } from "@/lib/account/confirm-account";
+
+interface Props {
+  email: string;
+}
+
+export function DeleteAccountDialog({ email }: Props) {
+  const [open, setOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const armed = isDeletionConfirmed(confirmText, email);
+
+  function handleOpen(value: boolean) {
+    if (value) {
+      setConfirmText("");
+      setError(null);
+    }
+    setOpen(value);
+  }
+
+  function handleDelete() {
+    if (!armed) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteAccount();
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      toast.success("Your account and all its data have been deleted.");
+      window.location.href = "/";
+    });
+  }
+
+  return (
+    <Dialog.Root open={open} onOpenChange={handleOpen}>
+      <Dialog.Trigger asChild>
+        <button className="rounded-md border border-red-900/60 bg-red-950/40 px-4 py-2 text-sm font-medium text-red-300 transition-colors hover:bg-red-950/70">
+          Delete account
+        </button>
+      </Dialog.Trigger>
+
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-red-900/60 bg-zinc-950 p-6 shadow-xl focus:outline-none">
+          <div className="mb-4 flex items-start justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
+              <Dialog.Title className="text-base font-semibold text-zinc-100">
+                Delete your account
+              </Dialog.Title>
+            </div>
+            <Dialog.Close asChild>
+              <button className="rounded p-1 text-zinc-500 hover:text-zinc-300">
+                <X className="h-4 w-4" />
+              </button>
+            </Dialog.Close>
+          </div>
+
+          <Dialog.Description className="mb-4 text-sm text-zinc-400">
+            This permanently deletes your account and{" "}
+            <span className="text-zinc-200">
+              all data across every Bag Of Holding Tools app
+            </span>{" "}
+            — every dynasty, character, relationship, and custom option. This
+            cannot be undone.
+          </Dialog.Description>
+
+          <label
+            htmlFor="confirm-email"
+            className="mb-1.5 block text-xs font-medium text-zinc-400"
+          >
+            Type <span className="text-zinc-200">{email}</span> to confirm
+          </label>
+          <input
+            id="confirm-email"
+            type="email"
+            autoComplete="off"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder={email}
+            className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-red-700"
+          />
+
+          {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
+
+          <div className="mt-6 flex justify-end gap-2">
+            <Dialog.Close asChild>
+              <button className="rounded-md border border-zinc-700 px-4 py-2 text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 transition-colors">
+                Cancel
+              </button>
+            </Dialog.Close>
+            <button
+              onClick={handleDelete}
+              disabled={!armed || isPending}
+              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-40 disabled:hover:bg-red-600 transition-colors"
+            >
+              {isPending ? "Deleting…" : "Delete forever"}
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
