@@ -5,6 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 
+const SIGN_IN_DELETION_FAILED =
+  "Your data was deleted, but removing your sign-in failed. Please try again.";
+
 export async function syncUser() {
   const supabase = await createClient();
   const {
@@ -71,16 +74,22 @@ export async function deleteAccount(): Promise<
 
   // 2. Remove the shared sign-in identity. Its AFTER DELETE trigger on
   //    auth.users sweeps any other ecosystem tool's rows keyed on this id.
-  const admin = createAdminClient();
-  const { error: adminError } = await admin.auth.admin.deleteUser(user.id);
-  if (adminError) {
-    return {
-      error:
-        "Your data was deleted, but removing your sign-in failed. Please try again.",
-    };
+  //    Guarded: a throw here would land after the data is already gone.
+  try {
+    const admin = createAdminClient();
+    const { error: adminError } = await admin.auth.admin.deleteUser(user.id);
+    if (adminError) return { error: SIGN_IN_DELETION_FAILED };
+  } catch {
+    return { error: SIGN_IN_DELETION_FAILED };
   }
 
-  // 3. Clear the local session; the client navigates home.
-  await supabase.auth.signOut();
+  // 3. Clear the local session; the client navigates home. A failure here is
+  //    harmless — the identity is already deleted, so the session is unusable.
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    // Ignored: deletion already succeeded.
+  }
+
   return { success: true };
 }
