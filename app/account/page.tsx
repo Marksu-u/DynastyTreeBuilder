@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions/auth";
 import { DeleteAccountDialog } from "@/components/account/DeleteAccountDialog";
+import { ECOSYSTEM_TOOLS } from "@/components/legal/ecosystem";
+import { Trash2 } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Account",
@@ -51,9 +53,23 @@ export default async function AccountPage() {
           <p className="mt-2 text-sm text-zinc-400">
             Deleting your account permanently erases everything tied to it: all
             your dynasties, characters, relationships, and custom options — and
-            your sign-in identity across every Bag Of Holding Tools app. This
-            cannot be undone.
+            your sign-in identity itself. This cannot be undone.
           </p>
+          <p className="mt-3 text-sm text-zinc-400">
+            One account covers every Bag Of Holding Tools app, so this erases
+            your data from all of them:
+          </p>
+          <ul className="mt-2 space-y-1">
+            {ECOSYSTEM_TOOLS.map((tool) => (
+              <li
+                key={tool.name}
+                className="flex items-center gap-2 text-sm text-zinc-300"
+              >
+                <Trash2 className="h-3.5 w-3.5 shrink-0 text-red-400" />
+                {tool.name}
+              </li>
+            ))}
+          </ul>
           <div className="mt-4">
             <DeleteAccountDialog email={user.email} />
           </div>

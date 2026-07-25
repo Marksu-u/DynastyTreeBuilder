@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, AlertTriangle } from "lucide-react";
+import { X, AlertTriangle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteAccount } from "@/app/actions/auth";
 import { isDeletionConfirmed } from "@/lib/account/confirm-account";
+import { ECOSYSTEM_TOOLS } from "@/components/legal/ecosystem";
 
 interface Props {
   email: string;
@@ -69,14 +70,24 @@ export function DeleteAccountDialog({ email }: Props) {
             </Dialog.Close>
           </div>
 
-          <Dialog.Description className="mb-4 text-sm text-zinc-400">
+          <Dialog.Description className="mb-3 text-sm text-zinc-400">
             This permanently deletes your account and{" "}
-            <span className="text-zinc-200">
-              all data across every Bag Of Holding Tools app
-            </span>{" "}
-            — every dynasty, character, relationship, and custom option. This
-            cannot be undone.
+            <span className="text-zinc-200">everything tied to it</span>. Your
+            data will be erased from every Bag Of Holding Tools app, not just
+            this one. This cannot be undone.
           </Dialog.Description>
+
+          <ul className="mb-4 space-y-1 rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2.5">
+            {ECOSYSTEM_TOOLS.map((tool) => (
+              <li
+                key={tool.name}
+                className="flex items-center gap-2 text-xs text-zinc-300"
+              >
+                <Trash2 className="h-3 w-3 shrink-0 text-red-400" />
+                {tool.name}
+              </li>
+            ))}
+          </ul>
 
           <label
             htmlFor="delete-confirm"
