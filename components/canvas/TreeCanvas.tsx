@@ -21,11 +21,17 @@ import { GenerationBands } from '@/components/canvas/GenerationBands';
 import { CatalogProvider } from '@/components/canvas/CatalogProvider';
 import { CanvasContext } from '@/components/canvas/CanvasContext';
 import { CanvasEmptyState } from '@/components/canvas/CanvasEmptyState';
+import { ExampleDynastyNotice } from '@/components/canvas/ExampleDynastyNotice';
 import { useGenealogyLayout } from '@/components/canvas/useGenealogyLayout';
 import { HighlightContext } from '@/components/canvas/HighlightContext';
 import { useBloodlineHighlight } from '@/components/canvas/useBloodlineHighlight';
 import { partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
 import { parseImportFile, buildCanvasFromExport, deriveExportRelationships } from '@/lib/import-canvas';
+import {
+  EXAMPLE_HOUSE_NAME, buildSeedCanvas, hasSeedBeenDecided,
+  markSeedDecided, isShowingExample, setShowingExample,
+} from '@/lib/seed-canvas';
+import { useFitTree } from '@/components/canvas/useFitTree';
 import type { CharacterData } from '@/types/canvas';
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
@@ -52,12 +58,13 @@ function TreeCanvasInner() {
 
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
+  const [showExampleNotice, setShowExampleNotice] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const reactFlow = useReactFlow();
-  const { fitView } = reactFlow;
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
+  const { fitTree, bind: fitBind } = useFitTree(laidOutNodes, containerRef);
 
   const highlight = useBloodlineHighlight(nodes, edges);
   const highlightValue = useMemo(
@@ -154,6 +161,55 @@ function TreeCanvasInner() {
     }
   }, [characterNodes.length, initCanvas]);
 
+  const handleClearExample = useCallback(() => {
+    initCanvas([], []);
+    setShowingExample(false);
+    setShowExampleNotice(false);
+    setAddCharacterOpen(true);
+  }, [initCanvas]);
+
+  const handleDismissExample = useCallback(() => {
+    // The tree stays — they may want to build on it — but it is theirs now.
+    setShowingExample(false);
+    setShowExampleNotice(false);
+  }, []);
+
+  // First-run seeding. Must wait for the persist middleware to rehydrate,
+  // otherwise a returning visitor's saved tree is still an empty array at mount
+  // and we would seed straight over it.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function seedIfFirstRun() {
+      if (hasSeedBeenDecided()) {
+        setShowExampleNotice(isShowingExample());
+        return;
+      }
+      if (useCanvasStore.getState().nodes.length > 0) {
+        markSeedDecided('skipped');
+        return;
+      }
+
+      const seed = await buildSeedCanvas();
+      // Re-check after the await: the visitor may have added someone while the
+      // fixture chunk was still downloading.
+      if (cancelled || useCanvasStore.getState().nodes.length > 0) return;
+
+      initCanvas(seed.nodes, seed.edges);
+      markSeedDecided('seeded');
+      setShowingExample(true);
+      setShowExampleNotice(true);
+    }
+
+    if (useCanvasStore.persist.hasHydrated()) {
+      void seedIfFirstRun();
+      return () => { cancelled = true; };
+    }
+
+    const unsub = useCanvasStore.persist.onFinishHydration(() => void seedIfFirstRun());
+    return () => { cancelled = true; unsub(); };
+  }, [initCanvas]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMod = e.metaKey || e.ctrlKey;
@@ -194,8 +250,7 @@ function TreeCanvasInner() {
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             colorMode="dark"
-            fitView
-            fitViewOptions={{ padding: 0.2 }}
+            {...fitBind}
             deleteKeyCode={['Backspace', 'Delete']}
             className="bg-zinc-950"
             proOptions={{ hideAttribution: false }}
@@ -206,7 +261,11 @@ function TreeCanvasInner() {
               <Background variant={BackgroundVariant.Dots} color="#3f3f46" size={1.5} gap={20} />
             )}
             <Controls showInteractive={false} className="!bottom-4 !left-auto !right-4 !top-auto" />
-            <GenerationBands rows={rows} nodes={laidOutNodes} houseName="Your Dynasty" />
+            <GenerationBands
+              rows={rows}
+              nodes={laidOutNodes}
+              houseName={showExampleNotice ? EXAMPLE_HOUSE_NAME : 'Your Dynasty'}
+            />
           </ReactFlow>
           </HighlightContext.Provider>
 
@@ -229,10 +288,19 @@ function TreeCanvasInner() {
             onExportJson={handleExportJson}
             onImportJson={handleImportClick}
             showCustomOptions={false}
+            onFitView={fitTree}
           />
 
           {characterNodes.length === 0 && (
             <CanvasEmptyState onAddCharacter={() => setAddCharacterOpen(true)} onImportJson={handleImportClick} />
+          )}
+
+          {showExampleNotice && characterNodes.length > 0 && (
+            <ExampleDynastyNotice
+              houseName={EXAMPLE_HOUSE_NAME}
+              onClear={handleClearExample}
+              onDismiss={handleDismissExample}
+            />
           )}
 
           <AddRelativeHint visible={characterNodes.length === 1 && !characterNodes[0].selected} />

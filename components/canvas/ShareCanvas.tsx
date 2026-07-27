@@ -15,6 +15,7 @@ import { useGenealogyLayout } from "./useGenealogyLayout";
 import { UnionNode } from "./UnionNode";
 import { HighlightContext } from "./HighlightContext";
 import { useBloodlineHighlight } from "./useBloodlineHighlight";
+import { useFitTree } from "./useFitTree";
 import "@xyflow/react/dist/style.css";
 import type { AnyCanvasNode, RelationshipEdgeType, CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
 
@@ -49,6 +50,8 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
     () => ({ chars: highlight.chars, edges: highlight.edges, pinned: highlight.pinned, onUnionHover: highlight.onUnionHover }),
     [highlight.chars, highlight.edges, highlight.pinned, highlight.onUnionHover],
   );
+
+  const { bind: fitBind } = useFitTree(laidOutNodes, containerRef);
 
   const handleExport = useCallback(async () => {
     await exportCanvasToPng(reactFlow, containerRef, dynastyName);
@@ -99,8 +102,7 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
         onEdgeMouseLeave={highlight.onEdgeMouseLeave}
         onPaneClick={highlight.onPaneClick}
         colorMode="dark"
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
+        {...fitBind}
         className="bg-zinc-950"
         proOptions={{ hideAttribution: false }}
         defaultEdgeOptions={{ type: 'smoothstep' }}

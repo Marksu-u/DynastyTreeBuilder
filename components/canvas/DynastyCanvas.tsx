@@ -38,6 +38,7 @@ import { migrateCanvas } from '@/lib/migrate-canvas';
 import { useGenealogyLayout } from './useGenealogyLayout';
 import { HighlightContext } from './HighlightContext';
 import { useBloodlineHighlight } from './useBloodlineHighlight';
+import { useFitTree } from './useFitTree';
 import { computeAddRelative, computeRemoveRelative, computeDeleteCharacter, partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
 import { triggerJsonDownload, exportCanvasToPng } from "@/lib/export";
 import { exportDynasty, replaceDynastyFromExport } from "@/app/actions/dynasty";
@@ -118,6 +119,7 @@ export function DynastyCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
+  const { fitTree, bind: fitBind } = useFitTree(laidOutNodes, containerRef);
 
   const highlight = useBloodlineHighlight(nodes, edges);
   const highlightValue = useMemo(
@@ -423,8 +425,7 @@ export function DynastyCanvas({
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           colorMode="dark"
-          fitView
-          fitViewOptions={{ padding: 0.2 }}
+          {...fitBind}
           deleteKeyCode={["Backspace", "Delete"]}
           className="bg-zinc-950"
           proOptions={{ hideAttribution: false }}
@@ -464,6 +465,7 @@ export function DynastyCanvas({
           onExport={handleExport}
           onExportJson={handleExportJson}
           onImportJson={handleImportClick}
+          onFitView={fitTree}
         />
 
         {characterNodes.length === 0 && (

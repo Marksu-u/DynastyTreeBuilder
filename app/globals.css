@@ -33,7 +33,19 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Export guard. html-to-image serialises whatever the live DOM computes at the
+   instant it runs, so a transition caught mid-flight bakes an interpolated
+   transform into the PNG. lib/export.ts adds this class for the duration of the
+   capture; every animation in the app is frozen inside it, which is why new
+   motion can be added without re-testing export fidelity each time. */
+.exporting *,
+.exporting *::before,
+.exporting *::after {
+  animation: none !important;
+  transition: none !important;
 }
 
 /* React Flow dark theme overrides */

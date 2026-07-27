@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { Footer } from "@/components/legal/Footer";
 import { SOURCE_REPO_URL } from "@/components/legal/ecosystem";
@@ -167,6 +168,26 @@ export default function LandingPage() {
 
             <p className="text-xs text-zinc-600">
               Guest mode saves locally — sign in to persist across devices.
+            </p>
+          </div>
+
+          {/* Explicit intrinsic dimensions keep CLS at zero, and `priority`
+              preloads what is now the largest element above the fold. */}
+          <div className="mx-auto mt-14 max-w-5xl">
+            <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/40">
+              <Image
+                src="/canvas-preview.png"
+                alt="The Dynasty Tree Builder canvas showing House Thorne across four generations, with founders outlined in gold, an exiled daughter, an adopted child and a bastard son."
+                width={3200}
+                height={752}
+                priority
+                sizes="(max-width: 1024px) 100vw, 1024px"
+                className="h-auto w-full"
+              />
+            </div>
+            <p className="mt-3 text-xs text-zinc-600">
+              House Thorne, four generations — the example dynasty waiting on the
+              canvas when you open it.
             </p>
           </div>
         </section>
