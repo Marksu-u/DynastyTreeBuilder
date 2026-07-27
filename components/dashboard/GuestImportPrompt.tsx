@@ -82,7 +82,7 @@ export function GuestImportPrompt() {
             onChange={(e) => setName(e.target.value)}
             disabled={importing}
             aria-label="Dynasty name"
-            className="w-36 rounded border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none disabled:opacity-50"
+            className="w-36 rounded border border-zinc-700 bg-background px-2 py-1.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none disabled:opacity-50"
             placeholder="My Dynasty"
           />
           <button

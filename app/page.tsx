@@ -129,7 +129,7 @@ const softwareJsonLd = {
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950">
+    <div className="flex min-h-screen flex-col bg-background">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -141,7 +141,7 @@ export default function LandingPage() {
         {/* Hero */}
         <section className="px-6 pb-16 pt-20 text-center sm:pt-28">
           <div className="mx-auto max-w-2xl space-y-6">
-            <h1 className="text-4xl font-bold tracking-tight text-zinc-100 sm:text-5xl">
+            <h1 className="font-display text-5xl text-zinc-100 sm:text-6xl">
               Dynasty Tree Builder
             </h1>
             <p className="text-lg leading-relaxed text-zinc-400">
@@ -174,7 +174,7 @@ export default function LandingPage() {
           {/* Explicit intrinsic dimensions keep CLS at zero, and `priority`
               preloads what is now the largest element above the fold. */}
           <div className="mx-auto mt-14 max-w-5xl">
-            <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/40">
+            <div className="overflow-hidden rounded-xl border border-zinc-800 bg-background shadow-2xl shadow-black/40">
               <Image
                 src="/canvas-preview.png"
                 alt="The Dynasty Tree Builder canvas showing House Thorne across four generations, with founders outlined in gold, an exiled daughter, an adopted child and a bastard son."

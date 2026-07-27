@@ -3,7 +3,12 @@
 /* "Modern dark atelier" — always-dark theme. Names the existing zinc scale
    used by hand across the app; not a new palette. */
 :root {
-  --background: #09090b;       /* zinc-950 */
+  /* "The dark scriptorium" — an unlit archive table where the content is the
+     only lit thing. The ground is warm-shifted a few degrees off neutral
+     black: against pure zinc-950 the gold accent reads as paint, against a
+     warm ground the same gold reads as light. Surfaces stay neutral so cards
+     sit cool on a warm table. */
+  --background: #0c0b0d;       /* warm-shifted zinc-950 */
   --surface-1: #18181b;        /* zinc-900 */
   --surface-2: #27272a;        /* zinc-800 */
   --border: #3f3f46;           /* zinc-700 */
@@ -13,6 +18,12 @@
   --text-muted: #71717a;       /* zinc-500 */
   --accent: #ef9f27;
   --foreground: var(--text-primary);
+
+  /* Canvas texture. Warm, near-invisible dots give the ground a surface
+     instead of a void; the "grid" toggle raises the same dots to a working
+     grid rather than switching a different thing on. */
+  --canvas-dot: #272119;
+  --canvas-dot-strong: #453d33;
 }
 
 @theme inline {
@@ -28,12 +39,95 @@
   --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display);
+}
+
+/* The display serif, applied by hand and sparingly: house names, page titles,
+   the generation-band header. Never body copy, never UI controls — its value
+   comes entirely from how rarely it appears. */
+.font-display {
+  font-family: var(--font-display), ui-serif, Georgia, serif;
+  font-weight: 400;
+  letter-spacing: 0.01em;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ---------------------------------------------------------------------------
+   Motion. Deliberately a small, fixed budget — three moments, all CSS, no
+   animation library. Transform and opacity only, so everything composites on
+   the GPU and a canvas with hundreds of nodes still scrolls at 60fps.
+
+   Every animation here is switched off in one place: the prefers-reduced-motion
+   block at the bottom of this file, and the .exporting guard used by PNG export.
+   --------------------------------------------------------------------------- */
+
+/* 1. Dialogs and panels. All three dialogs centre themselves with
+      -translate-x-1/2 -translate-y-1/2, so the keyframes carry that same
+      translate and only add scale on top of it. */
+@keyframes dialog-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes dialog-overlay-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes dialog-content-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes dialog-content-out {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to   { opacity: 0; transform: translate(-50%, -50%) scale(0.98); }
+}
+
+.dialog-overlay[data-state="open"] { animation: dialog-overlay-in 140ms ease-out; }
+.dialog-overlay[data-state="closed"] { animation: dialog-overlay-out 110ms ease-in; }
+.dialog-content[data-state="open"] { animation: dialog-content-in 160ms cubic-bezier(0.16, 1, 0.3, 1); }
+.dialog-content[data-state="closed"] { animation: dialog-content-out 110ms ease-in; }
+
+/* 2. A character arriving on the canvas. Suppressed for the initial batch by
+      .canvas-settling (see useCanvasSettled) so opening a populated tree does
+      not fire thirty animations at once — this marks the moment a card the
+      user just created appears, which is the one that needs feedback. */
+@keyframes node-enter {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.character-node { animation: node-enter 170ms cubic-bezier(0.16, 1, 0.3, 1); }
+.canvas-settling .character-node { animation: none; }
+
+/* 3. The signature effect: a light travelling down a highlighted bloodline.
+      Drawn as an overlay stroke on the connector, so the connector's own
+      colour, width and dash pattern are untouched underneath. */
+@keyframes bloodline-trace {
+  from { stroke-dashoffset: 260; }
+  to   { stroke-dashoffset: 0; }
+}
+.bloodline-trace {
+  stroke-dasharray: 26 234;
+  animation: bloodline-trace 1.6s linear infinite;
+}
+
+/* Soft radial vignette that pulls the eye to the middle of the tree. Rendered
+   as a sibling of <ReactFlow>, never inside .react-flow__viewport, so PNG
+   export — which captures the viewport — is untouched by it. */
+.canvas-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 115% 75% at 50% 45%,
+    transparent 40%,
+    rgba(0, 0, 0, 0.28) 78%,
+    rgba(0, 0, 0, 0.48) 100%
+  );
 }
 
 /* Export guard. html-to-image serialises whatever the live DOM computes at the
@@ -78,4 +172,17 @@ body {
 .react-flow__attribution a {
   color: #52525b !important;
   font-size: 10px !important;
+}
+
+/* The single switch for every animation above. Anything added later must be
+   covered by this block — keep motion in CSS so it always is. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

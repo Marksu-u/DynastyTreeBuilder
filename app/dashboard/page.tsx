@@ -25,7 +25,7 @@ export default async function DashboardPage() {
   const dynasties = await listDynasties();
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+    <div className="min-h-screen bg-background text-zinc-100">
       <header className="border-b border-zinc-800 px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <Link
@@ -58,7 +58,7 @@ export default async function DashboardPage() {
 
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">
+            <h1 className="font-display text-3xl text-zinc-100">
               Your Dynasties
             </h1>
             {dynasties.length > 0 && (

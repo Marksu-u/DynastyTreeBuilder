@@ -54,7 +54,7 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
   return (
     <div
       className={[
-        'relative w-[180px] rounded-lg bg-zinc-800/95 px-3 py-3 shadow-lg transition-colors duration-100',
+        'character-node relative w-[180px] rounded-lg bg-zinc-800/95 px-3 py-3 shadow-lg transition-colors duration-100',
         selected
           ? 'border border-blue-400 ring-2 ring-blue-400/20'
           : hasSvgBorder || hl.tint

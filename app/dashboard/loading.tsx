@@ -3,7 +3,7 @@ import { SkeletonCard } from "@/components/ui/SkeletonCard";
 
 export default function DashboardLoading() {
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+    <div className="min-h-screen bg-background text-zinc-100">
       <header className="border-b border-zinc-800 px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <span className="text-sm font-semibold tracking-tight text-zinc-100">

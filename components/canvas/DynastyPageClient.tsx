@@ -59,7 +59,7 @@ export function DynastyPageClient({
       {/* CatalogProvider fetches the user's custom catalog options once on mount
           and makes them available to CharacterNode, RelationshipEdge, and all pickers */}
       <CatalogProvider isLoggedIn={true}>
-        <div className="flex h-screen flex-col bg-zinc-950">
+        <div className="flex h-screen flex-col bg-background">
           <header className="flex h-12 shrink-0 items-center gap-3 border-b border-zinc-800 px-4">
             <Link
               href="/dashboard"

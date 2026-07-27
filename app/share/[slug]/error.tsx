@@ -7,7 +7,7 @@ interface Props {
 
 export default function ShareError({ reset }: Props) {
   return (
-    <div className="flex h-screen flex-col items-center justify-center gap-4 bg-zinc-950 text-zinc-400">
+    <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background text-zinc-400">
       <p className="text-sm">This dynasty could not be loaded.</p>
       <button
         onClick={reset}

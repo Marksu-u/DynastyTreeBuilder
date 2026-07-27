@@ -7,7 +7,7 @@ import { TreeCanvas } from '@/components/canvas/TreeCanvas';
 
 export default function TreePage() {
   return (
-    <div className="flex h-screen flex-col bg-zinc-950">
+    <div className="flex h-screen flex-col bg-background">
       <GuestBanner />
       {/* min-h-0 is load-bearing: without it this flex item has no definite
           height on the first layout pass, the canvas's h-full resolves to 0,

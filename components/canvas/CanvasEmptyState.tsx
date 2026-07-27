@@ -8,11 +8,11 @@ type Props = {
 
 export function CanvasEmptyState({ onAddCharacter, onImportJson }: Props) {
   return (
-    <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-zinc-950/60">
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/60">
       <p className="absolute select-none text-3xl font-semibold text-zinc-800/80">
         Your dynasty awaits
       </p>
-      <div className="relative pointer-events-auto rounded-xl border border-zinc-800 bg-zinc-950 px-4">
+      <div className="relative pointer-events-auto rounded-xl border border-zinc-800 bg-background px-4">
         <EmptyState
           icon={Users}
           title="Your canvas is empty"

@@ -77,9 +77,9 @@ export const GenerationBands = memo(({ rows, nodes, houseName }: Props) => {
           }}
           className="flex items-center justify-center gap-3"
         >
-          <span className="text-[#EF9F27]">◆</span>
-          <span className="text-xl font-semibold tracking-wide text-zinc-200">{houseName}</span>
-          <span className="text-[#EF9F27]">◆</span>
+          <span className="text-accent">◆</span>
+          <span className="font-display text-3xl text-zinc-100">{houseName}</span>
+          <span className="text-accent">◆</span>
         </div>
       )}
     </ViewportPortal>

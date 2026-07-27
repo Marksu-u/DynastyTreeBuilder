@@ -32,6 +32,9 @@ import {
   markSeedDecided, isShowingExample, setShowingExample,
 } from '@/lib/seed-canvas';
 import { useFitTree } from '@/components/canvas/useFitTree';
+import { useCanvasSettled } from '@/components/canvas/useCanvasSettled';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { CanvasLegend } from '@/components/canvas/CanvasLegend';
 import type { CharacterData } from '@/types/canvas';
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
@@ -59,12 +62,14 @@ function TreeCanvasInner() {
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
   const [showExampleNotice, setShowExampleNotice] = useState(false);
+  const [pendingImport, setPendingImport] = useState<File | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const reactFlow = useReactFlow();
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
   const { fitTree, bind: fitBind } = useFitTree(laidOutNodes, containerRef);
+  const settlingClass = useCanvasSettled();
 
   const highlight = useBloodlineHighlight(nodes, edges);
   const highlightValue = useMemo(
@@ -143,13 +148,7 @@ function TreeCanvasInner() {
     fileInputRef.current?.click();
   }, []);
 
-  const handleImportFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    if (characterNodes.length > 0 && !window.confirm('Import will replace your current guest tree. Continue?')) {
-      return;
-    }
+  const runImport = useCallback(async (file: File) => {
     try {
       const raw = await file.text();
       const data = parseImportFile(raw);
@@ -159,7 +158,20 @@ function TreeCanvasInner() {
     } catch {
       toast.error("Couldn't read that file — is it a Dynasty Tree export?");
     }
-  }, [characterNodes.length, initCanvas]);
+  }, [initCanvas]);
+
+  // Importing over existing work is destructive, so it asks first — holding the
+  // chosen file until the answer comes back rather than blocking on confirm().
+  const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (characterNodes.length > 0) {
+      setPendingImport(file);
+      return;
+    }
+    void runImport(file);
+  }, [characterNodes.length, runImport]);
 
   const handleClearExample = useCallback(() => {
     initCanvas([], []);
@@ -234,7 +246,7 @@ function TreeCanvasInner() {
   return (
     <CanvasContext.Provider value={{ setEditingCharacterId, openAddRelative }}>
       <div className="flex h-full w-full">
-        <div ref={containerRef} className="relative flex-1 min-w-0 h-full">
+        <div ref={containerRef} className={`relative flex-1 min-w-0 h-full ${settlingClass}`}>
           <HighlightContext.Provider value={highlightValue}>
           <ReactFlow
             nodes={laidOutNodes}
@@ -252,14 +264,19 @@ function TreeCanvasInner() {
             colorMode="dark"
             {...fitBind}
             deleteKeyCode={['Backspace', 'Delete']}
-            className="bg-zinc-950"
+            className="bg-background"
             proOptions={{ hideAttribution: false }}
             defaultEdgeOptions={{ type: 'smoothstep' }}
             nodesDraggable={false}
           >
-            {gridVisible && (
-              <Background variant={BackgroundVariant.Dots} color="#3f3f46" size={1.5} gap={20} />
-            )}
+            {/* Always on: the faint warm dots give the ground a surface. The
+                toggle raises the same dots to a working grid. */}
+            <Background
+              variant={BackgroundVariant.Dots}
+              color={gridVisible ? 'var(--canvas-dot-strong)' : 'var(--canvas-dot)'}
+              size={gridVisible ? 1.5 : 1.2}
+              gap={20}
+            />
             <Controls showInteractive={false} className="!bottom-4 !left-auto !right-4 !top-auto" />
             <GenerationBands
               rows={rows}
@@ -267,6 +284,8 @@ function TreeCanvasInner() {
               houseName={showExampleNotice ? EXAMPLE_HOUSE_NAME : 'Your Dynasty'}
             />
           </ReactFlow>
+          <div className="canvas-vignette" aria-hidden="true" />
+          {characterNodes.length > 0 && <CanvasLegend />}
           </HighlightContext.Provider>
 
           <input
@@ -294,6 +313,16 @@ function TreeCanvasInner() {
           {characterNodes.length === 0 && (
             <CanvasEmptyState onAddCharacter={() => setAddCharacterOpen(true)} onImportJson={handleImportClick} />
           )}
+
+          <ConfirmDialog
+            open={pendingImport !== null}
+            onOpenChange={(open) => { if (!open) setPendingImport(null); }}
+            title="Replace your current tree?"
+            description="Importing a file replaces everything on this canvas. Your current guest tree cannot be recovered afterwards."
+            confirmLabel="Replace tree"
+            destructive
+            onConfirm={() => { const f = pendingImport; setPendingImport(null); if (f) void runImport(f); }}
+          />
 
           {showExampleNotice && characterNodes.length > 0 && (
             <ExampleDynastyNotice

@@ -61,8 +61,8 @@ export function AddRelativePanel({ anchor, kind, characters, unions, onSubmit, o
   return (
     <Dialog.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-zinc-950/60" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-zinc-700 bg-zinc-900 p-4 shadow-2xl">
+        <Dialog.Overlay className="dialog-overlay fixed inset-0 z-50 bg-background/60" />
+        <Dialog.Content className="dialog-content fixed left-1/2 top-1/2 z-50 w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-zinc-700 bg-zinc-900 p-4 shadow-2xl">
           <div className="mb-3 flex items-center justify-between">
             <Dialog.Title className="text-sm font-semibold text-zinc-100">
               Add {KIND_LABEL[kind]} for {anchor.data.name}

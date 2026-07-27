@@ -16,6 +16,8 @@ import { UnionNode } from "./UnionNode";
 import { HighlightContext } from "./HighlightContext";
 import { useBloodlineHighlight } from "./useBloodlineHighlight";
 import { useFitTree } from "./useFitTree";
+import { useCanvasSettled } from "./useCanvasSettled";
+import { CanvasLegend } from "./CanvasLegend";
 import "@xyflow/react/dist/style.css";
 import type { AnyCanvasNode, RelationshipEdgeType, CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
 
@@ -52,6 +54,7 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
   );
 
   const { bind: fitBind } = useFitTree(laidOutNodes, containerRef);
+  const settlingClass = useCanvasSettled();
 
   const handleExport = useCallback(async () => {
     await exportCanvasToPng(reactFlow, containerRef, dynastyName);
@@ -59,7 +62,7 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
 
   return (
     <CatalogProvider isLoggedIn={false}>
-    <div ref={containerRef} className="relative h-full w-full">
+    <div ref={containerRef} className={`relative h-full w-full ${settlingClass}`}>
       <div className="absolute inset-x-0 top-3 z-10 flex justify-center px-3">
         <div className="flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/90 px-4 py-1.5 text-xs text-zinc-400 backdrop-blur-sm">
           <span>
@@ -103,14 +106,14 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
         onPaneClick={highlight.onPaneClick}
         colorMode="dark"
         {...fitBind}
-        className="bg-zinc-950"
+        className="bg-background"
         proOptions={{ hideAttribution: false }}
         defaultEdgeOptions={{ type: 'smoothstep' }}
       >
         <Background
           variant={BackgroundVariant.Dots}
-          color="#3f3f46"
-          size={1.5}
+          color="var(--canvas-dot)"
+          size={1.2}
           gap={20}
         />
         <Controls
@@ -119,6 +122,8 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
         />
         <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} />
       </ReactFlow>
+      <div className="canvas-vignette" aria-hidden="true" />
+      <CanvasLegend />
       </HighlightContext.Provider>
     </div>
     </CatalogProvider>
