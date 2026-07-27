@@ -46,7 +46,7 @@ export function DynastyCard({ dynasty }: Props) {
             {SETTING_LABELS[dynasty.setting] ?? dynasty.setting}
           </span>
         </div>
-        <h2 className="font-display mb-1 truncate text-xl text-zinc-100">
+        <h2 className="mb-1 truncate text-base font-semibold text-zinc-100">
           {dynasty.name}
         </h2>
         <div className="flex items-center gap-1 text-xs text-zinc-500">

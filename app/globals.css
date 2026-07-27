@@ -39,16 +39,6 @@
   --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-display);
-}
-
-/* The display serif, applied by hand and sparingly: house names, page titles,
-   the generation-band header. Never body copy, never UI controls — its value
-   comes entirely from how rarely it appears. */
-.font-display {
-  font-family: var(--font-display), ui-serif, Georgia, serif;
-  font-weight: 400;
-  letter-spacing: 0.01em;
 }
 
 body {

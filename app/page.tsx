@@ -141,7 +141,7 @@ export default function LandingPage() {
         {/* Hero */}
         <section className="px-6 pb-16 pt-20 text-center sm:pt-28">
           <div className="mx-auto max-w-2xl space-y-6">
-            <h1 className="font-display text-5xl text-zinc-100 sm:text-6xl">
+            <h1 className="text-4xl font-bold tracking-tight text-zinc-100 sm:text-5xl">
               Dynasty Tree Builder
             </h1>
             <p className="text-lg leading-relaxed text-zinc-400">
