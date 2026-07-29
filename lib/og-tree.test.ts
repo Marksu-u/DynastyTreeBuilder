@@ -47,6 +47,14 @@ describe('renderTreeSvg', () => {
     expect(svg).not.toContain('undefined');
   });
 
+  it('lights the connectors along the bloodline, not just the cards', () => {
+    const svg = renderTreeSvg(NODES, EDGES, ['A'], { width: 600, height: 460 });
+    // A→u1→C→u2→E: both unions sit on the lit path, so gold must reach the
+    // <path> connectors and not stop at the card outlines.
+    const goldConnectors = (svg.match(/<path[^>]*stroke="#EF9F27"/g) ?? []).length;
+    expect(goldConnectors).toBeGreaterThan(0);
+  });
+
   it('renders an empty dynasty without throwing', () => {
     expect(() => renderTreeSvg([], [], [], { width: 600, height: 460 })).not.toThrow();
   });

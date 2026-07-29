@@ -88,7 +88,16 @@ export function renderTreeSvg(
   const keptEdges = edges.filter((e) => keptIds.has(e.source) && keptIds.has(e.target));
 
   const { positions } = layoutGenealogy(kept, keptEdges);
+
+  // Connectors route character → union → character, so lighting only the
+  // characters leaves the gold path visually broken. A union is lit when it
+  // joins a lit parent to a lit child.
   const lit = new Set(principalBloodline(kept, keptEdges, founderIds));
+  for (const union of buildFamilyGraph(kept, keptEdges).unions) {
+    if (union.partners.some((p) => lit.has(p)) && union.children.some((c) => lit.has(c))) {
+      lit.add(union.id);
+    }
+  }
 
   const placed = characters
     .map((n) => ({ id: n.id, p: positions[n.id] }))
