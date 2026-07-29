@@ -5,6 +5,8 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Settings, X } from "lucide-react";
 import { toast } from "sonner";
 import { updateDynastySettings } from "@/app/actions/dynasty";
+import { CrestPicker } from "@/components/dashboard/CrestPicker";
+import { resolveCrestSeed } from "@/lib/crest";
 
 const SETTINGS = [
   { value: "FANTASY", label: "Fantasy" },
@@ -20,6 +22,8 @@ interface Props {
   initialName: string;
   initialSetting: string;
   initialIsPublic: boolean;
+  slug: string;
+  crestSeed: string | null;
   onPublicChange?: (v: boolean) => void;
 }
 
@@ -28,6 +32,8 @@ export function DynastySettingsDialog({
   initialName,
   initialSetting,
   initialIsPublic,
+  slug,
+  crestSeed,
   onPublicChange,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -139,6 +145,13 @@ export function DynastySettingsDialog({
                 />
               </div>
             </label>
+
+            <div className="border-t border-zinc-800 pt-4">
+              <CrestPicker
+                dynastyId={dynastyId}
+                currentSeed={resolveCrestSeed({ slug, crestSeed })}
+              />
+            </div>
           </div>
 
           <div className="mt-6 flex justify-end gap-2">

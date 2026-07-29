@@ -81,6 +81,7 @@ export default async function DynastyPage({
       dynastyId={dynasty.id}
       dynastyName={dynasty.name}
       dynastySlug={dynasty.slug}
+      crestSeed={dynasty.crestSeed}
       initialSetting={dynasty.setting}
       initialIsPublic={dynasty.isPublic}
       initialNodes={nodes}

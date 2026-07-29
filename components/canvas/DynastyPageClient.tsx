@@ -18,6 +18,7 @@ type Props = {
   dynastyId: string;
   dynastyName: string;
   dynastySlug: string;
+  crestSeed: string | null;
   initialSetting: string;
   initialIsPublic: boolean;
   initialNodes: CharacterNodeType[];
@@ -29,6 +30,7 @@ export function DynastyPageClient({
   dynastyId,
   dynastyName,
   dynastySlug,
+  crestSeed,
   initialSetting,
   initialIsPublic,
   initialNodes,
@@ -103,6 +105,8 @@ export function DynastyPageClient({
                 initialName={dynastyName}
                 initialSetting={initialSetting}
                 initialIsPublic={initialIsPublic}
+                slug={dynastySlug}
+                crestSeed={crestSeed}
                 onPublicChange={setIsPublic}
               />
             </div>
