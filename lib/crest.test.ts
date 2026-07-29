@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { crestFromSeed, TINCTURES, SHAPES, DIVISIONS, CHARGES } from './crest';
+import { crestFromSeed, TINCTURES, SHAPES, DIVISIONS, CHARGES, crestToSvg } from './crest';
 
 describe('crestFromSeed', () => {
   it('is deterministic', () => {
@@ -52,5 +52,43 @@ describe('crestFromSeed', () => {
       arrangement: 'single',
       chargeTincture: 'or',
     });
+  });
+});
+
+describe('crestToSvg', () => {
+  it('emits a well-formed standalone svg', () => {
+    const svg = crestToSvg(crestFromSeed('house-thorne'), 64);
+    expect(svg.startsWith('<svg')).toBe(true);
+    expect(svg.endsWith('</svg>')).toBe(true);
+    expect(svg).toContain('width="64"');
+    expect(svg).toContain('viewBox="0 0 60 72"');
+  });
+
+  it('never emits NaN or undefined', () => {
+    for (let i = 0; i < 500; i++) {
+      const svg = crestToSvg(crestFromSeed(`seed-${i}`), 48);
+      expect(svg).not.toContain('NaN');
+      expect(svg).not.toContain('undefined');
+    }
+  });
+
+  it('renders every charge and every division without throwing', () => {
+    for (const charge of CHARGES) {
+      for (const division of DIVISIONS) {
+        const spec = { ...crestFromSeed('base'), charge, division,
+          field: division === 'plain'
+            ? (['azure'] as ['azure'])
+            : (['azure', 'gules'] as ['azure', 'gules']),
+          chargeTincture: 'or' as const };
+        expect(() => crestToSvg(spec, 40)).not.toThrow();
+      }
+    }
+  });
+
+  it('gives each instance unique clip ids so multiple crests can coexist in one document', () => {
+    const a = crestToSvg(crestFromSeed('house-a'), 40);
+    const b = crestToSvg(crestFromSeed('house-b'), 40);
+    const idOf = (s: string) => s.match(/id="([^"]+)"/)?.[1];
+    expect(idOf(a)).not.toBe(idOf(b));
   });
 });
