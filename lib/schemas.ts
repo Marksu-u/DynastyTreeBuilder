@@ -54,19 +54,22 @@ export const CharacterDataSchema = z.object({
   note: z.string().nullable().optional(),
 });
 
-export const DynastySettingsSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").optional(),
-  setting: DynastySettingSchema.optional(),
-  isPublic: z.boolean().optional(),
-});
-
 // Seeds only ever index into the fixed crest grammar, but they are persisted and
 // echoed into image URLs, so keep them to a short opaque token.
+// Declared before DynastySettingsSchema, which references it — a `const` used
+// above its declaration is in the temporal dead zone and throws at import.
 export const CrestSeedSchema = z
   .string()
   .min(1)
   .max(64)
   .regex(/^[a-z0-9-]+$/i, "Invalid crest");
+
+export const DynastySettingsSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").optional(),
+  setting: DynastySettingSchema.optional(),
+  isPublic: z.boolean().optional(),
+  crestSeed: CrestSeedSchema.optional(),
+});
 
 export const CustomNameInputSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),

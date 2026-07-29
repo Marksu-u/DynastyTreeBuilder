@@ -36,10 +36,12 @@ export function DynastySettingsDialog({
   crestSeed,
   onPublicChange,
 }: Props) {
+  const savedSeed = resolveCrestSeed({ slug, crestSeed });
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(initialName);
   const [setting, setSetting] = useState(initialSetting);
   const [isPublic, setIsPublic] = useState(initialIsPublic);
+  const [seed, setSeed] = useState(savedSeed);
   const [isPending, startTransition] = useTransition();
 
   function handleOpen(value: boolean) {
@@ -47,6 +49,7 @@ export function DynastySettingsDialog({
       setName(initialName);
       setSetting(initialSetting);
       setIsPublic(initialIsPublic);
+      setSeed(savedSeed);
     }
     setOpen(value);
   }
@@ -57,6 +60,9 @@ export function DynastySettingsDialog({
         name,
         setting,
         isPublic,
+        // Only send it if the user actually picked a different one, so saving
+        // other fields never writes a seed where the slug fallback was fine.
+        ...(seed !== savedSeed ? { crestSeed: seed } : {}),
       });
       if (result.error) {
         toast.error(result.error);
@@ -149,10 +155,7 @@ export function DynastySettingsDialog({
             </label>
 
             <div className="border-t border-zinc-800 pt-4">
-              <CrestPicker
-                dynastyId={dynastyId}
-                currentSeed={resolveCrestSeed({ slug, crestSeed })}
-              />
+              <CrestPicker value={seed} onChange={setSeed} disabled={isPending} />
             </div>
           </div>
 
