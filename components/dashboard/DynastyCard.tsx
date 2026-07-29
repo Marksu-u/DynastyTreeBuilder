@@ -6,6 +6,8 @@ import { Trash2, Users } from "lucide-react";
 import { deleteDynasty } from "@/app/actions/dynasty";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Crest } from "@/components/ui/Crest";
+import { resolveCrestSeed } from "@/lib/crest";
 
 const SETTING_LABELS: Record<string, string> = {
   FANTASY: "Fantasy",
@@ -20,6 +22,8 @@ interface Props {
   dynasty: {
     id: string;
     name: string;
+    slug: string;
+    crestSeed: string | null;
     setting: string;
     updatedAt: Date;
     _count: { characters: number };
@@ -41,7 +45,8 @@ export function DynastyCard({ dynasty }: Props) {
   return (
     <div className="group relative rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition-colors hover:border-zinc-700">
       <Link href={`/dashboard/${dynasty.id}`} className="block">
-        <div className="mb-3 flex items-start justify-between">
+        <div className="mb-3 flex items-start gap-3">
+          <Crest seed={resolveCrestSeed(dynasty)} size={36} className="shrink-0" />
           <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
             {SETTING_LABELS[dynasty.setting] ?? dynasty.setting}
           </span>

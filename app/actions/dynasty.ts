@@ -36,6 +36,7 @@ export async function listDynasties() {
       id: true,
       name: true,
       slug: true,
+      crestSeed: true,
       setting: true,
       isPublic: true,
       createdAt: true,
