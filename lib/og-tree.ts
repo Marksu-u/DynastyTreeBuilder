@@ -74,21 +74,40 @@ function emptySvg(width: number, height: number): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"></svg>`;
 }
 
-export function renderTreeSvg(
-  nodes: LayoutNodeIn[], edges: LayoutEdgeIn[], founderIds: string[], opts: RenderOpts,
-): string {
-  const { width, height, max = 60 } = opts;
+export interface PlacedCard { id: string; p: { x: number; y: number } }
+
+export interface TreeGeometry {
+  placed: PlacedCard[];
+  edges: LayoutEdgeIn[];
+  positions: Record<string, { x: number; y: number }>;
+  rows: { index: number; y: number; height: number }[];
+  lit: Set<string>;
+  viewBox: { x: number; y: number; w: number; h: number };
+}
+
+/**
+ * Everything both renderers need: laid-out positions, the lit bloodline, and a
+ * framed viewBox. Shared so the social image and the landing page can never
+ * disagree about where a house's cards sit.
+ */
+export function treeGeometry(
+  nodes: LayoutNodeIn[],
+  edges: LayoutEdgeIn[],
+  founderIds: string[],
+  opts: { max?: number; minW?: number; minH?: number } = {},
+): TreeGeometry | null {
+  const { max = 60, minW = 1200, minH = 940 } = opts;
 
   // A 300-person house would be an unreadable hairball and would blow the render
   // budget on a route Discord fetches synchronously.
   const characters = nodes.filter((n) => n.type !== 'union').slice(0, max);
-  if (characters.length === 0) return emptySvg(width, height);
+  if (characters.length === 0) return null;
 
   const kept = [...characters, ...nodes.filter((n) => n.type === 'union')];
   const keptIds = new Set(kept.map((n) => n.id));
   const keptEdges = edges.filter((e) => keptIds.has(e.source) && keptIds.has(e.target));
 
-  const { positions } = layoutGenealogy(kept, keptEdges);
+  const { positions, rows } = layoutGenealogy(kept, keptEdges);
 
   // Connectors route character → union → character, so lighting only the
   // characters leaves the gold path visually broken. A union is lit when it
@@ -102,8 +121,8 @@ export function renderTreeSvg(
 
   const placed = characters
     .map((n) => ({ id: n.id, p: positions[n.id] }))
-    .filter((n): n is { id: string; p: { x: number; y: number } } => Boolean(n.p));
-  if (placed.length === 0) return emptySvg(width, height);
+    .filter((n): n is PlacedCard => Boolean(n.p));
+  if (placed.length === 0) return null;
 
   const pad = 40;
   const rawMinX = Math.min(...placed.map((n) => n.p.x)) - pad;
@@ -111,19 +130,34 @@ export function renderTreeSvg(
   const rawMinY = Math.min(...placed.map((n) => n.p.y)) - pad;
   const rawMaxY = Math.max(...placed.map((n) => n.p.y + CARD_H)) + pad;
 
-  // Floor the viewBox at roughly seven cards by five rows, matching the panel's
-  // 600×470 aspect. Without this a one-character dynasty — the first thing a new
-  // user shares — scales its single card up to fill the whole panel.
-  const MIN_W = 1200;
-  const MIN_H = 940;
+  // Floor the viewBox so a tiny dynasty — the first thing a new user shares —
+  // does not scale its single card up to fill the whole panel.
   const cx = (rawMinX + rawMaxX) / 2;
   const cy = (rawMinY + rawMaxY) / 2;
-  const vw = Math.max(rawMaxX - rawMinX, MIN_W);
-  const vh = Math.max(rawMaxY - rawMinY, MIN_H);
-  const viewMinX = cx - vw / 2;
-  const viewMinY = cy - vh / 2;
+  const w = Math.max(rawMaxX - rawMinX, minW);
+  const h = Math.max(rawMaxY - rawMinY, minH);
 
-  const connectors = keptEdges
+  return {
+    placed,
+    edges: keptEdges,
+    positions,
+    rows,
+    lit,
+    viewBox: { x: cx - w / 2, y: cy - h / 2, w, h },
+  };
+}
+
+export function renderTreeSvg(
+  nodes: LayoutNodeIn[], edges: LayoutEdgeIn[], founderIds: string[], opts: RenderOpts,
+): string {
+  const { width, height, max = 60 } = opts;
+  const geo = treeGeometry(nodes, edges, founderIds, { max });
+  if (!geo) return emptySvg(width, height);
+
+  const { positions, lit, placed } = geo;
+  const { x: viewMinX, y: viewMinY, w: vw, h: vh } = geo.viewBox;
+
+  const connectors = geo.edges
     .map((e) => {
       const a = positions[e.source];
       const b = positions[e.target];

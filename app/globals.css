@@ -142,6 +142,51 @@ body {
   );
 }
 
+/* ---------------------------------------------------------------------------
+   4. The landing page's growing dynasty.
+
+   PROGRESSIVE ENHANCEMENT, and the direction matters: the tree is fully visible
+   by default. Only when the stager mounts does it add `.dt-staged` to the
+   wrapper, which hides the later generations and hands them back one beat at a
+   time. If JavaScript never runs, or fails, the reader still sees the whole
+   house — the content is never hidden behind a script.
+   --------------------------------------------------------------------------- */
+@keyframes dt-draw {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes dt-card-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dt-staged .dt-gen[data-visible="false"] {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* pathLength="1" on every connector normalises this: a short marriage line and
+   a long sibling rail take the same time to draw. */
+.dt-staged .dt-gen[data-visible="true"] .dt-conn {
+  stroke-dasharray: 1 1;
+  animation: dt-draw 620ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.dt-staged .dt-gen[data-visible="true"] .dt-card {
+  animation: dt-card-in 420ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: 260ms;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.dt-staged .dt-gen { transition: opacity 420ms ease-out; }
+
+/* Reduced motion and small screens both fall back to the whole tree, drawn and
+   still. On a phone the sticky layer would fight the reader for the viewport. */
+@media (max-width: 767px) {
+  .dt-staged .dt-gen[data-visible="false"] { opacity: 1; visibility: visible; }
+  .dt-staged .dt-gen .dt-conn,
+  .dt-staged .dt-gen .dt-card { animation: none; }
+}
+
 /* Export guard. html-to-image serialises whatever the live DOM computes at the
    instant it runs, so a transition caught mid-flight bakes an interpolated
    transform into the PNG. lib/export.ts adds this class for the duration of the
@@ -197,5 +242,12 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* Killing the durations above would otherwise leave the later generations
+     stuck at opacity 0 — hidden, not merely un-animated. Show the whole tree. */
+  .dt-staged .dt-gen[data-visible="false"] {
+    opacity: 1 !important;
+    visibility: visible !important;
   }
 }
