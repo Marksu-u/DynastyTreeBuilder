@@ -135,12 +135,14 @@ export function DynastySettingsDialog({
                 aria-checked={isPublic}
                 onClick={() => setIsPublic((v) => !v)}
                 className={`relative h-5 w-9 cursor-pointer rounded-full transition-colors ${
-                  isPublic ? "bg-violet-600" : "bg-zinc-700"
+                  isPublic ? "bg-[var(--accent)]" : "bg-zinc-700"
                 }`}
               >
+                {/* The knob flips to the dark ground on the lit track: white on
+                    gold is only 2.17:1, where zinc-950 on gold is 8.85:1. */}
                 <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                    isPublic ? "translate-x-4" : "translate-x-0.5"
+                  className={`absolute top-0.5 h-4 w-4 rounded-full shadow transition-transform ${
+                    isPublic ? "translate-x-4 bg-zinc-950" : "translate-x-0.5 bg-white"
                   }`}
                 />
               </div>
@@ -163,7 +165,7 @@ export function DynastySettingsDialog({
             <button
               onClick={handleSave}
               disabled={isPending || !name.trim()}
-              className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50 transition-colors"
+              className="rounded-lg bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-white disabled:opacity-50 transition-colors"
             >
               {isPending ? "Saving…" : "Save"}
             </button>

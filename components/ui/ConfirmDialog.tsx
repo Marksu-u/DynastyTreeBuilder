@@ -60,7 +60,7 @@ export function ConfirmDialog({
               onClick={() => { onOpenChange(false); onConfirm(); }}
               className={`cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 destructive
-                  ? 'bg-red-500/90 text-white hover:bg-red-500'
+                  ? 'bg-red-600 text-white hover:bg-red-700'
                   : 'bg-zinc-100 text-zinc-900 hover:bg-white'
               }`}
             >

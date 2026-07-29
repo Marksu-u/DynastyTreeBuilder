@@ -122,7 +122,7 @@ export function DeleteAccountDialog({ email }: Props) {
             <button
               onClick={handleDelete}
               disabled={!armed || isPending || succeeded}
-              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-40 disabled:hover:bg-red-600 transition-colors"
+              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-40 disabled:hover:bg-red-600 transition-colors"
             >
               {isPending || succeeded ? "Deleting…" : "Delete forever"}
             </button>
