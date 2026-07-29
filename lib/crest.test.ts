@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { crestFromSeed, TINCTURES, SHAPES, DIVISIONS, CHARGES, crestToSvg } from './crest';
+import {
+  crestFromSeed, TINCTURES, SHAPES, DIVISIONS, CHARGES, crestToSvg,
+  resolveCrestSeed, crestCacheKey, randomCrestSeed,
+} from './crest';
 
 describe('crestFromSeed', () => {
   it('is deterministic', () => {
@@ -90,5 +93,31 @@ describe('crestToSvg', () => {
     const b = crestToSvg(crestFromSeed('house-b'), 40);
     const idOf = (s: string) => s.match(/id="([^"]+)"/)?.[1];
     expect(idOf(a)).not.toBe(idOf(b));
+  });
+});
+
+describe('seed resolution', () => {
+  it('falls back to the slug', () => {
+    expect(resolveCrestSeed({ slug: 'house-thorne-123' })).toBe('house-thorne-123');
+    expect(resolveCrestSeed({ slug: 'house-thorne-123', crestSeed: null })).toBe('house-thorne-123');
+    expect(resolveCrestSeed({ slug: 'house-thorne-123', crestSeed: '' })).toBe('house-thorne-123');
+  });
+
+  it('prefers an explicit seed', () => {
+    expect(resolveCrestSeed({ slug: 'a', crestSeed: 'b' })).toBe('b');
+  });
+
+  it('changes the cache key when the seed changes', () => {
+    expect(crestCacheKey('a')).not.toBe(crestCacheKey('b'));
+    expect(crestCacheKey('a')).toHaveLength(8);
+  });
+
+  it('generates distinct random seeds', () => {
+    const seeds = new Set(Array.from({ length: 200 }, randomCrestSeed));
+    expect(seeds.size).toBe(200);
+  });
+
+  it('generates random seeds the schema will accept', () => {
+    for (let i = 0; i < 100; i++) expect(randomCrestSeed()).toMatch(/^[a-z0-9-]{1,64}$/i);
   });
 });

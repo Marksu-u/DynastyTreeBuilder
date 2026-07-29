@@ -10,6 +10,7 @@ import {
   IdSchema,
   DynastySettingSchema,
   DynastySettingsSchema,
+  CrestSeedSchema,
   GuestSnapshotSchema,
   DynastyExportSchema,
 } from "@/lib/schemas";
@@ -136,6 +137,26 @@ export async function updateDynastySettings(
   await prisma.dynasty.update({
     where: { id: idResult.data, ownerId: user.id },
     data: update,
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/dashboard/${idResult.data}`);
+  return {};
+}
+
+export async function setCrestSeed(id: string, seed: string): Promise<{ error?: string }> {
+  const user = await getAuthUser();
+  if (!checkRateLimit(user.id)) return { error: "Too many requests. Slow down." };
+
+  const idResult = IdSchema.safeParse(id);
+  if (!idResult.success) return { error: idResult.error.issues[0].message };
+
+  const seedResult = CrestSeedSchema.safeParse(seed);
+  if (!seedResult.success) return { error: seedResult.error.issues[0].message };
+
+  await prisma.dynasty.update({
+    where: { id: idResult.data, ownerId: user.id },
+    data: { crestSeed: seedResult.data },
   });
 
   revalidatePath("/dashboard");

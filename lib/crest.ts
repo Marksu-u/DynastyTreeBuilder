@@ -170,3 +170,22 @@ export function crestToSvg(spec: CrestSpec, size: number): string {
     `</svg>`
   );
 }
+
+/** Slug is stable and unique, so it is the natural fallback seed. */
+export function resolveCrestSeed(d: { slug: string; crestSeed?: string | null }): string {
+  return d.crestSeed && d.crestSeed.length > 0 ? d.crestSeed : d.slug;
+}
+
+/**
+ * Short hash used to bust platform OG caches. Discord and Twitter hold a scraped
+ * image for weeks, so a rerolled crest would keep showing the old arms unless the
+ * image URL itself changes.
+ */
+export function crestCacheKey(seed: string): string {
+  return fnv1a(seed).toString(16).padStart(8, '0');
+}
+
+/** A fresh random seed for the reroll picker. */
+export function randomCrestSeed(): string {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+}
