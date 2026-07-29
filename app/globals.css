@@ -1,29 +1,51 @@
 @import "tailwindcss";
 
-/* "Modern dark atelier" — always-dark theme. Names the existing zinc scale
-   used by hand across the app; not a new palette. */
+/* ---------------------------------------------------------------------------
+   "The star chart" — a deep indigo ground where a house reads as a
+   constellation and succession as light travelling through it.
+
+   The whole app is re-grounded from ONE place. Tailwind v4 ships its palette as
+   `--color-*` custom properties, so redefining the zinc ramp below re-colours
+   all ~544 `zinc-*` utilities across 48 files without touching them. The class
+   names still say "zinc"; treat that as "the app's neutral ramp", which is what
+   they always meant.
+
+   The ramp is a neutral shifted toward indigo, not a blue accent scale — it has
+   to stay quiet enough that the single gold accent is the only thing that
+   glows. Gold on neutral black reads as paint; on this ground it reads as light,
+   which is the entire reason for the move.
+   --------------------------------------------------------------------------- */
+@theme {
+  --color-zinc-50:  #F2F5FB;
+  --color-zinc-100: #E6EAF5;
+  --color-zinc-200: #D2DAEC;
+  --color-zinc-300: #B3BFDA;
+  --color-zinc-400: #93A2C4;
+  --color-zinc-500: #828FB2;   /* muted text — 5.97:1 on the ground, 4.8:1 on cards */
+  --color-zinc-600: #4C5876;
+  --color-zinc-700: #333E58;
+  --color-zinc-800: #1C2438;
+  --color-zinc-900: #121829;
+  --color-zinc-950: #0B0E1A;
+}
+
 :root {
-  /* "The dark scriptorium" — an unlit archive table where the content is the
-     only lit thing. The ground is warm-shifted a few degrees off neutral
-     black: against pure zinc-950 the gold accent reads as paint, against a
-     warm ground the same gold reads as light. Surfaces stay neutral so cards
-     sit cool on a warm table. */
-  --background: #0c0b0d;       /* warm-shifted zinc-950 */
-  --surface-1: #18181b;        /* zinc-900 */
-  --surface-2: #27272a;        /* zinc-800 */
-  --border: #3f3f46;           /* zinc-700 */
-  --border-strong: #52525b;    /* zinc-600 */
-  --text-primary: #f4f4f5;     /* zinc-100 */
-  --text-secondary: #a1a1aa;   /* zinc-400 */
-  --text-muted: #71717a;       /* zinc-500 */
+  --background: #0B0E1A;       /* the ground */
+  --surface-1: #121829;        /* zinc-900 */
+  --surface-2: #1C2438;        /* zinc-800 */
+  --border: #333E58;           /* zinc-700 */
+  --border-strong: #4C5876;    /* zinc-600 */
+  --text-primary: #E6EAF5;     /* zinc-100 */
+  --text-secondary: #93A2C4;   /* zinc-400 */
+  --text-muted: #828FB2;       /* zinc-500 */
   --accent: #ef9f27;
   --foreground: var(--text-primary);
 
-  /* Canvas texture. Warm, near-invisible dots give the ground a surface
-     instead of a void; the "grid" toggle raises the same dots to a working
-     grid rather than switching a different thing on. */
-  --canvas-dot: #272119;
-  --canvas-dot-strong: #453d33;
+  /* Canvas texture. Cool, near-invisible dots give the ground a surface instead
+     of a void; the "grid" toggle raises the same dots to a working grid rather
+     than switching a different thing on. */
+  --canvas-dot: #1A2138;
+  --canvas-dot-strong: #2E3A55;
 }
 
 @theme inline {
@@ -132,35 +154,36 @@ body {
   transition: none !important;
 }
 
-/* React Flow dark theme overrides */
+/* React Flow dark theme overrides. Driven off the tokens rather than literal
+   hexes, so re-grounding the palette carries the canvas chrome with it. */
 .react-flow__controls {
-  background: #18181b !important;
-  border: 1px solid #3f3f46 !important;
+  background: var(--surface-1) !important;
+  border: 1px solid var(--border) !important;
   border-radius: 8px !important;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
 }
 .react-flow__controls-button {
-  background: #18181b !important;
-  border-bottom: 1px solid #3f3f46 !important;
-  color: #a1a1aa !important;
-  fill: #a1a1aa !important;
+  background: var(--surface-1) !important;
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+  fill: var(--text-secondary) !important;
 }
 .react-flow__controls-button:hover {
-  background: #27272a !important;
-  fill: #e4e4e7 !important;
+  background: var(--surface-2) !important;
+  fill: var(--text-primary) !important;
 }
 .react-flow__controls-button svg {
-  fill: #a1a1aa !important;
+  fill: var(--text-secondary) !important;
 }
 .react-flow__controls-button:hover svg {
-  fill: #e4e4e7 !important;
+  fill: var(--text-primary) !important;
 }
 .react-flow__attribution {
   background: transparent !important;
 }
 .react-flow__attribution a {
-  color: #52525b !important;
+  color: var(--border-strong) !important;
   font-size: 10px !important;
 }
 

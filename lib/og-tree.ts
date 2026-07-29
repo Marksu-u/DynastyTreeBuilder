@@ -13,10 +13,11 @@ import {
 } from './genealogy-layout';
 import { migrateCanvas } from './migrate-canvas';
 
+// Mirror the app's tokens (see globals.css): surface-2, border, border-strong.
 const GOLD = '#EF9F27';
-const LINE = '#3f3f46';
-const CARD_FILL = '#27272a';
-const BAR = '#52525b';
+const LINE = '#333E58';
+const CARD_FILL = '#1C2438';
+const BAR = '#4C5876';
 
 /**
  * The gold-traced path in the image. Deterministic by construction: the longest

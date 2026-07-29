@@ -7,7 +7,9 @@ import type { LayoutNodeIn, LayoutEdgeIn } from './genealogy-layout';
 
 export const OG_SIZE = { width: 1200, height: 630 };
 
-const GROUND = '#0c0b0d';
+/** Mirrors --background in globals.css. Changing it re-grounds both images; the
+ *  ?v= hash on share URLs makes platforms refetch the stale cached copies. */
+const GROUND = '#0B0E1A';
 
 /**
  * Geist arrives through `next/font/google`, so no font file exists on disk for
