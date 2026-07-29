@@ -38,6 +38,10 @@ import { migrateCanvas } from '@/lib/migrate-canvas';
 import { useGenealogyLayout } from './useGenealogyLayout';
 import { HighlightContext } from './HighlightContext';
 import { useBloodlineHighlight } from './useBloodlineHighlight';
+import { useFitTree } from './useFitTree';
+import { useCanvasSettled } from './useCanvasSettled';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { CanvasLegend } from './CanvasLegend';
 import { computeAddRelative, computeRemoveRelative, computeDeleteCharacter, partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
 import { triggerJsonDownload, exportCanvasToPng } from "@/lib/export";
 import { exportDynasty, replaceDynastyFromExport } from "@/app/actions/dynasty";
@@ -115,9 +119,12 @@ export function DynastyCanvas({
   const [sidebar, setSidebar] = useState<SidebarPanel | null>(null);
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [pendingImport, setPendingImport] = useState<File | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
+  const { fitTree, bind: fitBind } = useFitTree(laidOutNodes, containerRef);
+  const settlingClass = useCanvasSettled();
 
   const highlight = useBloodlineHighlight(nodes, edges);
   const highlightValue = useMemo(
@@ -383,13 +390,7 @@ export function DynastyCanvas({
     fileInputRef.current?.click();
   }, []);
 
-  const handleImportFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    if (!window.confirm("Import will permanently replace this dynasty's characters and relationships. Continue?")) {
-      return;
-    }
+  const runImport = useCallback(async (file: File) => {
     try {
       const raw = await file.text();
       const data = parseImportFile(raw);
@@ -404,10 +405,20 @@ export function DynastyCanvas({
     }
   }, [dynastyId]);
 
+  // Importing is destructive and hits the database, so it asks first — holding
+  // the chosen file until the answer comes back rather than blocking on
+  // confirm().
+  const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setPendingImport(file);
+  }, []);
+
   return (
     <CanvasContext.Provider value={{ setEditingCharacterId, openAddRelative }}>
       <div className="flex h-full w-full">
-      <div ref={containerRef} className="relative flex-1 min-w-0 h-full">
+      <div ref={containerRef} className={`relative flex-1 min-w-0 h-full ${settlingClass}`}>
         <HighlightContext.Provider value={highlightValue}>
         <ReactFlow
           nodes={laidOutNodes}
@@ -423,28 +434,29 @@ export function DynastyCanvas({
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           colorMode="dark"
-          fitView
-          fitViewOptions={{ padding: 0.2 }}
+          {...fitBind}
           deleteKeyCode={["Backspace", "Delete"]}
-          className="bg-zinc-950"
+          className="bg-background"
           proOptions={{ hideAttribution: false }}
           defaultEdgeOptions={{ type: 'smoothstep' }}
           nodesDraggable={false}
         >
-          {gridVisible && (
-            <Background
-              variant={BackgroundVariant.Dots}
-              color="#3f3f46"
-              size={1.5}
-              gap={20}
-            />
-          )}
+          {/* Always on: the faint warm dots give the ground a surface. The
+              toggle raises the same dots to a working grid. */}
+          <Background
+            variant={BackgroundVariant.Dots}
+            color={gridVisible ? 'var(--canvas-dot-strong)' : 'var(--canvas-dot)'}
+            size={gridVisible ? 1.5 : 1.2}
+            gap={20}
+          />
           <Controls
             showInteractive={false}
             className="!bottom-4 !left-auto !right-4 !top-auto"
           />
           <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} />
         </ReactFlow>
+        <div className="canvas-vignette" aria-hidden="true" />
+        {characterNodes.length > 0 && <CanvasLegend />}
         </HighlightContext.Provider>
 
         <input
@@ -464,6 +476,17 @@ export function DynastyCanvas({
           onExport={handleExport}
           onExportJson={handleExportJson}
           onImportJson={handleImportClick}
+          onFitView={fitTree}
+        />
+
+        <ConfirmDialog
+          open={pendingImport !== null}
+          onOpenChange={(open) => { if (!open) setPendingImport(null); }}
+          title={`Replace "${dynastyName}"?`}
+          description="Importing a file permanently replaces every character and relationship in this dynasty. This cannot be undone."
+          confirmLabel="Replace dynasty"
+          destructive
+          onConfirm={() => { const f = pendingImport; setPendingImport(null); if (f) void runImport(f); }}
         />
 
         {characterNodes.length === 0 && (

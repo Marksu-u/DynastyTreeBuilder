@@ -83,6 +83,9 @@ model Dynasty {
   name      String
   slug      String         @unique
   setting   DynastySetting @default(FANTASY)
+  /// Chosen crest seed. Null means "derive from slug", so existing dynasties get
+  /// a stable crest with no backfill and a rename never changes the arms.
+  crestSeed String?
   isPublic  Boolean        @default(false)
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt

@@ -54,9 +54,14 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
   return (
     <div
       className={[
-        'relative w-[180px] rounded-lg bg-zinc-800/95 px-3 py-3 shadow-lg transition-colors duration-100',
+        'character-node relative w-[180px] rounded-lg bg-zinc-800/95 px-3 py-3 shadow-lg transition-colors duration-100',
+        // Selection is chrome, not semantics, so it stays hue-neutral. It used
+        // to be blue-400, which sits 9.7° from the ancestor tint (#5AA9E6) at
+        // the same lightness — two indistinguishable blue card borders meaning
+        // "selected" and "ancestor of the hovered person". White collides with
+        // nothing in the canvas vocabulary and reads brighter than all of it.
         selected
-          ? 'border border-blue-400 ring-2 ring-blue-400/20'
+          ? 'border border-zinc-100 ring-2 ring-zinc-100/20'
           : hasSvgBorder || hl.tint
           ? ''
           : isFounder

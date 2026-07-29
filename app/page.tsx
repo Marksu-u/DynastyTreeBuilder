@@ -1,7 +1,13 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Footer } from "@/components/legal/Footer";
 import { SOURCE_REPO_URL } from "@/components/legal/ecosystem";
+import { TreeScrollStager } from "@/components/landing/TreeScrollStager";
+import { renderLandingTree } from "@/lib/landing-tree";
+import { buildOgGraph } from "@/lib/og-tree";
+import { Crest } from "@/components/ui/Crest";
 
 export const metadata: Metadata = {
   title: { absolute: "Dynasty Tree Builder — D&D & TTRPG Family Tree Maker" },
@@ -97,7 +103,42 @@ const faqJsonLd = {
   })),
 };
 
+/** The three beats of the sticky act, each revealing one more generation. */
+const BEATS = [
+  {
+    title: "It starts with one name",
+    body: "Open the canvas and add a founder. No account, no setup, no empty-project wizard — a card on a dark ground and somewhere to put the next one.",
+  },
+  {
+    title: "Then the house complicates",
+    body: "Add partners, children, second marriages. The layout engine keeps generations in bands and packs siblings together, so the shape stays readable while you improvise. Bastards, adoptions and exiles are flags, not workarounds.",
+  },
+  {
+    title: "Until it has a shape you can hand to your players",
+    body: "Hover any character to light their whole bloodline. Publish and you get a read-only link — the live canvas, no account needed at their end — or export the tree as a PNG for the campaign wiki.",
+  },
+];
+
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+interface Showcase {
+  dynasty: { name: string };
+  characters: { id: string; flags: string[] }[];
+  relationships: { fromId: string; toId: string; type: string }[];
+}
+
+/**
+ * The hero tree is the real House Thorne, laid out by the real engine and
+ * rendered to SVG on the server — no React Flow on the one page that has to win
+ * Core Web Vitals.
+ */
+function heroTree() {
+  const seed = JSON.parse(
+    readFileSync(join(process.cwd(), "lib", "seed", "showcase-dynasty.json"), "utf8"),
+  ) as Showcase;
+  const { nodes, edges, founderIds } = buildOgGraph(seed.characters, seed.relationships);
+  return renderLandingTree(nodes, edges, founderIds);
+}
 
 const softwareJsonLd = {
   "@context": "https://schema.org",
@@ -127,47 +168,103 @@ const softwareJsonLd = {
 };
 
 export default function LandingPage() {
+  const tree = heroTree();
+
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950">
+    <div className="flex min-h-screen flex-col bg-background">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify([faqJsonLd, softwareJsonLd]),
         }}
       />
+      <TreeScrollStager />
 
       <main className="flex-1">
-        {/* Hero */}
-        <section className="px-6 pb-16 pt-20 text-center sm:pt-28">
-          <div className="mx-auto max-w-2xl space-y-6">
-            <h1 className="text-4xl font-bold tracking-tight text-zinc-100 sm:text-5xl">
-              Dynasty Tree Builder
-            </h1>
-            <p className="text-lg leading-relaxed text-zinc-400">
-              A free family tree maker for D&amp;D and TTRPG campaigns. Map the
-              webs of power, blood and betrayal behind every noble house —
-              characters, bloodlines, partnerships and the rivalries your
-              players keep tripping over.
-            </p>
+        {/* Act one: the tree is sticky behind three beats of copy, growing a
+            generation at a time. On mobile it sits still above the copy. */}
+        <section aria-labelledby="hero" className="relative px-6">
+          {/* Grid rather than flex so the tree can occupy the right column from
+              the very top — the fold was otherwise half empty — while the copy
+              and the beats stack down the left. Source order is hero → tree →
+              beats, which is also the right order once this collapses on mobile. */}
+          <div className="mx-auto max-w-6xl md:grid md:grid-cols-2 md:gap-x-16">
+            <div className="pt-20 sm:pt-28 md:col-start-1 md:row-start-1">
+              <div className="flex items-center gap-3">
+                <Crest seed="house-thorne" size={30} />
+                <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-accent">
+                  Dynasty Tree Builder
+                </span>
+              </div>
 
-            <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <Link
-                href="/tree"
-                className="w-full rounded-md bg-zinc-100 px-6 py-2.5 text-sm font-medium text-zinc-900 transition-colors hover:bg-white sm:w-auto"
+              <h1
+                id="hero"
+                className="mt-6 max-w-2xl text-4xl font-bold leading-[1.1] tracking-tight text-zinc-100 sm:text-6xl"
               >
-                Start building — no account
-              </Link>
-              <Link
-                href="/dashboard"
-                className="w-full rounded-md border border-zinc-700 px-6 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:border-zinc-500 hover:text-zinc-200 sm:w-auto"
-              >
-                Open Dashboard
-              </Link>
+                Every noble house is a{" "}
+                <span className="text-accent">web of blood and betrayal</span>.
+                Map yours.
+              </h1>
+
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-zinc-400">
+                A free family tree maker for D&amp;D and TTRPG campaigns —
+                characters, bloodlines, partnerships and the rivalries your
+                players keep tripping over.
+              </p>
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/tree"
+                  className="rounded-md bg-zinc-100 px-6 py-2.5 text-center text-sm font-medium text-zinc-900 transition-colors hover:bg-white"
+                >
+                  Start building — no account
+                </Link>
+                <Link
+                  href="/dashboard"
+                  className="rounded-md border border-zinc-700 px-6 py-2.5 text-center text-sm font-medium text-zinc-400 transition-colors hover:border-zinc-500 hover:text-zinc-200"
+                >
+                  Open dashboard
+                </Link>
+              </div>
+
+              <p className="mt-4 text-xs text-zinc-500">
+                Guest mode saves in your browser — sign in only to sync across devices.
+              </p>
             </div>
 
-            <p className="text-xs text-zinc-600">
-              Guest mode saves locally — sign in to persist across devices.
-            </p>
+            {/* The tree spans both rows so the sticky child has the full scroll
+                length of the copy beside it to travel through. */}
+            <div className="mt-14 md:col-start-2 md:row-span-2 md:row-start-1 md:mt-0">
+              <div className="flex flex-col justify-center md:sticky md:top-0 md:h-screen">
+                <div id="dt-tree" className="h-[46vh] w-full md:h-[68vh]">
+                  <div
+                    className="h-full w-full [&>svg]:h-full [&>svg]:w-full"
+                    dangerouslySetInnerHTML={{ __html: tree.svg }}
+                  />
+                </div>
+                <p className="mt-3 font-mono text-[11px] uppercase tracking-widest text-zinc-600">
+                  House Thorne · {tree.generations} generations
+                </p>
+              </div>
+            </div>
+
+            <div className="md:col-start-1 md:row-start-2">
+              {BEATS.map((beat, i) => (
+                <div
+                  key={beat.title}
+                  data-beat={i}
+                  className="flex min-h-[42vh] flex-col justify-center border-t border-zinc-900 py-10 md:min-h-[80vh]"
+                >
+                  <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-600">
+                    Gen {["I", "II", "III"][i]}
+                  </span>
+                  <h2 className="mt-4 text-2xl font-semibold tracking-tight text-zinc-100">
+                    {beat.title}
+                  </h2>
+                  <p className="mt-3 leading-relaxed text-zinc-400">{beat.body}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 

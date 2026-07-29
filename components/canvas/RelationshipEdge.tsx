@@ -17,6 +17,14 @@ const EDGE_STYLES: Record<string, React.CSSProperties> = {
 const FALLBACK_STYLE: React.CSSProperties = { stroke: '#52525b', strokeWidth: 1.5 };
 
 /**
+ * Above this many lit connectors the travelling light is dropped and the static
+ * highlight carries the meaning on its own. Hovering a founder in a large house
+ * lights most of the tree, and stroke-dashoffset repaints rather than
+ * compositing — so the effect has to stop before it costs frames.
+ */
+const TRACE_EDGE_BUDGET = 60;
+
+/**
  * Classic genealogy connectors. The layout guarantees the geometry (partners
  * adjacent on one row with the union point between them; children exactly one
  * row below), so paths are plain orthogonal segments:
@@ -136,6 +144,20 @@ export const RelationshipEdge = memo(({
         onMouseEnter={() => onUnionHover?.(relType === 'PARTNER' ? target : source)}
         onMouseLeave={() => onUnionHover?.(null)}
       />
+      {/* The signature moment: while a bloodline is lit, a short light runs
+          down it. Drawn over the connector rather than replacing it, so the
+          line's own colour, width and dash pattern survive underneath. */}
+      {emphasized && (activeEdges?.size ?? 0) <= TRACE_EDGE_BUDGET && (
+        <path
+          className="bloodline-trace"
+          d={path}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          style={{ pointerEvents: 'none', opacity: 0.9 }}
+        />
+      )}
       {dot && (
         <circle
           cx={dot.cx}

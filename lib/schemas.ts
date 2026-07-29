@@ -60,6 +60,14 @@ export const DynastySettingsSchema = z.object({
   isPublic: z.boolean().optional(),
 });
 
+// Seeds only ever index into the fixed crest grammar, but they are persisted and
+// echoed into image URLs, so keep them to a short opaque token.
+export const CrestSeedSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z0-9-]+$/i, "Invalid crest");
+
 export const CustomNameInputSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   style: NameStyleSchema,

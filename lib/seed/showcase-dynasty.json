@@ -1,0 +1,526 @@
+{
+  "version": 1,
+  "exportedAt": "2026-07-20T00:00:00.000Z",
+  "dynasty": {
+    "name": "House Thorne",
+    "setting": "FANTASY",
+    "isPublic": true
+  },
+  "characters": [
+    {
+      "id": "c-aldric",
+      "name": "Aldric Thorne",
+      "alias": "The Sellsword Lord",
+      "flags": ["FOUNDER", "DECEASED"],
+      "style": "Human, sellsword turned lord",
+      "gender": "MALE",
+      "note": "Took Greyhollow with eighty men and a forged writ. Nobody has ever asked to see the writ twice.",
+      "posX": 460,
+      "posY": 0
+    },
+    {
+      "id": "c-miriel",
+      "name": "Miriel Vaunt",
+      "alias": null,
+      "flags": ["FOUNDER", "DECEASED"],
+      "style": "Half-elf, war-mage",
+      "gender": "FEMALE",
+      "note": "Burned the eastern gate to win the siege. Refused to speak of it for the rest of her life.",
+      "posX": 680,
+      "posY": 0
+    },
+    {
+      "id": "c-yelena",
+      "name": "Yelena Ashfell",
+      "alias": null,
+      "flags": [],
+      "style": "Human, caravan mistress",
+      "gender": "FEMALE",
+      "note": "Still runs the salt road at seventy. Still refuses to set foot inside Greyhollow.",
+      "posX": 180,
+      "posY": 0
+    },
+    {
+      "id": "c-ilmaren",
+      "name": "Ilmaren Solveig",
+      "alias": null,
+      "flags": ["DECEASED"],
+      "style": "High-elf, archivist",
+      "gender": "MALE",
+      "note": null,
+      "posX": 1180,
+      "posY": 0
+    },
+    {
+      "id": "c-vespera",
+      "name": "Vespera Solveig",
+      "alias": null,
+      "flags": [],
+      "style": "High-elf, blade-dancer",
+      "gender": "FEMALE",
+      "note": "Holds the Solveig seat until her daughter comes home. Has waited forty years.",
+      "posX": 1400,
+      "posY": 0
+    },
+    {
+      "id": "c-hale",
+      "name": "Hale Ferrow",
+      "alias": null,
+      "flags": [],
+      "style": "Human, shipwright",
+      "gender": "MALE",
+      "note": null,
+      "posX": 1800,
+      "posY": 0
+    },
+    {
+      "id": "c-bettany",
+      "name": "Bettany Ferrow",
+      "alias": null,
+      "flags": [],
+      "style": "Human, net-mender",
+      "gender": "FEMALE",
+      "note": null,
+      "posX": 2020,
+      "posY": 0
+    },
+
+    {
+      "id": "c-dain",
+      "name": "Dain Ashfell",
+      "alias": "The Unclaimed",
+      "flags": ["BASTARD"],
+      "style": "Human, harbour smuggler",
+      "gender": "MALE",
+      "note": "Carries Aldric's letter of acknowledgement in a waxed pouch. Has never shown it to anyone who mattered.",
+      "posX": 120,
+      "posY": 240
+    },
+    {
+      "id": "c-marta",
+      "name": "Marta Quill",
+      "alias": null,
+      "flags": [],
+      "style": "Human, apothecary",
+      "gender": "FEMALE",
+      "note": null,
+      "posX": 340,
+      "posY": 240
+    },
+    {
+      "id": "c-rhoswen",
+      "name": "Rhoswen Thorne",
+      "alias": "Lady of Greyhollow",
+      "flags": [],
+      "style": "Human, Lady of Greyhollow",
+      "gender": "FEMALE",
+      "note": "Holds the seat. Knows exactly who her father's other son is, and says nothing.",
+      "posX": 600,
+      "posY": 240
+    },
+    {
+      "id": "c-perrin",
+      "name": "Perrin Vale",
+      "alias": null,
+      "flags": [],
+      "style": "Human, harbourmaster",
+      "gender": "MALE",
+      "note": null,
+      "posX": 820,
+      "posY": 240
+    },
+    {
+      "id": "c-corvin",
+      "name": "Corvin Thorne",
+      "alias": "The Quiet Brother",
+      "flags": [],
+      "style": "Half-elf, spymaster",
+      "gender": "MALE",
+      "note": "Runs his sister's intelligence network. Has files on his own family.",
+      "posX": 1060,
+      "posY": 240
+    },
+    {
+      "id": "c-adaira",
+      "name": "Adaira Solveig",
+      "alias": null,
+      "flags": [],
+      "style": "High-elf, ambassador",
+      "gender": "FEMALE",
+      "note": "Came to negotiate a grain treaty and never went home.",
+      "posX": 1280,
+      "posY": 240
+    },
+    {
+      "id": "c-lysandre",
+      "name": "Lysandre Solveig",
+      "alias": null,
+      "flags": [],
+      "style": "High-elf, duelist",
+      "gender": "MALE",
+      "note": "Has challenged Corvin Thorne to a duel four times. Corvin keeps sending pastries instead.",
+      "posX": 1500,
+      "posY": 240
+    },
+    {
+      "id": "c-sera",
+      "name": "Sera Thorne",
+      "alias": "The Oathbreaker",
+      "flags": ["EXILE"],
+      "style": "Half-elf, temple knight",
+      "gender": "FEMALE",
+      "note": "Exiled for refusing an order she has never explained. Writes to Rhoswen every winter.",
+      "posX": 1700,
+      "posY": 240
+    },
+
+    {
+      "id": "c-wyn",
+      "name": "Wyn Ashfell",
+      "alias": null,
+      "flags": [],
+      "style": "Human, dockside forger",
+      "gender": "FEMALE",
+      "note": "Forges Thorne seals for a living. Does not know she is forging her own family's crest.",
+      "posX": 200,
+      "posY": 480
+    },
+    {
+      "id": "c-ilya",
+      "name": "Ilya Thorne",
+      "alias": null,
+      "flags": [],
+      "style": "Human, heir to Greyhollow",
+      "gender": "FEMALE",
+      "note": "Next in line, and the only one who wants the chair.",
+      "posX": 540,
+      "posY": 480
+    },
+    {
+      "id": "c-bram",
+      "name": "Bram Thorne",
+      "alias": null,
+      "flags": [],
+      "style": "Human, master of hounds",
+      "gender": "MALE",
+      "note": "Would rather be in the kennels than the council hall, and everyone knows it.",
+      "posX": 760,
+      "posY": 480
+    },
+    {
+      "id": "c-nessa",
+      "name": "Nessa Thorne",
+      "alias": null,
+      "flags": ["ADOPTED"],
+      "style": "Half-elf, hedge-witch",
+      "gender": "FEMALE",
+      "note": "Pulled from the Ashfall fire as an infant. Has started asking whose fire it was.",
+      "posX": 980,
+      "posY": 480
+    },
+    {
+      "id": "c-kestrel",
+      "name": "Kestrel Thorne",
+      "alias": null,
+      "flags": [],
+      "style": "Half-elf, cartographer",
+      "gender": "NON_BINARY",
+      "note": "Mapping the salt road for the crown, or so the crown believes.",
+      "posX": 1220,
+      "posY": 480
+    },
+    {
+      "id": "c-joran",
+      "name": "Joran Ferrow",
+      "alias": "Captain Ferrow",
+      "flags": [],
+      "style": "Human, privateer captain",
+      "gender": "MALE",
+      "note": "Holds a letter of marque that three separate courts consider void.",
+      "posX": 1860,
+      "posY": 480
+    },
+
+    {
+      "id": "c-talia",
+      "name": "Talia Thorne",
+      "alias": null,
+      "flags": [],
+      "style": "Human, squire",
+      "gender": "FEMALE",
+      "note": "Eleven years old. Has already worked out that Aunt Sera is not a traitor.",
+      "posX": 1180,
+      "posY": 720
+    }
+  ],
+  "relationships": [
+    {
+      "id": "r-01",
+      "fromId": "c-aldric",
+      "toId": "c-miriel",
+      "type": "SPOUSE",
+      "hook": "Married the night before the siege. Neither expected to live through it; both did, and never spoke of the gate again.",
+      "isMutual": true
+    },
+    {
+      "id": "r-02",
+      "fromId": "c-ilmaren",
+      "toId": "c-vespera",
+      "type": "SPOUSE",
+      "hook": "An arranged match between two archive houses. They grew fond of each other roughly a century too late.",
+      "isMutual": true
+    },
+    {
+      "id": "r-03",
+      "fromId": "c-hale",
+      "toId": "c-bettany",
+      "type": "SPOUSE",
+      "hook": null,
+      "isMutual": true
+    },
+    {
+      "id": "r-04",
+      "fromId": "c-rhoswen",
+      "toId": "c-perrin",
+      "type": "SPOUSE",
+      "hook": "She married the harbourmaster to control the docks. The affection arrived later and surprised them both.",
+      "isMutual": true
+    },
+    {
+      "id": "r-05",
+      "fromId": "c-corvin",
+      "toId": "c-adaira",
+      "type": "SPOUSE",
+      "hook": "The spymaster and the ambassador. Half the court is certain one of them is running the other.",
+      "isMutual": true
+    },
+    {
+      "id": "r-06",
+      "fromId": "c-dain",
+      "toId": "c-marta",
+      "type": "SPOUSE",
+      "hook": "Her shop launders more than linen. Dain has never asked what is kept in the back room.",
+      "isMutual": true
+    },
+    {
+      "id": "r-07",
+      "fromId": "c-ilya",
+      "toId": "c-joran",
+      "type": "SPOUSE",
+      "hook": "A privateer marrying the heir to Greyhollow. The old guard has not forgiven it and does not intend to.",
+      "isMutual": true
+    },
+
+    {
+      "id": "r-10",
+      "fromId": "c-aldric",
+      "toId": "c-rhoswen",
+      "type": "PARENT",
+      "hook": "He named her heir over his sons on the grounds that she was the only one who frightened him.",
+      "isMutual": false
+    },
+    {
+      "id": "r-11",
+      "fromId": "c-miriel",
+      "toId": "c-rhoswen",
+      "type": "PARENT",
+      "hook": null,
+      "isMutual": false
+    },
+    {
+      "id": "r-12",
+      "fromId": "c-aldric",
+      "toId": "c-corvin",
+      "type": "PARENT",
+      "hook": null,
+      "isMutual": false
+    },
+    {
+      "id": "r-13",
+      "fromId": "c-miriel",
+      "toId": "c-corvin",
+      "type": "PARENT",
+      "hook": null,
+      "isMutual": false
+    },
+    {
+      "id": "r-14",
+      "fromId": "c-aldric",
+      "toId": "c-sera",
+      "type": "PARENT",
+      "hook": null,
+      "isMutual": false
+    },
+    {
+      "id": "r-15",
+      "fromId": "c-miriel",
+      "toId": "c-sera",
+      "type": "PARENT",
+      "hook": "Sera inherited her mother's talent and her temper. The temple exiled her for the second one.",
+      "isMutual": false
+    },
+    {
+      "id": "r-16",
+      "fromId": "c-aldric",
+      "toId": "c-dain",
+      "type": "PARENT",
+      "hook": "Acknowledged him in a private letter and never once in public. Dain still carries the letter.",
+      "isMutual": false
+    },
+    {
+      "id": "r-17",
+      "fromId": "c-yelena",
+      "toId": "c-dain",
+      "type": "PARENT",
+      "hook": "She refused the Thorne name for herself and for him. He has never decided whether to thank her.",
+      "isMutual": false
+    },
+
+    {
+      "id": "r-20",
+      "fromId": "c-ilmaren",
+      "toId": "c-adaira",
+      "type": "PARENT",
+      "hook": null,
+      "isMutual": false
+    },
+    {
+      "id": "r-21",
+      "fromId": "c-vespera",
+      "toId": "c-adaira",
+      "type": "PARENT",
+      "hook": "Forty years of letters, all unanswered. Vespera still sets a place for her at midwinter.",
+      "isMutual": false
+    },
+    {
+      "id": "r-22",
+      "fromId": "c-ilmaren",
+      "toId": "c-lysandre",
+      "type": "PARENT",
+      "hook": null,
+      "isMutual": false
+    },
+    {
+      "id": "r-23",
+      "fromId": "c-vespera",
+      "toId": "c-lysandre",
+      "type": "PARENT",
+      "hook": null,
+      "isMutual": false
+    },
+    {
+      "id": "r-24",
+      "fromId": "c-hale",
+      "toId": "c-joran",
+      "type": "PARENT",
+      "hook": null,
+      "isMutual": false
+    },
+    {
+      "id": "r-25",
+      "fromId": "c-bettany",
+      "toId": "c-joran",
+      "type": "PARENT",
+      "hook": "She built the boat he stole to start his career. She has asked for it back every year since.",
+      "isMutual": false
+    },
+
+    {
+      "id": "r-30",
+      "fromId": "c-rhoswen",
+      "toId": "c-ilya",
+      "type": "PARENT",
+      "hook": null,
+      "isMutual": false
+    },
+    {
+      "id": "r-31",
+      "fromId": "c-perrin",
+      "toId": "c-ilya",
+      "type": "PARENT",
+      "hook": null,
+      "isMutual": false
+    },
+    {
+      "id": "r-32",
+      "fromId": "c-rhoswen",
+      "toId": "c-bram",
+      "type": "PARENT",
+      "hook": null,
+      "isMutual": false
+    },
+    {
+      "id": "r-33",
+      "fromId": "c-perrin",
+      "toId": "c-bram",
+      "type": "PARENT",
+      "hook": "Perrin taught him the docks so he would have somewhere to go that was not the council hall.",
+      "isMutual": false
+    },
+    {
+      "id": "r-34",
+      "fromId": "c-rhoswen",
+      "toId": "c-nessa",
+      "type": "ADOPTED",
+      "hook": "Taken in after the Ashfall fire. Rhoswen has never told her whose daughter she actually is.",
+      "isMutual": false
+    },
+    {
+      "id": "r-35",
+      "fromId": "c-perrin",
+      "toId": "c-nessa",
+      "type": "ADOPTED",
+      "hook": null,
+      "isMutual": false
+    },
+    {
+      "id": "r-36",
+      "fromId": "c-corvin",
+      "toId": "c-kestrel",
+      "type": "PARENT",
+      "hook": "Corvin sends them on 'survey work' that keeps landing suspiciously close to rival borders.",
+      "isMutual": false
+    },
+    {
+      "id": "r-37",
+      "fromId": "c-adaira",
+      "toId": "c-kestrel",
+      "type": "PARENT",
+      "hook": null,
+      "isMutual": false
+    },
+    {
+      "id": "r-38",
+      "fromId": "c-dain",
+      "toId": "c-wyn",
+      "type": "PARENT",
+      "hook": "He taught her the trade to keep her off the water. She forges the Thorne seal without knowing it is hers.",
+      "isMutual": false
+    },
+    {
+      "id": "r-39",
+      "fromId": "c-marta",
+      "toId": "c-wyn",
+      "type": "PARENT",
+      "hook": null,
+      "isMutual": false
+    },
+
+    {
+      "id": "r-40",
+      "fromId": "c-ilya",
+      "toId": "c-talia",
+      "type": "PARENT",
+      "hook": null,
+      "isMutual": false
+    },
+    {
+      "id": "r-41",
+      "fromId": "c-joran",
+      "toId": "c-talia",
+      "type": "PARENT",
+      "hook": "He is teaching her to read charts. Ilya thinks he is teaching her to leave.",
+      "isMutual": false
+    }
+  ]
+}

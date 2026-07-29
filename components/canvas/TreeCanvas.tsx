@@ -21,11 +21,20 @@ import { GenerationBands } from '@/components/canvas/GenerationBands';
 import { CatalogProvider } from '@/components/canvas/CatalogProvider';
 import { CanvasContext } from '@/components/canvas/CanvasContext';
 import { CanvasEmptyState } from '@/components/canvas/CanvasEmptyState';
+import { ExampleDynastyNotice } from '@/components/canvas/ExampleDynastyNotice';
 import { useGenealogyLayout } from '@/components/canvas/useGenealogyLayout';
 import { HighlightContext } from '@/components/canvas/HighlightContext';
 import { useBloodlineHighlight } from '@/components/canvas/useBloodlineHighlight';
 import { partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
 import { parseImportFile, buildCanvasFromExport, deriveExportRelationships } from '@/lib/import-canvas';
+import {
+  EXAMPLE_HOUSE_NAME, buildSeedCanvas, hasSeedBeenDecided,
+  markSeedDecided, isShowingExample, setShowingExample,
+} from '@/lib/seed-canvas';
+import { useFitTree } from '@/components/canvas/useFitTree';
+import { useCanvasSettled } from '@/components/canvas/useCanvasSettled';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { CanvasLegend } from '@/components/canvas/CanvasLegend';
 import type { CharacterData } from '@/types/canvas';
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
@@ -52,12 +61,15 @@ function TreeCanvasInner() {
 
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
+  const [showExampleNotice, setShowExampleNotice] = useState(false);
+  const [pendingImport, setPendingImport] = useState<File | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const reactFlow = useReactFlow();
-  const { fitView } = reactFlow;
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
+  const { fitTree, bind: fitBind } = useFitTree(laidOutNodes, containerRef);
+  const settlingClass = useCanvasSettled();
 
   const highlight = useBloodlineHighlight(nodes, edges);
   const highlightValue = useMemo(
@@ -136,13 +148,7 @@ function TreeCanvasInner() {
     fileInputRef.current?.click();
   }, []);
 
-  const handleImportFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    if (characterNodes.length > 0 && !window.confirm('Import will replace your current guest tree. Continue?')) {
-      return;
-    }
+  const runImport = useCallback(async (file: File) => {
     try {
       const raw = await file.text();
       const data = parseImportFile(raw);
@@ -152,7 +158,69 @@ function TreeCanvasInner() {
     } catch {
       toast.error("Couldn't read that file — is it a Dynasty Tree export?");
     }
-  }, [characterNodes.length, initCanvas]);
+  }, [initCanvas]);
+
+  // Importing over existing work is destructive, so it asks first — holding the
+  // chosen file until the answer comes back rather than blocking on confirm().
+  const handleImportFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (characterNodes.length > 0) {
+      setPendingImport(file);
+      return;
+    }
+    void runImport(file);
+  }, [characterNodes.length, runImport]);
+
+  const handleClearExample = useCallback(() => {
+    initCanvas([], []);
+    setShowingExample(false);
+    setShowExampleNotice(false);
+    setAddCharacterOpen(true);
+  }, [initCanvas]);
+
+  const handleDismissExample = useCallback(() => {
+    // The tree stays — they may want to build on it — but it is theirs now.
+    setShowingExample(false);
+    setShowExampleNotice(false);
+  }, []);
+
+  // First-run seeding. Must wait for the persist middleware to rehydrate,
+  // otherwise a returning visitor's saved tree is still an empty array at mount
+  // and we would seed straight over it.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function seedIfFirstRun() {
+      if (hasSeedBeenDecided()) {
+        setShowExampleNotice(isShowingExample());
+        return;
+      }
+      if (useCanvasStore.getState().nodes.length > 0) {
+        markSeedDecided('skipped');
+        return;
+      }
+
+      const seed = await buildSeedCanvas();
+      // Re-check after the await: the visitor may have added someone while the
+      // fixture chunk was still downloading.
+      if (cancelled || useCanvasStore.getState().nodes.length > 0) return;
+
+      initCanvas(seed.nodes, seed.edges);
+      markSeedDecided('seeded');
+      setShowingExample(true);
+      setShowExampleNotice(true);
+    }
+
+    if (useCanvasStore.persist.hasHydrated()) {
+      void seedIfFirstRun();
+      return () => { cancelled = true; };
+    }
+
+    const unsub = useCanvasStore.persist.onFinishHydration(() => void seedIfFirstRun());
+    return () => { cancelled = true; unsub(); };
+  }, [initCanvas]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -178,7 +246,7 @@ function TreeCanvasInner() {
   return (
     <CanvasContext.Provider value={{ setEditingCharacterId, openAddRelative }}>
       <div className="flex h-full w-full">
-        <div ref={containerRef} className="relative flex-1 min-w-0 h-full">
+        <div ref={containerRef} className={`relative flex-1 min-w-0 h-full ${settlingClass}`}>
           <HighlightContext.Provider value={highlightValue}>
           <ReactFlow
             nodes={laidOutNodes}
@@ -194,20 +262,30 @@ function TreeCanvasInner() {
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             colorMode="dark"
-            fitView
-            fitViewOptions={{ padding: 0.2 }}
+            {...fitBind}
             deleteKeyCode={['Backspace', 'Delete']}
-            className="bg-zinc-950"
+            className="bg-background"
             proOptions={{ hideAttribution: false }}
             defaultEdgeOptions={{ type: 'smoothstep' }}
             nodesDraggable={false}
           >
-            {gridVisible && (
-              <Background variant={BackgroundVariant.Dots} color="#3f3f46" size={1.5} gap={20} />
-            )}
+            {/* Always on: the faint warm dots give the ground a surface. The
+                toggle raises the same dots to a working grid. */}
+            <Background
+              variant={BackgroundVariant.Dots}
+              color={gridVisible ? 'var(--canvas-dot-strong)' : 'var(--canvas-dot)'}
+              size={gridVisible ? 1.5 : 1.2}
+              gap={20}
+            />
             <Controls showInteractive={false} className="!bottom-4 !left-auto !right-4 !top-auto" />
-            <GenerationBands rows={rows} nodes={laidOutNodes} houseName="Your Dynasty" />
+            <GenerationBands
+              rows={rows}
+              nodes={laidOutNodes}
+              houseName={showExampleNotice ? EXAMPLE_HOUSE_NAME : 'Your Dynasty'}
+            />
           </ReactFlow>
+          <div className="canvas-vignette" aria-hidden="true" />
+          {characterNodes.length > 0 && <CanvasLegend />}
           </HighlightContext.Provider>
 
           <input
@@ -229,10 +307,29 @@ function TreeCanvasInner() {
             onExportJson={handleExportJson}
             onImportJson={handleImportClick}
             showCustomOptions={false}
+            onFitView={fitTree}
           />
 
           {characterNodes.length === 0 && (
             <CanvasEmptyState onAddCharacter={() => setAddCharacterOpen(true)} onImportJson={handleImportClick} />
+          )}
+
+          <ConfirmDialog
+            open={pendingImport !== null}
+            onOpenChange={(open) => { if (!open) setPendingImport(null); }}
+            title="Replace your current tree?"
+            description="Importing a file replaces everything on this canvas. Your current guest tree cannot be recovered afterwards."
+            confirmLabel="Replace tree"
+            destructive
+            onConfirm={() => { const f = pendingImport; setPendingImport(null); if (f) void runImport(f); }}
+          />
+
+          {showExampleNotice && characterNodes.length > 0 && (
+            <ExampleDynastyNotice
+              houseName={EXAMPLE_HOUSE_NAME}
+              onClear={handleClearExample}
+              onDismiss={handleDismissExample}
+            />
           )}
 
           <AddRelativeHint visible={characterNodes.length === 1 && !characterNodes[0].selected} />

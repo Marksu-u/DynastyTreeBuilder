@@ -135,7 +135,7 @@ export function ReportButton({ shareSlug }: Props) {
               <button
                 type="submit"
                 disabled={!reason || pending}
-                className="flex-1 rounded-md bg-red-700 px-3 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+                className="flex-1 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
               >
                 {pending ? "Submitting…" : "Submit report"}
               </button>

@@ -5,6 +5,8 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Settings, X } from "lucide-react";
 import { toast } from "sonner";
 import { updateDynastySettings } from "@/app/actions/dynasty";
+import { CrestPicker } from "@/components/dashboard/CrestPicker";
+import { resolveCrestSeed } from "@/lib/crest";
 
 const SETTINGS = [
   { value: "FANTASY", label: "Fantasy" },
@@ -20,6 +22,8 @@ interface Props {
   initialName: string;
   initialSetting: string;
   initialIsPublic: boolean;
+  slug: string;
+  crestSeed: string | null;
   onPublicChange?: (v: boolean) => void;
 }
 
@@ -28,6 +32,8 @@ export function DynastySettingsDialog({
   initialName,
   initialSetting,
   initialIsPublic,
+  slug,
+  crestSeed,
   onPublicChange,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -129,16 +135,25 @@ export function DynastySettingsDialog({
                 aria-checked={isPublic}
                 onClick={() => setIsPublic((v) => !v)}
                 className={`relative h-5 w-9 cursor-pointer rounded-full transition-colors ${
-                  isPublic ? "bg-violet-600" : "bg-zinc-700"
+                  isPublic ? "bg-[var(--accent)]" : "bg-zinc-700"
                 }`}
               >
+                {/* The knob flips to the dark ground on the lit track: white on
+                    gold is only 2.17:1, where zinc-950 on gold is 8.85:1. */}
                 <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                    isPublic ? "translate-x-4" : "translate-x-0.5"
+                  className={`absolute top-0.5 h-4 w-4 rounded-full shadow transition-transform ${
+                    isPublic ? "translate-x-4 bg-zinc-950" : "translate-x-0.5 bg-white"
                   }`}
                 />
               </div>
             </label>
+
+            <div className="border-t border-zinc-800 pt-4">
+              <CrestPicker
+                dynastyId={dynastyId}
+                currentSeed={resolveCrestSeed({ slug, crestSeed })}
+              />
+            </div>
           </div>
 
           <div className="mt-6 flex justify-end gap-2">
@@ -150,7 +165,7 @@ export function DynastySettingsDialog({
             <button
               onClick={handleSave}
               disabled={isPending || !name.trim()}
-              className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50 transition-colors"
+              className="rounded-lg bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-white disabled:opacity-50 transition-colors"
             >
               {isPending ? "Saving…" : "Save"}
             </button>

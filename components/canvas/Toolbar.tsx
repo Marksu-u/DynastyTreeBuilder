@@ -23,6 +23,9 @@ interface Props {
   onImportJson?: () => void;
   /** When true, shows the "Custom options" panel toggle */
   showCustomOptions?: boolean;
+  /** Frames the whole tree. Supplied by the canvas because React Flow's own
+   *  fitView() does not work in this app — see lib/fit-viewport.ts. */
+  onFitView?: () => void;
 }
 
 export function Toolbar({
@@ -38,6 +41,7 @@ export function Toolbar({
   onExportJson,
   onImportJson,
   showCustomOptions = false,
+  onFitView,
 }: Props) {
   const { fitView } = useReactFlow();
   const [exportOpen, setExportOpen] = useState(false);
@@ -60,8 +64,8 @@ export function Toolbar({
   return (
     <div className="absolute left-4 top-4 z-10 flex items-center gap-0.5 rounded-lg border border-zinc-700 bg-zinc-900/95 p-1 shadow-lg backdrop-blur-sm">
       <button
-        onClick={() => fitView({ duration: 400, padding: 0.15 })}
-        className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+        onClick={() => (onFitView ? onFitView() : fitView({ duration: 400, padding: 0.15 }))}
+        className="cursor-pointer rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
         title="Zoom to fit"
       >
         <Maximize2 size={14} />

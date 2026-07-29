@@ -1,18 +1,51 @@
 @import "tailwindcss";
 
-/* "Modern dark atelier" — always-dark theme. Names the existing zinc scale
-   used by hand across the app; not a new palette. */
+/* ---------------------------------------------------------------------------
+   "The star chart" — a deep indigo ground where a house reads as a
+   constellation and succession as light travelling through it.
+
+   The whole app is re-grounded from ONE place. Tailwind v4 ships its palette as
+   `--color-*` custom properties, so redefining the zinc ramp below re-colours
+   all ~544 `zinc-*` utilities across 48 files without touching them. The class
+   names still say "zinc"; treat that as "the app's neutral ramp", which is what
+   they always meant.
+
+   The ramp is a neutral shifted toward indigo, not a blue accent scale — it has
+   to stay quiet enough that the single gold accent is the only thing that
+   glows. Gold on neutral black reads as paint; on this ground it reads as light,
+   which is the entire reason for the move.
+   --------------------------------------------------------------------------- */
+@theme {
+  --color-zinc-50:  #F2F5FB;
+  --color-zinc-100: #E6EAF5;
+  --color-zinc-200: #D2DAEC;
+  --color-zinc-300: #B3BFDA;
+  --color-zinc-400: #93A2C4;
+  --color-zinc-500: #828FB2;   /* muted text — 5.97:1 on the ground, 4.8:1 on cards */
+  --color-zinc-600: #4C5876;
+  --color-zinc-700: #333E58;
+  --color-zinc-800: #1C2438;
+  --color-zinc-900: #121829;
+  --color-zinc-950: #0B0E1A;
+}
+
 :root {
-  --background: #09090b;       /* zinc-950 */
-  --surface-1: #18181b;        /* zinc-900 */
-  --surface-2: #27272a;        /* zinc-800 */
-  --border: #3f3f46;           /* zinc-700 */
-  --border-strong: #52525b;    /* zinc-600 */
-  --text-primary: #f4f4f5;     /* zinc-100 */
-  --text-secondary: #a1a1aa;   /* zinc-400 */
-  --text-muted: #71717a;       /* zinc-500 */
+  --background: #0B0E1A;       /* the ground */
+  --surface-1: #121829;        /* zinc-900 */
+  --surface-2: #1C2438;        /* zinc-800 */
+  --border: #333E58;           /* zinc-700 */
+  --border-strong: #4C5876;    /* zinc-600 */
+  --text-primary: #E6EAF5;     /* zinc-100 */
+  --text-secondary: #93A2C4;   /* zinc-400 */
+  --text-muted: #828FB2;       /* zinc-500 */
   --accent: #ef9f27;
   --foreground: var(--text-primary);
+
+  /* Canvas texture. Cool, near-invisible dots give the ground a surface instead
+     of a void; the "grid" toggle raises the same dots to a working grid rather
+     than switching a different thing on. */
+  --canvas-dot: #1A2138;
+  --canvas-dot-strong: #2E3A55;
 }
 
 @theme inline {
@@ -33,37 +66,188 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
-/* React Flow dark theme overrides */
+/* ---------------------------------------------------------------------------
+   Motion. Deliberately a small, fixed budget — three moments, all CSS, no
+   animation library. Transform and opacity only, so everything composites on
+   the GPU and a canvas with hundreds of nodes still scrolls at 60fps.
+
+   Every animation here is switched off in one place: the prefers-reduced-motion
+   block at the bottom of this file, and the .exporting guard used by PNG export.
+   --------------------------------------------------------------------------- */
+
+/* 1. Dialogs and panels. All three dialogs centre themselves with
+      -translate-x-1/2 -translate-y-1/2, so the keyframes carry that same
+      translate and only add scale on top of it. */
+@keyframes dialog-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes dialog-overlay-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes dialog-content-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes dialog-content-out {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to   { opacity: 0; transform: translate(-50%, -50%) scale(0.98); }
+}
+
+.dialog-overlay[data-state="open"] { animation: dialog-overlay-in 140ms ease-out; }
+.dialog-overlay[data-state="closed"] { animation: dialog-overlay-out 110ms ease-in; }
+.dialog-content[data-state="open"] { animation: dialog-content-in 160ms cubic-bezier(0.16, 1, 0.3, 1); }
+.dialog-content[data-state="closed"] { animation: dialog-content-out 110ms ease-in; }
+
+/* 2. A character arriving on the canvas. Suppressed for the initial batch by
+      .canvas-settling (see useCanvasSettled) so opening a populated tree does
+      not fire thirty animations at once — this marks the moment a card the
+      user just created appears, which is the one that needs feedback. */
+@keyframes node-enter {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.character-node { animation: node-enter 170ms cubic-bezier(0.16, 1, 0.3, 1); }
+.canvas-settling .character-node { animation: none; }
+
+/* 3. The signature effect: a light travelling down a highlighted bloodline.
+      Drawn as an overlay stroke on the connector, so the connector's own
+      colour, width and dash pattern are untouched underneath. */
+@keyframes bloodline-trace {
+  from { stroke-dashoffset: 260; }
+  to   { stroke-dashoffset: 0; }
+}
+.bloodline-trace {
+  stroke-dasharray: 26 234;
+  animation: bloodline-trace 1.6s linear infinite;
+}
+
+/* Soft radial vignette that pulls the eye to the middle of the tree. Rendered
+   as a sibling of <ReactFlow>, never inside .react-flow__viewport, so PNG
+   export — which captures the viewport — is untouched by it. */
+.canvas-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 115% 75% at 50% 45%,
+    transparent 40%,
+    rgba(0, 0, 0, 0.28) 78%,
+    rgba(0, 0, 0, 0.48) 100%
+  );
+}
+
+/* ---------------------------------------------------------------------------
+   4. The landing page's growing dynasty.
+
+   PROGRESSIVE ENHANCEMENT, and the direction matters: the tree is fully visible
+   by default. Only when the stager mounts does it add `.dt-staged` to the
+   wrapper, which hides the later generations and hands them back one beat at a
+   time. If JavaScript never runs, or fails, the reader still sees the whole
+   house — the content is never hidden behind a script.
+   --------------------------------------------------------------------------- */
+@keyframes dt-draw {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes dt-card-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dt-staged .dt-gen[data-visible="false"] {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* pathLength="1" on every connector normalises this: a short marriage line and
+   a long sibling rail take the same time to draw. */
+.dt-staged .dt-gen[data-visible="true"] .dt-conn {
+  stroke-dasharray: 1 1;
+  animation: dt-draw 620ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.dt-staged .dt-gen[data-visible="true"] .dt-card {
+  animation: dt-card-in 420ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: 260ms;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.dt-staged .dt-gen { transition: opacity 420ms ease-out; }
+
+/* Reduced motion and small screens both fall back to the whole tree, drawn and
+   still. On a phone the sticky layer would fight the reader for the viewport. */
+@media (max-width: 767px) {
+  .dt-staged .dt-gen[data-visible="false"] { opacity: 1; visibility: visible; }
+  .dt-staged .dt-gen .dt-conn,
+  .dt-staged .dt-gen .dt-card { animation: none; }
+}
+
+/* Export guard. html-to-image serialises whatever the live DOM computes at the
+   instant it runs, so a transition caught mid-flight bakes an interpolated
+   transform into the PNG. lib/export.ts adds this class for the duration of the
+   capture; every animation in the app is frozen inside it, which is why new
+   motion can be added without re-testing export fidelity each time. */
+.exporting *,
+.exporting *::before,
+.exporting *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* React Flow dark theme overrides. Driven off the tokens rather than literal
+   hexes, so re-grounding the palette carries the canvas chrome with it. */
 .react-flow__controls {
-  background: #18181b !important;
-  border: 1px solid #3f3f46 !important;
+  background: var(--surface-1) !important;
+  border: 1px solid var(--border) !important;
   border-radius: 8px !important;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
 }
 .react-flow__controls-button {
-  background: #18181b !important;
-  border-bottom: 1px solid #3f3f46 !important;
-  color: #a1a1aa !important;
-  fill: #a1a1aa !important;
+  background: var(--surface-1) !important;
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+  fill: var(--text-secondary) !important;
 }
 .react-flow__controls-button:hover {
-  background: #27272a !important;
-  fill: #e4e4e7 !important;
+  background: var(--surface-2) !important;
+  fill: var(--text-primary) !important;
 }
 .react-flow__controls-button svg {
-  fill: #a1a1aa !important;
+  fill: var(--text-secondary) !important;
 }
 .react-flow__controls-button:hover svg {
-  fill: #e4e4e7 !important;
+  fill: var(--text-primary) !important;
 }
 .react-flow__attribution {
   background: transparent !important;
 }
 .react-flow__attribution a {
-  color: #52525b !important;
+  color: var(--border-strong) !important;
   font-size: 10px !important;
+}
+
+/* The single switch for every animation above. Anything added later must be
+   covered by this block — keep motion in CSS so it always is. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Killing the durations above would otherwise leave the later generations
+     stuck at opacity 0 — hidden, not merely un-animated. Show the whole tree. */
+  .dt-staged .dt-gen[data-visible="false"] {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
 }

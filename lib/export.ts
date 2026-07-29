@@ -17,6 +17,19 @@ const CHARACTER_W = 180;
 const CHARACTER_H = 64;
 const UNION_SIZE = 16;
 
+/** Fallback only — the live value comes from the --background token. */
+const EXPORT_BG_FALLBACK = "#09090b";
+
+/** Reads the canvas background off the theme token so a themed canvas exports
+ *  on its own ground rather than a hardcoded zinc-950. */
+function resolveExportBackground(): string {
+  if (typeof window === "undefined") return EXPORT_BG_FALLBACK;
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue("--background")
+    .trim();
+  return value || EXPORT_BG_FALLBACK;
+}
+
 export async function exportCanvasToPng(
   instance: { getNodes: () => any[] },
   containerRef: React.RefObject<HTMLDivElement | null>,
@@ -77,9 +90,20 @@ export async function exportCanvasToPng(
 
   toast.info("Generating high-resolution PNG…");
 
+  // Webfonts are inlined by fetching them, so capturing before they resolve
+  // bakes the fallback face into the PNG. Guard is cheap once fonts are cached.
+  if (document.fonts?.ready) {
+    await document.fonts.ready;
+  }
+
+  // Freeze every animation and transition under the canvas for the capture —
+  // see the .exporting rule in globals.css.
+  const guardEl = containerRef.current;
+  guardEl?.classList.add("exporting");
+
   try {
     const dataUrl = await toPng(viewportEl, {
-      backgroundColor: "#09090b",
+      backgroundColor: resolveExportBackground(),
       width: exportWidth,
       height: exportHeight,
       pixelRatio: 2, // 2× pixel density for crisp text at any zoom
@@ -111,6 +135,8 @@ export async function exportCanvasToPng(
   } catch (error) {
     console.error("Export failed:", error);
     toast.error("Export failed");
+  } finally {
+    guardEl?.classList.remove("exporting");
   }
 }
 

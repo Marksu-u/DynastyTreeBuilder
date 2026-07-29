@@ -2,7 +2,7 @@ import { Skeleton } from "./Skeleton";
 
 export function SkeletonCanvas() {
   return (
-    <div className="relative h-full w-full bg-zinc-950">
+    <div className="relative h-full w-full bg-background">
       {/* Ghosted toolbar strip */}
       <div className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-1.5">
         {Array.from({ length: 5 }).map((_, i) => (

@@ -20,7 +20,7 @@ export default function NewDynastyPage() {
   const [state, action, isPending] = useActionState(createDynasty, null);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-8">
+    <div className="flex min-h-screen items-center justify-center bg-background p-8">
       <div className="w-full max-w-md">
         <h1 className="mb-6 text-2xl font-bold text-zinc-100">New Dynasty</h1>
         <form action={action} className="space-y-4">

@@ -50,7 +50,7 @@ export function LegalDoc({
   }, []);
 
   return (
-    <main className="min-h-screen bg-zinc-950">
+    <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-2xl px-4 py-16 text-sm text-zinc-300">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div className="inline-flex overflow-hidden rounded-md border border-zinc-700 text-xs">

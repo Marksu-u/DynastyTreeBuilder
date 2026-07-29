@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Trash2, Users } from "lucide-react";
 import { deleteDynasty } from "@/app/actions/dynasty";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Crest } from "@/components/ui/Crest";
+import { resolveCrestSeed } from "@/lib/crest";
 
 const SETTING_LABELS: Record<string, string> = {
   FANTASY: "Fantasy",
@@ -19,6 +22,8 @@ interface Props {
   dynasty: {
     id: string;
     name: string;
+    slug: string;
+    crestSeed: string | null;
     setting: string;
     updatedAt: Date;
     _count: { characters: number };
@@ -27,9 +32,9 @@ interface Props {
 
 export function DynastyCard({ dynasty }: Props) {
   const [isPending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function handleDelete() {
-    if (!confirm(`Delete "${dynasty.name}"? This cannot be undone.`)) return;
     startTransition(async () => {
       const result = await deleteDynasty(dynasty.id);
       if (result.error) toast.error(result.error);
@@ -40,7 +45,8 @@ export function DynastyCard({ dynasty }: Props) {
   return (
     <div className="group relative rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition-colors hover:border-zinc-700">
       <Link href={`/dashboard/${dynasty.id}`} className="block">
-        <div className="mb-3 flex items-start justify-between">
+        <div className="mb-3 flex items-start gap-3">
+          <Crest seed={resolveCrestSeed(dynasty)} size={36} className="shrink-0" />
           <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
             {SETTING_LABELS[dynasty.setting] ?? dynasty.setting}
           </span>
@@ -61,13 +67,23 @@ export function DynastyCard({ dynasty }: Props) {
       </Link>
 
       <button
-        onClick={handleDelete}
+        onClick={() => setConfirmOpen(true)}
         disabled={isPending}
-        className="absolute right-3 top-3 rounded p-1 text-zinc-700 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100 disabled:opacity-50"
-        aria-label="Delete dynasty"
+        className="absolute right-3 top-3 cursor-pointer rounded p-1 text-zinc-700 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-50"
+        aria-label={`Delete ${dynasty.name}`}
       >
         <Trash2 className="h-4 w-4" />
       </button>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={`Delete "${dynasty.name}"?`}
+        description="This removes the dynasty and every character and relationship in it. This cannot be undone."
+        confirmLabel="Delete dynasty"
+        destructive
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

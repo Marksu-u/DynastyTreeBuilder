@@ -55,7 +55,7 @@ export function DeleteAccountDialog({ email }: Props) {
 
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-red-900/60 bg-zinc-950 p-6 shadow-xl focus:outline-none">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-red-900/60 bg-background p-6 shadow-xl focus:outline-none">
           <div className="mb-4 flex items-start justify-between">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-400" />
@@ -122,7 +122,7 @@ export function DeleteAccountDialog({ email }: Props) {
             <button
               onClick={handleDelete}
               disabled={!armed || isPending || succeeded}
-              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-40 disabled:hover:bg-red-600 transition-colors"
+              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-40 disabled:hover:bg-red-600 transition-colors"
             >
               {isPending || succeeded ? "Deleting…" : "Delete forever"}
             </button>
