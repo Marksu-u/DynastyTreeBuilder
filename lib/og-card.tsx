@@ -47,8 +47,21 @@ export interface OgCardInput {
   founderIds: string[];
 }
 
+/**
+ * Dynasty names have no length cap in `DynastySettingsSchema`, and at a fixed
+ * 66px a long one overflows the left column and collides with the meta line and
+ * the wordmark. Step the size down, then hard-truncate as a backstop.
+ */
+function fitHouseName(name: string): { text: string; fontSize: number } {
+  const text = name.length > 58 ? `${name.slice(0, 57).trimEnd()}…` : name;
+  const fontSize =
+    text.length > 40 ? 34 : text.length > 28 ? 44 : text.length > 18 ? 54 : 66;
+  return { text, fontSize };
+}
+
 export function renderOgCard(input: OgCardInput): ImageResponse {
   const crest = dataUri(crestToSvg(crestFromSeed(input.crestSeed), 130));
+  const houseName = fitHouseName(input.houseName);
   const tree = dataUri(
     renderTreeSvg(input.nodes, input.edges, input.founderIds, { width: 600, height: 470 }),
   );
@@ -68,14 +81,14 @@ export function renderOgCard(input: OgCardInput): ImageResponse {
           <img src={crest} width={130} height={156} alt="" />
           <div
             style={{
-              fontSize: 66,
+              fontSize: houseName.fontSize,
               fontWeight: 600,
               color: '#F4F4F5',
               marginTop: 34,
               lineHeight: 1.1,
             }}
           >
-            {input.houseName}
+            {houseName.text}
           </div>
           <div style={{ fontSize: 27, color: '#a1a1aa', marginTop: 14 }}>{input.meta}</div>
           <div style={{ width: 110, height: 2, background: '#EF9F27', marginTop: 46 }} />

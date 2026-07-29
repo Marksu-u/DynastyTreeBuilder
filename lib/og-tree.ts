@@ -104,11 +104,23 @@ export function renderTreeSvg(
     .filter((n): n is { id: string; p: { x: number; y: number } } => Boolean(n.p));
   if (placed.length === 0) return emptySvg(width, height);
 
-  const minX = Math.min(...placed.map((n) => n.p.x));
-  const maxX = Math.max(...placed.map((n) => n.p.x + CARD_W));
-  const minY = Math.min(...placed.map((n) => n.p.y));
-  const maxY = Math.max(...placed.map((n) => n.p.y + CARD_H));
   const pad = 40;
+  const rawMinX = Math.min(...placed.map((n) => n.p.x)) - pad;
+  const rawMaxX = Math.max(...placed.map((n) => n.p.x + CARD_W)) + pad;
+  const rawMinY = Math.min(...placed.map((n) => n.p.y)) - pad;
+  const rawMaxY = Math.max(...placed.map((n) => n.p.y + CARD_H)) + pad;
+
+  // Floor the viewBox at roughly seven cards by five rows, matching the panel's
+  // 600×470 aspect. Without this a one-character dynasty — the first thing a new
+  // user shares — scales its single card up to fill the whole panel.
+  const MIN_W = 1200;
+  const MIN_H = 940;
+  const cx = (rawMinX + rawMaxX) / 2;
+  const cy = (rawMinY + rawMaxY) / 2;
+  const vw = Math.max(rawMaxX - rawMinX, MIN_W);
+  const vh = Math.max(rawMaxY - rawMinY, MIN_H);
+  const viewMinX = cx - vw / 2;
+  const viewMinY = cy - vh / 2;
 
   const connectors = keptEdges
     .map((e) => {
@@ -136,7 +148,7 @@ export function renderTreeSvg(
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" ` +
-    `viewBox="${minX - pad} ${minY - pad} ${maxX - minX + pad * 2} ${maxY - minY + pad * 2}" ` +
+    `viewBox="${viewMinX} ${viewMinY} ${vw} ${vh}" ` +
     `preserveAspectRatio="xMidYMid meet">` +
     connectors + cards +
     `</svg>`
