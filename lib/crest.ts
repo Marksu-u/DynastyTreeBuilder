@@ -137,7 +137,8 @@ const CHARGE_MARKUP: Record<Charge, (fill: string) => string> = {
   sword:    (f) => `<path d="M0,-12 L2,-6 L2,5 L4,5 L4,7.2 L1,7.2 L1,12 L-1,12 L-1,7.2 L-4,7.2 L-4,5 L-2,5 L-2,-6 Z" fill="${f}"/>`,
   chevron:  (f) => `<path d="M0,-7 L11,4 L11,10.5 L0,-0.5 L-11,10.5 L-11,4 Z" fill="${f}"/>`,
   rose:     (f) => `<circle cx="0" cy="-7.5" r="4.6" fill="${f}"/><circle cx="7.1" cy="-2.3" r="4.6" fill="${f}"/><circle cx="4.4" cy="6.1" r="4.6" fill="${f}"/><circle cx="-4.4" cy="6.1" r="4.6" fill="${f}"/><circle cx="-7.1" cy="-2.3" r="4.6" fill="${f}"/><circle cx="0" cy="0" r="3.6" fill="${f}"/>`,
-  flame:    (f) => `<path d="M0,-12 C5,-5 9,-2.5 9,3.5 A9,9 0 1,1 -9,3.5 C-9,-2.5 -3,-4.5 0,-12 Z" fill="${f}"/>`,
+  // Asymmetric, with an inner lick — a symmetric teardrop reads as a water drop.
+  flame:    (f) => `<path d="M1,-12 C7,-5 9,-1 9,3 A9,9 0 1,1 -9,3 C-9,-1 -6,-3 -3.5,-6.5 C-3.5,-3 -2,-1.5 -0.5,-2 C-2,-5.5 -1.5,-9 1,-12 Z" fill="${f}"/>`,
   chalice:  (f) => `<path d="M-8,-10 h16 v3.5 a8,8 0 0,1 -6.6,7.9 v6.6 h5.1 v3 h-13 v-3 h5.1 v-6.6 a8,8 0 0,1 -6.6,-7.9 Z" fill="${f}"/>`,
   anchor:   (f) => `<circle cx="0" cy="-10" r="3.2" fill="none" stroke="${f}" stroke-width="2.2"/><path d="M-1.3,-6 h2.6 v17 h-2.6 Z M-6,-3.5 h12 v2.2 h-12 Z" fill="${f}"/><path d="M-9,4 a9,9 0 0,0 18,0 h-2.6 a6.4,6.4 0 0,1 -12.8,0 Z" fill="${f}"/>`,
 };
