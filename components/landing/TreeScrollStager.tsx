@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { activeBeat, bandForBeat } from "@/lib/beat-mapping";
+import { scrollProgress, bandForProgress } from "@/lib/beat-mapping";
 
 /**
  * Reveals the hero tree one generation at a time as the reader scrolls.
@@ -33,24 +33,26 @@ export function TreeScrollStager() {
 
     wrapper.classList.add("dt-staged");
 
-    // Two generations at rest: a single row of founders reads as an empty page
-    // rather than as a family tree.
-    const START = Math.min(1, bands.length - 1);
+    // Per-stage framing, precomputed on the server (see lib/landing-tree.ts).
+    const fitLayer = wrapper.querySelector<SVGGElement>(".dt-fit");
+    const fits = fitLayer?.dataset.fit?.split("|") ?? [];
 
-    // Monotonic: once a generation is revealed it stays. Re-hiding on scroll-up
-    // reads as flicker rather than as the house un-growing.
-    let high = START;
-    const show = (upTo: number) => {
-      if (upTo <= high) return;
-      high = upTo;
+    // Bidirectional: the band follows scroll position in both directions, so
+    // scrolling back up un-grows the house rather than leaving it finished.
+    let current = -1;
+    const show = (deepest: number) => {
+      if (deepest === current) return;
+      current = deepest;
       bands.forEach((band, i) => {
-        band.dataset.visible = i <= high ? "true" : "false";
+        band.dataset.visible = i <= deepest ? "true" : "false";
       });
+      // CSS transform rather than the SVG attribute — the attribute cannot be
+      // transitioned, and the view pulling back is most of the effect.
+      if (fitLayer && fits[deepest]) fitLayer.style.transform = fits[deepest];
     };
 
-    bands.forEach((band, i) => {
-      band.dataset.visible = i <= START ? "true" : "false";
-    });
+    const first = beats[0];
+    const last = beats[beats.length - 1];
 
     let queued = false;
     const onScroll = () => {
@@ -58,9 +60,12 @@ export function TreeScrollStager() {
       queued = true;
       requestAnimationFrame(() => {
         queued = false;
-        const tops = beats.map((el) => el.getBoundingClientRect().top);
-        const beat = activeBeat(tops, window.innerHeight);
-        show(bandForBeat(beat, beats.length, bands.length, START));
+        const progress = scrollProgress(
+          first.getBoundingClientRect().top,
+          last.getBoundingClientRect().bottom,
+          window.innerHeight,
+        );
+        show(bandForProgress(progress, bands.length));
       });
     };
 

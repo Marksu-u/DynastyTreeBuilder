@@ -24,6 +24,10 @@ export interface LandingTree {
   generations: number;
 }
 
+/** How far a single generation may be blown up. Without a cap the founding
+ *  couple fills the panel at cartoon size. */
+const MAX_ZOOM = 1.9;
+
 /** Which generation band a y coordinate falls in. */
 function bandOf(y: number, rows: { y: number; height: number }[]): number {
   for (let i = 0; i < rows.length; i++) {
@@ -81,11 +85,37 @@ export function renderLandingTree(
     .map((content, i) => `<g class="dt-gen" data-gen="${i}">${content.join('')}</g>`)
     .join('');
 
+  // One transform per reveal stage, framing just the generations visible at that
+  // stage. The stager applies these as the house grows, so the view pulls back
+  // to make room instead of leaving early generations marooned in a panel sized
+  // for the finished tree.
+  const fits: string[] = [];
+  for (let stage = 0; stage < generations; stage++) {
+    const shown = placed.filter((n) => bandOf(n.p.y, rows) <= stage);
+    if (shown.length === 0) {
+      fits.push('translate(0px, 0px) scale(1)');
+      continue;
+    }
+    const pad = 60;
+    const bx = Math.min(...shown.map((n) => n.p.x)) - pad;
+    const bX = Math.max(...shown.map((n) => n.p.x + CARD_W)) + pad;
+    const by = Math.min(...shown.map((n) => n.p.y)) - pad;
+    const bY = Math.max(...shown.map((n) => n.p.y + CARD_H)) + pad;
+
+    const s = Math.min(viewBox.w / (bX - bx), viewBox.h / (bY - by), MAX_ZOOM);
+    const tx = viewBox.x + viewBox.w / 2 - s * ((bx + bX) / 2);
+    const ty = viewBox.y + viewBox.h / 2 - s * ((by + bY) / 2);
+    // CSS syntax, not SVG attribute syntax — these are assigned to
+    // `style.transform`, and CSS rejects unitless translate values outright.
+    // With `transform-box: view-box`, px here means SVG user units.
+    fits.push(`translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${s.toFixed(4)})`);
+  }
+
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}" ` +
     `preserveAspectRatio="xMidYMid meet" role="img" ` +
-    `aria-label="A four-generation family tree for House Thorne, with the main bloodline traced in gold">` +
-    bands +
+    `aria-label="An example family tree spanning ${generations} generations, with the main bloodline traced in gold">` +
+    `<g class="dt-fit" data-fit="${fits.join('|')}">${bands}</g>` +
     `</svg>`;
 
   return { svg, generations };

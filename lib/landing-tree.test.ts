@@ -41,6 +41,28 @@ describe('renderLandingTree', () => {
     expect(svg).toContain('dt-lit');
   });
 
+  it('emits one framing transform per stage, in CSS syntax', () => {
+    const { svg, generations } = renderLandingTree(NODES, EDGES, ['A']);
+    const fits = svg.match(/data-fit="([^"]+)"/)![1].split('|');
+    expect(fits).toHaveLength(generations);
+    for (const fit of fits) {
+      // Assigned to style.transform, so unitless translate values would be
+      // silently rejected by CSS and the framing would never apply.
+      expect(fit).toMatch(/^translate\(-?[\d.]+px, -?[\d.]+px\) scale\([\d.]+\)$/);
+    }
+  });
+
+  it('pulls the view back as generations are added', () => {
+    const { svg } = renderLandingTree(NODES, EDGES, ['A']);
+    const scales = svg
+      .match(/data-fit="([^"]+)"/)![1]
+      .split('|')
+      .map((f) => Number(f.match(/scale\(([\d.]+)\)/)![1]));
+    for (let i = 1; i < scales.length; i++) {
+      expect(scales[i]).toBeLessThanOrEqual(scales[i - 1]);
+    }
+  });
+
   it('emits no NaN and survives an empty dynasty', () => {
     expect(renderLandingTree(NODES, EDGES, ['A']).svg).not.toContain('NaN');
     expect(renderLandingTree([], [], []).svg).toBe('');

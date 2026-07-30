@@ -2,35 +2,34 @@
  * Pure helpers for the landing page's scroll-driven generation reveal, split out
  * of the component so they can be unit-tested — the DOM half is only verifiable
  * in a real browser.
+ *
+ * Continuous progress rather than discrete copy blocks: it decouples the number
+ * of generations from the number of paragraphs, and it runs in both directions,
+ * so scrolling back up un-grows the house instead of leaving it finished.
  */
 
 /**
- * Maps a copy beat onto a generation band. There are more generations than
- * beats, so the ranges have to be mapped rather than assumed equal: otherwise
- * the deepest generation never reveals and the house looks truncated.
+ * How far the reader has moved through the growing section, 0 → 1.
  *
- * `start` is the band already visible at rest — the page opens on two
- * generations, because a single row of founders reads as an empty page.
+ * `firstTop` and `lastBottom` are viewport-relative (straight off
+ * `getBoundingClientRect`). The read head is the middle of the viewport, so a
+ * generation lands while its paragraph is being read rather than as it enters.
  */
-export function bandForBeat(
-  beat: number,
-  beatCount: number,
-  bandCount: number,
-  start: number,
+export function scrollProgress(
+  firstTop: number,
+  lastBottom: number,
+  viewportHeight: number,
 ): number {
-  const last = bandCount - 1;
-  if (last <= start) return last;
-  const lastBeat = Math.max(1, beatCount - 1);
-  const clamped = Math.min(Math.max(beat, 0), lastBeat);
-  return start + Math.round((clamped / lastBeat) * (last - start));
+  const span = lastBottom - firstTop;
+  if (span <= 0) return 1;
+  const travelled = viewportHeight / 2 - firstTop;
+  return Math.min(1, Math.max(0, travelled / span));
 }
 
-/** The index of the last beat whose top edge has crossed the viewport middle. */
-export function activeBeat(tops: number[], viewportHeight: number): number {
-  const mid = viewportHeight / 2;
-  let active = 0;
-  for (let i = 0; i < tops.length; i++) {
-    if (tops[i] <= mid) active = i;
-  }
-  return active;
+/** The deepest generation band visible at a given progress. */
+export function bandForProgress(progress: number, bandCount: number): number {
+  const last = bandCount - 1;
+  if (last <= 0) return 0;
+  const clamped = Math.min(1, Math.max(0, progress));
+  return Math.round(clamped * last);
 }

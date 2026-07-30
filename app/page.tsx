@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Footer } from "@/components/legal/Footer";
@@ -7,6 +5,7 @@ import { SOURCE_REPO_URL } from "@/components/legal/ecosystem";
 import { TreeScrollStager } from "@/components/landing/TreeScrollStager";
 import { renderLandingTree } from "@/lib/landing-tree";
 import { buildOgGraph } from "@/lib/og-tree";
+import { landingDynasty } from "@/lib/seed/landing-dynasty";
 import { Crest } from "@/components/ui/Crest";
 
 export const metadata: Metadata = {
@@ -121,22 +120,14 @@ const BEATS = [
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-interface Showcase {
-  dynasty: { name: string };
-  characters: { id: string; flags: string[] }[];
-  relationships: { fromId: string; toId: string; type: string }[];
-}
-
 /**
- * The hero tree is the real House Thorne, laid out by the real engine and
- * rendered to SVG on the server — no React Flow on the one page that has to win
- * Core Web Vitals.
+ * The hero tree: a house composed for this panel, run through the same layout
+ * engine the product uses, rendered to SVG on the server — no React Flow on the
+ * one page that has to win Core Web Vitals.
  */
 function heroTree() {
-  const seed = JSON.parse(
-    readFileSync(join(process.cwd(), "lib", "seed", "showcase-dynasty.json"), "utf8"),
-  ) as Showcase;
-  const { nodes, edges, founderIds } = buildOgGraph(seed.characters, seed.relationships);
+  const { characters, relationships } = landingDynasty();
+  const { nodes, edges, founderIds } = buildOgGraph(characters, relationships);
   return renderLandingTree(nodes, edges, founderIds);
 }
 
@@ -199,7 +190,10 @@ export default function LandingPage() {
 
               <h1
                 id="hero"
-                className="mt-6 max-w-2xl text-4xl font-bold leading-[1.1] tracking-tight text-zinc-100 sm:text-6xl"
+                // Steps up in three, not two: jumping straight to 6xl at the sm
+                // breakpoint overflows short viewports (a 800×450 window pushed
+                // the CTAs 290px below the fold).
+                className="mt-6 max-w-2xl text-4xl font-bold leading-[1.1] tracking-tight text-zinc-100 sm:text-5xl lg:text-6xl"
               >
                 Every noble house is a{" "}
                 <span className="text-accent">web of blood and betrayal</span>.
@@ -236,15 +230,12 @@ export default function LandingPage() {
                 length of the copy beside it to travel through. */}
             <div className="mt-14 md:col-start-2 md:row-span-2 md:row-start-1 md:mt-0">
               <div className="flex flex-col justify-center md:sticky md:top-0 md:h-screen">
-                <div id="dt-tree" className="h-[46vh] w-full md:h-[68vh]">
+                <div id="dt-tree" className="h-[46vh] w-full md:h-[72vh]">
                   <div
                     className="h-full w-full [&>svg]:h-full [&>svg]:w-full"
                     dangerouslySetInnerHTML={{ __html: tree.svg }}
                   />
                 </div>
-                <p className="mt-3 font-mono text-[11px] uppercase tracking-widest text-zinc-600">
-                  House Thorne · {tree.generations} generations
-                </p>
               </div>
             </div>
 
@@ -255,8 +246,11 @@ export default function LandingPage() {
                   data-beat={i}
                   className="flex min-h-[42vh] flex-col justify-center border-t border-zinc-900 py-10 md:min-h-[80vh]"
                 >
-                  <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-zinc-600">
-                    Gen {["I", "II", "III"][i]}
+                  {/* A plain index, not "Gen I" — the reveal now runs across five
+                      generations at a granularity the copy doesn't map onto, so
+                      naming generations here would contradict the tree. */}
+                  <span className="font-mono text-[11px] tracking-[0.2em] text-zinc-600">
+                    {String(i + 1).padStart(2, "0")}
                   </span>
                   <h2 className="mt-4 text-2xl font-semibold tracking-tight text-zinc-100">
                     {beat.title}

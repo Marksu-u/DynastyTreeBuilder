@@ -179,6 +179,16 @@ body {
 }
 .dt-staged .dt-gen { transition: opacity 420ms ease-out; }
 
+/* The view pulls back as the house grows. `transform-box: view-box` with the
+   origin at 0 0 makes a CSS transform behave like an SVG user-space transform,
+   which is what the precomputed translate+scale pairs assume. Only applied under
+   .dt-staged, so the untouched tree keeps its natural framing. */
+.dt-staged .dt-fit {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  transition: transform 760ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 /* Reduced motion and small screens both fall back to the whole tree, drawn and
    still. On a phone the sticky layer would fight the reader for the viewport. */
 @media (max-width: 767px) {
