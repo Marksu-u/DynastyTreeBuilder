@@ -19,30 +19,38 @@ export interface GuestHouse {
 
 interface GuestDynastyState extends GuestHouse {
   setHouse: (patch: Partial<GuestHouse>) => void;
-  /** Take on the seeded example's identity — same arms for every visitor. */
+  /** Take on the seeded example's identity. Leaves `setting` to the guest. */
   adoptExample: (name: string, crestSeed: string) => void;
   /** Back to a blank house, with arms nobody else has. */
   resetHouse: () => void;
+  /** Mint arms on first mount. Call from a client effect, never during render. */
+  ensureCrestSeed: () => void;
 }
 
+// No randomness in the initial state: the server render and the browser's first
+// render must agree, or every fresh page load is a hydration mismatch once the
+// crest is on screen.
+const INITIAL_HOUSE: GuestHouse = {
+  name: DEFAULT_HOUSE_NAME,
+  setting: 'FANTASY',
+  crestSeed: '',
+};
+
+// Safe to randomise: only ever reached from a click, long after hydration.
 function freshHouse(): GuestHouse {
-  return {
-    name: DEFAULT_HOUSE_NAME,
-    setting: 'FANTASY',
-    // Generated per browser rather than derived from a constant, so two guests
-    // never share a crest. Persisted immediately, so it is stable from the
-    // first frame.
-    crestSeed: randomCrestSeed(),
-  };
+  return { ...INITIAL_HOUSE, crestSeed: randomCrestSeed() };
 }
 
 export const useGuestDynastyStore = create<GuestDynastyState>()(
   persist(
-    (set) => ({
-      ...freshHouse(),
+    (set, get) => ({
+      ...INITIAL_HOUSE,
       setHouse: (patch) => set(patch),
       adoptExample: (name, crestSeed) => set({ name, crestSeed }),
       resetHouse: () => set(freshHouse()),
+      ensureCrestSeed: () => {
+        if (!get().crestSeed) set({ crestSeed: randomCrestSeed() });
+      },
     }),
     {
       name: 'dynasty-tree-guest-house',

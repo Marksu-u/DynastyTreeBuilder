@@ -41,4 +41,16 @@ describe('guest house identity', () => {
     expect(name).toBe(DEFAULT_HOUSE_NAME);
     expect(crestSeed).not.toBe('thorne-arms');
   });
+
+  it('mints arms when a house has none yet', () => {
+    useGuestDynastyStore.getState().setHouse({ crestSeed: '' });
+    useGuestDynastyStore.getState().ensureCrestSeed();
+    expect(useGuestDynastyStore.getState().crestSeed).toMatch(/^[a-z0-9-]{1,64}$/i);
+  });
+
+  it('never re-rolls arms a house already has', () => {
+    useGuestDynastyStore.getState().setHouse({ crestSeed: 'vale-arms' });
+    useGuestDynastyStore.getState().ensureCrestSeed();
+    expect(useGuestDynastyStore.getState().crestSeed).toBe('vale-arms');
+  });
 });
