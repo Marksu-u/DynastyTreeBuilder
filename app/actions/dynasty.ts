@@ -119,7 +119,7 @@ export async function deleteDynasty(id: string): Promise<{ error?: string }> {
 
 export async function updateDynastySettings(
   id: string,
-  data: { name?: string; setting?: string; isPublic?: boolean }
+  data: { name?: string; setting?: string; isPublic?: boolean; crestSeed?: string }
 ): Promise<{ error?: string }> {
   const user = await getAuthUser();
   if (!checkRateLimit(user.id)) return { error: "Too many requests. Slow down." };

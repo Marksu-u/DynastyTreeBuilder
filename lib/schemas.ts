@@ -79,23 +79,6 @@ export const CustomNameInputSchema = z.object({
   note: z.string().trim().optional(),
 });
 
-// ─── Custom catalog option schema ─────────────────────────────────────────────
-
-export const CustomOptionKindSchema = z.enum([
-  "CHARACTER_STYLE",
-  "RELATIONSHIP_TYPE",
-]);
-
-export const CustomOptionInputSchema = z.object({
-  kind: CustomOptionKindSchema,
-  label: z.string().trim().min(1, "Label is required").max(40, "Label is too long"),
-  color: z
-    .string()
-    .regex(/^#[0-9a-fA-F]{6}$/, "Color must be a hex value (#RRGGBB)")
-    .optional(),
-  description: z.string().trim().max(500).optional(),
-});
-
 // ─── Guest → account import schema ────────────────────────────────────────────
 // The guest canvas persists React Flow nodes/edges to localStorage (union-node
 // model). Extra runtime fields (measured, selected, …) are tolerated via loose
