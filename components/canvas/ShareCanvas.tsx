@@ -26,12 +26,13 @@ const edgeTypes = { relationship: RelationshipEdge } as const;
 
 type Props = {
   dynastyName: string;
+  crestSeed: string;
   shareSlug: string;
   nodes: CharacterNodeType[];
   edges: LegacyEdgeType[];
 };
 
-export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
+export function ShareCanvas({ dynastyName, crestSeed, shareSlug, nodes, edges }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const reactFlow = useReactFlow();
 
@@ -120,7 +121,7 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
           showInteractive={false}
           className="!bottom-4 !left-auto !right-4 !top-auto"
         />
-        <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} />
+        <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} crestSeed={crestSeed} />
       </ReactFlow>
       <div className="canvas-vignette" aria-hidden="true" />
       <CanvasLegend />
