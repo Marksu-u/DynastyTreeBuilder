@@ -117,6 +117,8 @@ const GuestEdgeSchema = z.object({
 
 export const GuestSnapshotSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name is too long"),
+  setting: DynastySettingSchema.optional(),
+  crestSeed: CrestSeedSchema.optional(),
   nodes: z.array(GuestNodeSchema),
   edges: z.array(GuestEdgeSchema),
 });

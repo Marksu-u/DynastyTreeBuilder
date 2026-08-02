@@ -287,7 +287,13 @@ function deriveRelationships(
 }
 
 export async function importGuestWorld(
-  input: { name: string; nodes: unknown[]; edges: unknown[] },
+  input: {
+    name: string;
+    setting?: string;
+    crestSeed?: string;
+    nodes: unknown[];
+    edges: unknown[];
+  },
 ): Promise<{ id: string }> {
   const user = await getAuthUser();
   if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
@@ -304,7 +310,8 @@ export async function importGuestWorld(
       data: {
         name: snapshot.name,
         slug: makeSlug(snapshot.name),
-        setting: "FANTASY",
+        setting: snapshot.setting ?? "FANTASY",
+        crestSeed: snapshot.crestSeed ?? null,
         ownerId: user.id,
       },
     });
