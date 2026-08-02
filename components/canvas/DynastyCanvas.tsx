@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   ReactFlow,
   Background,
@@ -104,6 +105,7 @@ export function DynastyCanvas({
   onSaveStatusChange,
 }: Props) {
   const reactFlow = useReactFlow();
+  const router = useRouter();
   const migrated = useMemo(
     () => migrateCanvas(initialNodes as never, initialEdges as never),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -392,11 +394,14 @@ export function DynastyCanvas({
       setNodes(migrated.nodes as AnyCanvasNode[]);
       setEdges(migrated.edges);
       setEditingCharacterId(null);
+      // The header, crest, and band label are server-rendered from the dynasty
+      // row, which the import just rewrote.
+      router.refresh();
       toast.success('Imported dynasty tree');
     } catch {
       toast.error("Couldn't read that file — is it a Dynasty Tree export?");
     }
-  }, [dynastyId]);
+  }, [dynastyId, router]);
 
   // Importing is destructive and hits the database, so it asks first — holding
   // the chosen file until the answer comes back rather than blocking on
