@@ -25,6 +25,9 @@ export const SHOWING_EXAMPLE_KEY = 'dynasty-tree-showing-example';
 
 export const EXAMPLE_HOUSE_NAME = 'House Thorne';
 
+/** Fixed so the worked example shows the same arms to every first-time visitor. */
+export const EXAMPLE_CREST_SEED = 'house-thorne';
+
 export function hasSeedBeenDecided(): boolean {
   if (typeof window === 'undefined') return true;
   try {

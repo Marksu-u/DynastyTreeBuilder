@@ -28,14 +28,14 @@ import { useBloodlineHighlight } from '@/components/canvas/useBloodlineHighlight
 import { partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
 import { parseImportFile, buildCanvasFromExport, deriveExportRelationships } from '@/lib/import-canvas';
 import {
-  EXAMPLE_HOUSE_NAME, buildSeedCanvas, hasSeedBeenDecided,
+  EXAMPLE_HOUSE_NAME, EXAMPLE_CREST_SEED, buildSeedCanvas, hasSeedBeenDecided,
   markSeedDecided, isShowingExample, setShowingExample,
 } from '@/lib/seed-canvas';
 import { useFitTree } from '@/components/canvas/useFitTree';
 import { useCanvasSettled } from '@/components/canvas/useCanvasSettled';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CanvasLegend } from '@/components/canvas/CanvasLegend';
-import { useGuestHouse } from '@/store/guest-dynasty';
+import { useGuestHouse, useGuestDynastyStore } from '@/store/guest-dynasty';
 import type { CharacterData } from '@/types/canvas';
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
@@ -63,6 +63,8 @@ function TreeCanvasInner() {
   // Hydration-safe read — the plate reaches the DOM, so it must not read the
   // store directly. See store/guest-dynasty.ts.
   const { name: houseName, crestSeed: houseCrestSeed } = useGuestHouse();
+  const adoptExample = useGuestDynastyStore(s => s.adoptExample);
+  const resetHouse = useGuestDynastyStore(s => s.resetHouse);
 
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
@@ -180,10 +182,13 @@ function TreeCanvasInner() {
 
   const handleClearExample = useCallback(() => {
     initCanvas([], []);
+    // The tree and the house go together — keeping House Thorne's name and arms
+    // over an empty canvas would be a leftover, not a starting point.
+    resetHouse();
     setShowingExample(false);
     setShowExampleNotice(false);
     setAddCharacterOpen(true);
-  }, [initCanvas]);
+  }, [initCanvas, resetHouse]);
 
   const handleDismissExample = useCallback(() => {
     // The tree stays — they may want to build on it — but it is theirs now.
@@ -213,6 +218,7 @@ function TreeCanvasInner() {
       if (cancelled || useCanvasStore.getState().nodes.length > 0) return;
 
       initCanvas(seed.nodes, seed.edges);
+      adoptExample(EXAMPLE_HOUSE_NAME, EXAMPLE_CREST_SEED);
       markSeedDecided('seeded');
       setShowingExample(true);
       setShowExampleNotice(true);
@@ -225,7 +231,7 @@ function TreeCanvasInner() {
 
     const unsub = useCanvasStore.persist.onFinishHydration(() => void seedIfFirstRun());
     return () => { cancelled = true; unsub(); };
-  }, [initCanvas]);
+  }, [initCanvas, adoptExample]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
