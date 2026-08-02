@@ -14,8 +14,7 @@ import { CharacterNode } from '@/components/canvas/CharacterNode';
 import { UnionNode } from '@/components/canvas/UnionNode';
 import { RelationshipEdge } from '@/components/canvas/RelationshipEdge';
 import { Toolbar } from '@/components/canvas/Toolbar';
-import { AddCharacterPanel } from '@/components/canvas/AddCharacterPanel';
-import { AddRelativePanel } from '@/components/canvas/AddRelativePanel';
+import { CharacterDialog } from '@/components/canvas/CharacterDialog';
 import { AddRelativeHint } from '@/components/canvas/AddRelativeHint';
 import { GenerationBands } from '@/components/canvas/GenerationBands';
 import { CanvasContext } from '@/components/canvas/CanvasContext';
@@ -344,20 +343,19 @@ function TreeCanvasInner() {
 
           <AddRelativeHint visible={characterNodes.length === 1 && !characterNodes[0].selected} />
 
-          <AddCharacterPanel
-            key="add"
-            open={addCharacterOpen}
-            onOpenChange={setAddCharacterOpen}
-            onSubmit={handleAddCharacter}
-          />
+          {addCharacterOpen && (
+            <CharacterDialog
+              mode={{ kind: 'create' }}
+              onClose={() => setAddCharacterOpen(false)}
+              onSubmitCharacter={handleAddCharacter}
+            />
+          )}
 
-          {editingCharacterId && (
-            <AddCharacterPanel
-              key="edit"
-              open={true}
-              onOpenChange={open => { if (!open) setEditingCharacterId(null); }}
-              character={editingCharacter}
-              onSubmit={handleUpdateCharacter}
+          {editingCharacter && (
+            <CharacterDialog
+              mode={{ kind: 'edit', character: editingCharacter }}
+              onClose={() => setEditingCharacterId(null)}
+              onSubmitCharacter={handleUpdateCharacter}
               onDelete={handleDeleteCharacter}
             />
           )}
@@ -366,13 +364,16 @@ function TreeCanvasInner() {
             const anchor = characterNodes.find(n => n.id === relPicker.anchorId);
             if (!anchor) return null;
             return (
-              <AddRelativePanel
-                anchor={anchor}
-                kind={relPicker.kind}
-                characters={characterNodes}
-                unions={partnerUnionsOf(nodes, edges, relPicker.anchorId)}
-                onSubmit={handleAddRelative}
+              <CharacterDialog
+                mode={{
+                  kind: 'relative',
+                  anchor,
+                  relative: relPicker.kind,
+                  characters: characterNodes,
+                  unions: partnerUnionsOf(nodes, edges, relPicker.anchorId),
+                }}
                 onClose={() => setRelPicker(null)}
+                onSubmitRelative={handleAddRelative}
               />
             );
           })()}

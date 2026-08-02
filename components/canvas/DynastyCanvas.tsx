@@ -17,8 +17,7 @@ import { toast } from "sonner";
 import { CharacterNode } from "./CharacterNode";
 import { RelationshipEdge } from "./RelationshipEdge";
 import { Toolbar } from "./Toolbar";
-import { AddCharacterPanel } from "./AddCharacterPanel";
-import { AddRelativePanel } from "./AddRelativePanel";
+import { CharacterDialog } from "./CharacterDialog";
 import { AddRelativeHint } from "./AddRelativeHint";
 import { GenerationBands } from "./GenerationBands";
 import { CanvasContext } from "./CanvasContext";
@@ -486,22 +485,19 @@ export function DynastyCanvas({
 
         <AddRelativeHint visible={characterNodes.length === 1 && !characterNodes[0].selected} />
 
-        <AddCharacterPanel
-          key="add"
-          open={addCharacterOpen}
-          onOpenChange={setAddCharacterOpen}
-          onSubmit={handleAddCharacter}
-        />
+        {addCharacterOpen && (
+          <CharacterDialog
+            mode={{ kind: 'create' }}
+            onClose={() => setAddCharacterOpen(false)}
+            onSubmitCharacter={handleAddCharacter}
+          />
+        )}
 
-        {editingCharacterId && (
-          <AddCharacterPanel
-            key="edit"
-            open={true}
-            onOpenChange={(open) => {
-              if (!open) setEditingCharacterId(null);
-            }}
-            character={editingCharacter}
-            onSubmit={handleUpdateCharacter}
+        {editingCharacter && (
+          <CharacterDialog
+            mode={{ kind: 'edit', character: editingCharacter }}
+            onClose={() => setEditingCharacterId(null)}
+            onSubmitCharacter={handleUpdateCharacter}
             onDelete={handleDeleteCharacter}
           />
         )}
@@ -510,13 +506,16 @@ export function DynastyCanvas({
           const anchor = characterNodes.find((n) => n.id === relPicker.anchorId);
           if (!anchor) return null;
           return (
-            <AddRelativePanel
-              anchor={anchor}
-              kind={relPicker.kind}
-              characters={characterNodes}
-              unions={partnerUnionsOf(nodes, edges, relPicker.anchorId)}
-              onSubmit={handleAddRelative}
+            <CharacterDialog
+              mode={{
+                kind: 'relative',
+                anchor,
+                relative: relPicker.kind,
+                characters: characterNodes,
+                unions: partnerUnionsOf(nodes, edges, relPicker.anchorId),
+              }}
               onClose={() => setRelPicker(null)}
+              onSubmitRelative={handleAddRelative}
             />
           );
         })()}
