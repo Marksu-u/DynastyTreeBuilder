@@ -8,7 +8,6 @@ import { RelationshipEdge } from "./RelationshipEdge";
 import { ReportButton } from "./ReportButton";
 import { Download } from "lucide-react";
 import { exportCanvasToPng } from "@/lib/export";
-import { CatalogProvider } from "./CatalogProvider";
 import { GenerationBands } from "./GenerationBands";
 import { migrateCanvas } from "@/lib/migrate-canvas";
 import { useGenealogyLayout } from "./useGenealogyLayout";
@@ -26,12 +25,13 @@ const edgeTypes = { relationship: RelationshipEdge } as const;
 
 type Props = {
   dynastyName: string;
+  crestSeed: string;
   shareSlug: string;
   nodes: CharacterNodeType[];
   edges: LegacyEdgeType[];
 };
 
-export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
+export function ShareCanvas({ dynastyName, crestSeed, shareSlug, nodes, edges }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const reactFlow = useReactFlow();
 
@@ -61,7 +61,6 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
   }, [reactFlow, dynastyName]);
 
   return (
-    <CatalogProvider isLoggedIn={false}>
     <div ref={containerRef} className={`relative h-full w-full ${settlingClass}`}>
       <div className="absolute inset-x-0 top-3 z-10 flex justify-center px-3">
         <div className="flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/90 px-4 py-1.5 text-xs text-zinc-400 backdrop-blur-sm">
@@ -120,13 +119,12 @@ export function ShareCanvas({ dynastyName, shareSlug, nodes, edges }: Props) {
           showInteractive={false}
           className="!bottom-4 !left-auto !right-4 !top-auto"
         />
-        <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} />
+        <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} crestSeed={crestSeed} />
       </ReactFlow>
       <div className="canvas-vignette" aria-hidden="true" />
       <CanvasLegend />
       </HighlightContext.Provider>
     </div>
-    </CatalogProvider>
   );
 }
 

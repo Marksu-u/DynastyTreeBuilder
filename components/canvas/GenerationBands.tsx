@@ -4,6 +4,7 @@
 import { memo, useMemo } from 'react';
 import { ViewportPortal } from '@xyflow/react';
 import { CARD_H, CARD_W, ROW_HEIGHT, type GenerationRow } from '@/lib/genealogy-layout';
+import { crestFromSeed, crestToSvg } from '@/lib/crest';
 import type { AnyCanvasNode } from '@/store/canvas';
 
 const BAND_PAD_X = 400;   // band extends this far beyond the tree bounds
@@ -22,19 +23,26 @@ interface Props {
   rows: GenerationRow[];
   nodes: AnyCanvasNode[];       // laid-out nodes (for bounds)
   houseName?: string;
+  /** When set, the house's arms replace the plain diamond ornaments. */
+  crestSeed?: string;
 }
 
 /**
  * Viewport-synced background chrome: alternating generation bands with
  * Roman-numeral labels, plus the house-name header above generation I.
  */
-export const GenerationBands = memo(({ rows, nodes, houseName }: Props) => {
+export const GenerationBands = memo(({ rows, nodes, houseName, crestSeed }: Props) => {
   const bounds = useMemo(() => {
     const chars = nodes.filter(n => n.type === 'character');
     if (chars.length === 0) return null;
     const xs = chars.map(n => n.position.x);
     return { minX: Math.min(...xs), maxX: Math.max(...xs) + CARD_W };
   }, [nodes]);
+
+  const crest = useMemo(
+    () => (crestSeed ? crestToSvg(crestFromSeed(crestSeed), 28) : null),
+    [crestSeed],
+  );
 
   if (!bounds || rows.length === 0) return null;
 
@@ -77,9 +85,20 @@ export const GenerationBands = memo(({ rows, nodes, houseName }: Props) => {
           }}
           className="flex items-center justify-center gap-3"
         >
-          <span className="text-accent">◆</span>
+          {/* This plate lives in the ViewportPortal, so it is captured by
+              exportCanvasToPng — which is how the crest reaches the PNG
+              without lib/export.ts knowing anything about heraldry. */}
+          {crest ? (
+            <span
+              aria-hidden="true"
+              style={{ display: 'inline-block', lineHeight: 0 }}
+              dangerouslySetInnerHTML={{ __html: crest }}
+            />
+          ) : (
+            <span className="text-accent">◆</span>
+          )}
           <span className="text-xl font-semibold tracking-wide text-zinc-200">{houseName}</span>
-          <span className="text-accent">◆</span>
+          {!crest && <span className="text-accent">◆</span>}
         </div>
       )}
     </ViewportPortal>

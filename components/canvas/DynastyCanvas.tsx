@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   ReactFlow,
   Background,
@@ -16,13 +17,11 @@ import {
 import { toast } from "sonner";
 import { CharacterNode } from "./CharacterNode";
 import { RelationshipEdge } from "./RelationshipEdge";
-import { Toolbar, type SidebarPanel } from "./Toolbar";
-import { AddCharacterPanel } from "./AddCharacterPanel";
-import { AddRelativePanel } from "./AddRelativePanel";
+import { Toolbar } from "./Toolbar";
+import { CharacterDialog } from "./CharacterDialog";
 import { AddRelativeHint } from "./AddRelativeHint";
 import { GenerationBands } from "./GenerationBands";
 import { CanvasContext } from "./CanvasContext";
-import { CustomOptionsPanel } from "@/components/name-bank/CustomOptionsPanel";
 import {
   createCharacter,
   updateCharacter,
@@ -90,6 +89,7 @@ function getFriendlyErrorMessage(err: any): string {
 type Props = {
   dynastyId: string;
   dynastyName: string;
+  crestSeed: string;
   initialNodes: CharacterNodeType[];
   initialEdges: LegacyEdgeType[];
   userId?: string;
@@ -99,13 +99,13 @@ type Props = {
 export function DynastyCanvas({
   dynastyId,
   dynastyName,
+  crestSeed,
   initialNodes,
   initialEdges,
-  userId,
   onSaveStatusChange,
 }: Props) {
-  const isLoggedIn = !!userId;
   const reactFlow = useReactFlow();
+  const router = useRouter();
   const migrated = useMemo(
     () => migrateCanvas(initialNodes as never, initialEdges as never),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,7 +116,6 @@ export function DynastyCanvas({
   const [gridVisible, setGridVisible] = useState(false);
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
-  const [sidebar, setSidebar] = useState<SidebarPanel | null>(null);
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [pendingImport, setPendingImport] = useState<File | null>(null);
@@ -166,10 +165,6 @@ export function DynastyCanvas({
     },
     [onSaveStatusChange]
   );
-
-  const handleToggleSidebar = useCallback((panel: SidebarPanel) => {
-    setSidebar((current) => (current === panel ? null : panel));
-  }, []);
 
   const characterNodes = useMemo(
     () => nodes.filter((n): n is CharacterNodeType => n.type === 'character'),
@@ -399,11 +394,14 @@ export function DynastyCanvas({
       setNodes(migrated.nodes as AnyCanvasNode[]);
       setEdges(migrated.edges);
       setEditingCharacterId(null);
+      // The header, crest, and band label are server-rendered from the dynasty
+      // row, which the import just rewrote.
+      router.refresh();
       toast.success('Imported dynasty tree');
     } catch {
       toast.error("Couldn't read that file — is it a Dynasty Tree export?");
     }
-  }, [dynastyId]);
+  }, [dynastyId, router]);
 
   // Importing is destructive and hits the database, so it asks first — holding
   // the chosen file until the answer comes back rather than blocking on
@@ -453,7 +451,7 @@ export function DynastyCanvas({
             showInteractive={false}
             className="!bottom-4 !left-auto !right-4 !top-auto"
           />
-          <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} />
+          <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} crestSeed={crestSeed} />
         </ReactFlow>
         <div className="canvas-vignette" aria-hidden="true" />
         {characterNodes.length > 0 && <CanvasLegend />}
@@ -470,9 +468,6 @@ export function DynastyCanvas({
         <Toolbar
           gridVisible={gridVisible}
           onToggleGrid={() => setGridVisible((v) => !v)}
-          activeSidebar={sidebar}
-          onToggleSidebar={handleToggleSidebar}
-          showCustomOptions={isLoggedIn}
           onExport={handleExport}
           onExportJson={handleExportJson}
           onImportJson={handleImportClick}
@@ -495,25 +490,20 @@ export function DynastyCanvas({
 
         <AddRelativeHint visible={characterNodes.length === 1 && !characterNodes[0].selected} />
 
-        <AddCharacterPanel
-          key="add"
-          open={addCharacterOpen}
-          onOpenChange={setAddCharacterOpen}
-          onSubmit={handleAddCharacter}
-          isLoggedIn={isLoggedIn}
-        />
+        {addCharacterOpen && (
+          <CharacterDialog
+            mode={{ kind: 'create' }}
+            onClose={() => setAddCharacterOpen(false)}
+            onSubmitCharacter={handleAddCharacter}
+          />
+        )}
 
-        {editingCharacterId && (
-          <AddCharacterPanel
-            key="edit"
-            open={true}
-            onOpenChange={(open) => {
-              if (!open) setEditingCharacterId(null);
-            }}
-            character={editingCharacter}
-            onSubmit={handleUpdateCharacter}
+        {editingCharacter && (
+          <CharacterDialog
+            mode={{ kind: 'edit', character: editingCharacter }}
+            onClose={() => setEditingCharacterId(null)}
+            onSubmitCharacter={handleUpdateCharacter}
             onDelete={handleDeleteCharacter}
-            isLoggedIn={isLoggedIn}
           />
         )}
 
@@ -521,21 +511,20 @@ export function DynastyCanvas({
           const anchor = characterNodes.find((n) => n.id === relPicker.anchorId);
           if (!anchor) return null;
           return (
-            <AddRelativePanel
-              anchor={anchor}
-              kind={relPicker.kind}
-              characters={characterNodes}
-              unions={partnerUnionsOf(nodes, edges, relPicker.anchorId)}
-              onSubmit={handleAddRelative}
+            <CharacterDialog
+              mode={{
+                kind: 'relative',
+                anchor,
+                relative: relPicker.kind,
+                characters: characterNodes,
+                unions: partnerUnionsOf(nodes, edges, relPicker.anchorId),
+              }}
               onClose={() => setRelPicker(null)}
+              onSubmitRelative={handleAddRelative}
             />
           );
         })()}
       </div>
-
-      {sidebar === 'custom' && isLoggedIn && (
-        <CustomOptionsPanel />
-      )}
     </div>
     </CanvasContext.Provider>
   );

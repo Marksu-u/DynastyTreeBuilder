@@ -4,10 +4,8 @@ import { useRef, useState, useEffect } from "react";
 import { useReactFlow } from "@xyflow/react";
 import {
   Maximize2, Grid3X3, Undo2, Redo2,
-  Download, Upload, ChevronDown, Settings2,
+  Download, Upload, ChevronDown,
 } from "lucide-react";
-
-export type SidebarPanel = 'custom';
 
 interface Props {
   gridVisible: boolean;
@@ -16,13 +14,9 @@ interface Props {
   canRedo?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
-  activeSidebar?: SidebarPanel | null;
-  onToggleSidebar?: (panel: SidebarPanel) => void;
   onExport?: () => void;
   onExportJson?: () => void;
   onImportJson?: () => void;
-  /** When true, shows the "Custom options" panel toggle */
-  showCustomOptions?: boolean;
   /** Frames the whole tree. Supplied by the canvas because React Flow's own
    *  fitView() does not work in this app — see lib/fit-viewport.ts. */
   onFitView?: () => void;
@@ -35,12 +29,9 @@ export function Toolbar({
   canRedo = false,
   onUndo,
   onRedo,
-  activeSidebar = null,
-  onToggleSidebar,
   onExport,
   onExportJson,
   onImportJson,
-  showCustomOptions = false,
   onFitView,
 }: Props) {
   const { fitView } = useReactFlow();
@@ -103,24 +94,6 @@ export function Toolbar({
       >
         <Redo2 size={14} />
       </button>
-
-      {showCustomOptions && onToggleSidebar && (
-        <>
-          <div className="mx-0.5 h-5 w-px bg-zinc-700" />
-          <button
-            onClick={() => onToggleSidebar('custom')}
-            className={[
-              "rounded p-1.5 transition-colors",
-              activeSidebar === 'custom'
-                ? "bg-zinc-800 text-zinc-200"
-                : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300",
-            ].join(" ")}
-            title="My custom options"
-          >
-            <Settings2 size={14} />
-          </button>
-        </>
-      )}
 
       {showExport && (
         <>

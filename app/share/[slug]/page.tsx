@@ -141,6 +141,7 @@ export default async function SharePage({
           <ShareCanvas
             dynastyName={dynasty.name}
             shareSlug={dynasty.slug}
+            crestSeed={resolveCrestSeed({ slug: dynasty.slug, crestSeed: dynasty.crestSeed })}
             nodes={nodes}
             edges={edges}
           />

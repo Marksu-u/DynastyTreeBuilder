@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeAddRelative, computeRemoveRelative, partnerUnionsOf, computeDeleteCharacter } from './relative-ops';
+import { computeAddRelative, computeRemoveRelative, partnerUnionsOf, computeDeleteCharacter, relativeContext } from './relative-ops';
 import type { AnyCanvasNode, RelationshipEdgeType } from '@/store/canvas';
 import type { CharacterData } from '@/types/canvas';
 
@@ -310,6 +310,40 @@ describe('computeDeleteCharacter', () => {
     const res = computeDeleteCharacter(testNodes, testEdges, 'kid1');
     expect(res.nodes.map(n => n.id).sort()).toEqual(['anchor', 'u1', 'wife']);
     expect(res.edges.map(e => e.id).sort()).toEqual(['e1', 'e2']);
+  });
+});
+
+describe('relativeContext', () => {
+  const union = (id: string) => ({ unionId: id, partnerIds: ['p1'] });
+
+  it('offers nothing extra for a parent', () => {
+    expect(relativeContext('parent', [])).toEqual({
+      showUnionChoice: false,
+      showAdopted: false,
+    });
+  });
+
+  it('offers nothing extra for a partner, even with unions present', () => {
+    expect(relativeContext('partner', [union('u1'), union('u2')])).toEqual({
+      showUnionChoice: false,
+      showAdopted: false,
+    });
+  });
+
+  it('always offers the adopted flag for a child', () => {
+    expect(relativeContext('child', []).showAdopted).toBe(true);
+  });
+
+  it('picks the only union silently', () => {
+    const ctx = relativeContext('child', [union('u1')]);
+    expect(ctx.showUnionChoice).toBe(false);
+    expect(ctx.defaultUnionId).toBe('u1');
+  });
+
+  it('asks which partner when there is more than one union', () => {
+    const ctx = relativeContext('child', [union('u1'), union('u2')]);
+    expect(ctx.showUnionChoice).toBe(true);
+    expect(ctx.defaultUnionId).toBeUndefined();
   });
 });
 

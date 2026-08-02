@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseImportFile, buildCanvasFromExport, deriveExportRelationships } from './import-canvas';
+import { parseImportFile, buildCanvasFromExport, deriveExportRelationships, buildGuestExport } from './import-canvas';
 import type { AnyCanvasNode, RelationshipEdgeType } from '@/store/canvas';
 import type { DynastyExport } from '@/lib/schemas';
 
@@ -142,5 +142,40 @@ describe('deriveExportRelationships', () => {
     expect(rebuilt.nodes.filter(n => n.type === 'union')).toHaveLength(1);
     expect(rebuilt.edges.filter(e => e.data?.type === 'PARTNER').map(e => e.source).sort()).toEqual(['dad', 'mom']);
     expect(rebuilt.edges.filter(e => e.data?.type === 'CHILD').map(e => e.target)).toEqual(['kid']);
+  });
+});
+
+describe('buildGuestExport', () => {
+  const house = { name: 'House Vale', setting: 'HORROR' as const, crestSeed: 'vale-arms' };
+
+  const nodes = [
+    {
+      id: 'a', type: 'character' as const, position: { x: 10, y: 20 },
+      data: { name: 'Ana', flags: [], style: 'Queen', gender: 'FEMALE' as const },
+    },
+  ];
+
+  it('writes the real house instead of a hardcoded placeholder', () => {
+    const out = buildGuestExport(nodes as never, [], house);
+    expect(out.dynasty).toMatchObject({
+      name: 'House Vale',
+      setting: 'HORROR',
+      crestSeed: 'vale-arms',
+      isPublic: false,
+    });
+  });
+
+  it('produces a file its own parser accepts', () => {
+    const out = buildGuestExport(nodes as never, [], house);
+    const reparsed = parseImportFile(JSON.stringify(out));
+    expect(reparsed.dynasty.crestSeed).toBe('vale-arms');
+    expect(reparsed.characters[0]).toMatchObject({ name: 'Ana', style: 'Queen', posX: 10, posY: 20 });
+  });
+
+  it('writes null rather than an unminted empty seed', () => {
+    const out = buildGuestExport(nodes as never, [], { ...house, crestSeed: '' });
+    expect(out.dynasty.crestSeed).toBeNull();
+    // CrestSeedSchema rejects '', so this must still round-trip.
+    expect(() => parseImportFile(JSON.stringify(out))).not.toThrow();
   });
 });

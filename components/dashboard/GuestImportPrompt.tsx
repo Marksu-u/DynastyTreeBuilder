@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Import, X } from "lucide-react";
 import { useCanvasStore } from "@/store/canvas";
+import { useGuestDynastyStore } from "@/store/guest-dynasty";
 import { importGuestWorld } from "@/app/actions/dynasty";
 
 const DISMISS_KEY = "dynasty-guest-import-dismissed";
@@ -14,18 +15,24 @@ export function GuestImportPrompt() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const [name, setName] = useState("My Dynasty");
+  const [name, setName] = useState("");
   const [importing, setImporting] = useState(false);
 
   const nodes = useCanvasStore((s) => s.nodes);
   const edges = useCanvasStore((s) => s.edges);
+  const houseName = useGuestDynastyStore((s) => s.name);
+  const houseSetting = useGuestDynastyStore((s) => s.setting);
+  const houseCrestSeed = useGuestDynastyStore((s) => s.crestSeed);
 
   useEffect(() => {
     setMounted(true);
+    // Read after mount: the persisted store has not rehydrated during SSR, so
+    // seeding useState directly would bake in the default name.
+    setName(houseName);
     if (typeof window !== "undefined" && localStorage.getItem(DISMISS_KEY)) {
       setDismissed(true);
     }
-  }, []);
+  }, [houseName]);
 
   // Guard against SSR/hydration mismatch and only prompt when there's real work.
   const characterCount = nodes.filter(
@@ -38,14 +45,22 @@ export function GuestImportPrompt() {
     setImporting(true);
     try {
       const { id } = await importGuestWorld({
-        name: name.trim() || "My Dynasty",
+        name: name.trim() || houseName,
+        setting: houseSetting,
+        // '' means arms were never minted; CrestSeedSchema rejects it, and the
+        // dynasty falls back to its slug for a crest anyway.
+        crestSeed: houseCrestSeed || undefined,
         nodes,
         edges,
       });
       // Guest world now lives in the account — clear the local copy so a refresh
       // or re-login won't re-prompt or double-import.
       useCanvasStore.setState({ nodes: [], edges: [], past: [], future: [], isDirty: false });
-      if (typeof window !== "undefined") localStorage.removeItem(GUEST_STORE_KEY);
+      useGuestDynastyStore.getState().resetHouse();
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(GUEST_STORE_KEY);
+        localStorage.removeItem("dynasty-tree-guest-house");
+      }
       toast.success("Your guest tree was imported");
       router.push(`/dashboard/${id}`);
     } catch {

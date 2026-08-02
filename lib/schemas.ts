@@ -7,6 +7,7 @@ export const IdSchema = z.string().min(1, "ID is required");
 export const DynastySettingSchema = z.enum([
   "FANTASY", "SCI_FI", "HISTORICAL", "MODERN", "HORROR", "OTHER",
 ]);
+export type DynastySetting = z.infer<typeof DynastySettingSchema>;
 
 export const NameStyleSchema = z.enum([
   "FANTASY", "SCI_FI", "HISTORICAL", "MODERN", "HORROR", "OTHER",
@@ -78,23 +79,6 @@ export const CustomNameInputSchema = z.object({
   note: z.string().trim().optional(),
 });
 
-// ─── Custom catalog option schema ─────────────────────────────────────────────
-
-export const CustomOptionKindSchema = z.enum([
-  "CHARACTER_STYLE",
-  "RELATIONSHIP_TYPE",
-]);
-
-export const CustomOptionInputSchema = z.object({
-  kind: CustomOptionKindSchema,
-  label: z.string().trim().min(1, "Label is required").max(40, "Label is too long"),
-  color: z
-    .string()
-    .regex(/^#[0-9a-fA-F]{6}$/, "Color must be a hex value (#RRGGBB)")
-    .optional(),
-  description: z.string().trim().max(500).optional(),
-});
-
 // ─── Guest → account import schema ────────────────────────────────────────────
 // The guest canvas persists React Flow nodes/edges to localStorage (union-node
 // model). Extra runtime fields (measured, selected, …) are tolerated via loose
@@ -116,6 +100,8 @@ const GuestEdgeSchema = z.object({
 
 export const GuestSnapshotSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name is too long"),
+  setting: DynastySettingSchema.optional(),
+  crestSeed: CrestSeedSchema.optional(),
   nodes: z.array(GuestNodeSchema),
   edges: z.array(GuestEdgeSchema),
 });
@@ -131,6 +117,9 @@ export const DynastyExportSchema = z.object({
     name: z.string(),
     setting: DynastySettingSchema,
     isPublic: z.boolean(),
+    // Nullish, not required: files downloaded before crests existed must still
+    // parse as version 1 rather than forcing a version bump on every user.
+    crestSeed: CrestSeedSchema.nullish(),
   }),
   characters: z.array(
     z.object({

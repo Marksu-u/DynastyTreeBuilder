@@ -14,11 +14,9 @@ import { CharacterNode } from '@/components/canvas/CharacterNode';
 import { UnionNode } from '@/components/canvas/UnionNode';
 import { RelationshipEdge } from '@/components/canvas/RelationshipEdge';
 import { Toolbar } from '@/components/canvas/Toolbar';
-import { AddCharacterPanel } from '@/components/canvas/AddCharacterPanel';
-import { AddRelativePanel } from '@/components/canvas/AddRelativePanel';
+import { CharacterDialog } from '@/components/canvas/CharacterDialog';
 import { AddRelativeHint } from '@/components/canvas/AddRelativeHint';
 import { GenerationBands } from '@/components/canvas/GenerationBands';
-import { CatalogProvider } from '@/components/canvas/CatalogProvider';
 import { CanvasContext } from '@/components/canvas/CanvasContext';
 import { CanvasEmptyState } from '@/components/canvas/CanvasEmptyState';
 import { ExampleDynastyNotice } from '@/components/canvas/ExampleDynastyNotice';
@@ -26,15 +24,16 @@ import { useGenealogyLayout } from '@/components/canvas/useGenealogyLayout';
 import { HighlightContext } from '@/components/canvas/HighlightContext';
 import { useBloodlineHighlight } from '@/components/canvas/useBloodlineHighlight';
 import { partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
-import { parseImportFile, buildCanvasFromExport, deriveExportRelationships } from '@/lib/import-canvas';
+import { parseImportFile, buildCanvasFromExport, buildGuestExport } from '@/lib/import-canvas';
 import {
-  EXAMPLE_HOUSE_NAME, buildSeedCanvas, hasSeedBeenDecided,
+  EXAMPLE_HOUSE_NAME, EXAMPLE_CREST_SEED, buildSeedCanvas, hasSeedBeenDecided,
   markSeedDecided, isShowingExample, setShowingExample,
 } from '@/lib/seed-canvas';
 import { useFitTree } from '@/components/canvas/useFitTree';
 import { useCanvasSettled } from '@/components/canvas/useCanvasSettled';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CanvasLegend } from '@/components/canvas/CanvasLegend';
+import { useGuestHouse, useGuestDynastyStore } from '@/store/guest-dynasty';
 import type { CharacterData } from '@/types/canvas';
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
@@ -58,6 +57,13 @@ function TreeCanvasInner() {
   const canRedo = useCanvasStore(s => s.future.length > 0);
   const toggleGrid = useCanvasStore(s => s.toggleGrid);
   const initCanvas = useCanvasStore(s => s.initCanvas);
+
+  // Hydration-safe read — the plate reaches the DOM, so it must not read the
+  // store directly. See store/guest-dynasty.ts.
+  const { name: houseName, setting: houseSetting, crestSeed: houseCrestSeed } = useGuestHouse();
+  const setHouse = useGuestDynastyStore(s => s.setHouse);
+  const adoptExample = useGuestDynastyStore(s => s.adoptExample);
+  const resetHouse = useGuestDynastyStore(s => s.resetHouse);
 
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
@@ -92,28 +98,14 @@ function TreeCanvasInner() {
   }, [reactFlow]);
 
   const handleExportJson = useCallback(() => {
-    const n = laidOutNodes; const e = edges;
-    const data = {
-      version: 1 as const,
-      exportedAt: new Date().toISOString(),
-      dynasty: { name: 'My Dynasty', setting: 'FANTASY' as const, isPublic: false },
-      characters: n.filter(nd => nd.type === 'character').map(nd => ({
-        id: nd.id, name: (nd as CharacterNodeType).data.name,
-        alias: (nd as CharacterNodeType).data.alias ?? null,
-        flags: (nd as CharacterNodeType).data.flags ?? [],
-        style: (nd as CharacterNodeType).data.style,
-        gender: (nd as CharacterNodeType).data.gender,
-        note: (nd as CharacterNodeType).data.note ?? null,
-        posX: nd.position.x, posY: nd.position.y,
-      })),
-      relationships: deriveExportRelationships(n, e).map(r => ({
-        id: crypto.randomUUID(), fromId: r.fromId, toId: r.toId,
-        type: r.type, hook: null, isMutual: false,
-      })),
-    };
-    triggerJsonDownload(data, 'dynasty-tree.json');
+    const data = buildGuestExport(laidOutNodes, edges, {
+      name: houseName,
+      setting: houseSetting,
+      crestSeed: houseCrestSeed,
+    });
+    triggerJsonDownload(data, `${houseName || 'dynasty-tree'}.json`);
     toast.success('Downloaded as JSON');
-  }, [laidOutNodes, edges]);
+  }, [laidOutNodes, edges, houseName, houseSetting, houseCrestSeed]);
 
   const handleAddCharacter = useCallback((data: CharacterData) => {
     addCharacter(data);
@@ -154,11 +146,18 @@ function TreeCanvasInner() {
       const data = parseImportFile(raw);
       const { nodes: importedNodes, edges: importedEdges } = buildCanvasFromExport(data);
       initCanvas(importedNodes, importedEdges);
+      // The file describes a whole house, not just its people. isPublic is
+      // deliberately ignored — a guest tree has nothing to publish.
+      setHouse({
+        name: data.dynasty.name,
+        setting: data.dynasty.setting,
+        ...(data.dynasty.crestSeed ? { crestSeed: data.dynasty.crestSeed } : {}),
+      });
       toast.success('Imported dynasty tree');
     } catch {
       toast.error("Couldn't read that file — is it a Dynasty Tree export?");
     }
-  }, [initCanvas]);
+  }, [initCanvas, setHouse]);
 
   // Importing over existing work is destructive, so it asks first — holding the
   // chosen file until the answer comes back rather than blocking on confirm().
@@ -175,10 +174,13 @@ function TreeCanvasInner() {
 
   const handleClearExample = useCallback(() => {
     initCanvas([], []);
+    // The tree and the house go together — keeping House Thorne's name and arms
+    // over an empty canvas would be a leftover, not a starting point.
+    resetHouse();
     setShowingExample(false);
     setShowExampleNotice(false);
     setAddCharacterOpen(true);
-  }, [initCanvas]);
+  }, [initCanvas, resetHouse]);
 
   const handleDismissExample = useCallback(() => {
     // The tree stays — they may want to build on it — but it is theirs now.
@@ -208,6 +210,7 @@ function TreeCanvasInner() {
       if (cancelled || useCanvasStore.getState().nodes.length > 0) return;
 
       initCanvas(seed.nodes, seed.edges);
+      adoptExample(EXAMPLE_HOUSE_NAME, EXAMPLE_CREST_SEED);
       markSeedDecided('seeded');
       setShowingExample(true);
       setShowExampleNotice(true);
@@ -220,7 +223,7 @@ function TreeCanvasInner() {
 
     const unsub = useCanvasStore.persist.onFinishHydration(() => void seedIfFirstRun());
     return () => { cancelled = true; unsub(); };
-  }, [initCanvas]);
+  }, [initCanvas, adoptExample]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -281,7 +284,8 @@ function TreeCanvasInner() {
             <GenerationBands
               rows={rows}
               nodes={laidOutNodes}
-              houseName={showExampleNotice ? EXAMPLE_HOUSE_NAME : 'Your Dynasty'}
+              houseName={houseName}
+              crestSeed={houseCrestSeed}
             />
           </ReactFlow>
           <div className="canvas-vignette" aria-hidden="true" />
@@ -306,7 +310,6 @@ function TreeCanvasInner() {
             onExport={handleExport}
             onExportJson={handleExportJson}
             onImportJson={handleImportClick}
-            showCustomOptions={false}
             onFitView={fitTree}
           />
 
@@ -334,23 +337,20 @@ function TreeCanvasInner() {
 
           <AddRelativeHint visible={characterNodes.length === 1 && !characterNodes[0].selected} />
 
-          <AddCharacterPanel
-            key="add"
-            open={addCharacterOpen}
-            onOpenChange={setAddCharacterOpen}
-            onSubmit={handleAddCharacter}
-            isLoggedIn={false}
-          />
+          {addCharacterOpen && (
+            <CharacterDialog
+              mode={{ kind: 'create' }}
+              onClose={() => setAddCharacterOpen(false)}
+              onSubmitCharacter={handleAddCharacter}
+            />
+          )}
 
-          {editingCharacterId && (
-            <AddCharacterPanel
-              key="edit"
-              open={true}
-              onOpenChange={open => { if (!open) setEditingCharacterId(null); }}
-              character={editingCharacter}
-              onSubmit={handleUpdateCharacter}
+          {editingCharacter && (
+            <CharacterDialog
+              mode={{ kind: 'edit', character: editingCharacter }}
+              onClose={() => setEditingCharacterId(null)}
+              onSubmitCharacter={handleUpdateCharacter}
               onDelete={handleDeleteCharacter}
-              isLoggedIn={false}
             />
           )}
 
@@ -358,13 +358,16 @@ function TreeCanvasInner() {
             const anchor = characterNodes.find(n => n.id === relPicker.anchorId);
             if (!anchor) return null;
             return (
-              <AddRelativePanel
-                anchor={anchor}
-                kind={relPicker.kind}
-                characters={characterNodes}
-                unions={partnerUnionsOf(nodes, edges, relPicker.anchorId)}
-                onSubmit={handleAddRelative}
+              <CharacterDialog
+                mode={{
+                  kind: 'relative',
+                  anchor,
+                  relative: relPicker.kind,
+                  characters: characterNodes,
+                  unions: partnerUnionsOf(nodes, edges, relPicker.anchorId),
+                }}
                 onClose={() => setRelPicker(null)}
+                onSubmitRelative={handleAddRelative}
               />
             );
           })()}
@@ -375,9 +378,5 @@ function TreeCanvasInner() {
 }
 
 export function TreeCanvas() {
-  return (
-    <CatalogProvider isLoggedIn={false}>
-      <TreeCanvasInner />
-    </CatalogProvider>
-  );
+  return <TreeCanvasInner />;
 }

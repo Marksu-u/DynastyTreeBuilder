@@ -119,7 +119,7 @@ export async function deleteDynasty(id: string): Promise<{ error?: string }> {
 
 export async function updateDynastySettings(
   id: string,
-  data: { name?: string; setting?: string; isPublic?: boolean }
+  data: { name?: string; setting?: string; isPublic?: boolean; crestSeed?: string }
 ): Promise<{ error?: string }> {
   const user = await getAuthUser();
   if (!checkRateLimit(user.id)) return { error: "Too many requests. Slow down." };
@@ -136,10 +136,16 @@ export async function updateDynastySettings(
   if (parsed.data.isPublic !== undefined) update.isPublic = parsed.data.isPublic;
   if (parsed.data.crestSeed !== undefined) update.crestSeed = parsed.data.crestSeed;
 
-  await prisma.dynasty.update({
-    where: { id: idResult.data, ownerId: user.id },
-    data: update,
-  });
+  try {
+    await prisma.dynasty.update({
+      where: { id: idResult.data, ownerId: user.id },
+      data: update,
+    });
+  } catch {
+    // Mirrors deleteDynasty: a Prisma throw becomes a returned error, so every
+    // caller can handle failure inline instead of hitting the error boundary.
+    return { error: "Failed to save settings" };
+  }
 
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/${idResult.data}`);
@@ -166,6 +172,7 @@ export async function exportDynasty(dynastyId: string): Promise<DynastyExport> {
       name: dynasty.name,
       setting: dynasty.setting,
       isPublic: dynasty.isPublic,
+      crestSeed: dynasty.crestSeed,
     },
     characters: dynasty.characters.map((c) => ({
       id: c.id,
@@ -280,7 +287,13 @@ function deriveRelationships(
 }
 
 export async function importGuestWorld(
-  input: { name: string; nodes: unknown[]; edges: unknown[] },
+  input: {
+    name: string;
+    setting?: string;
+    crestSeed?: string;
+    nodes: unknown[];
+    edges: unknown[];
+  },
 ): Promise<{ id: string }> {
   const user = await getAuthUser();
   if (!checkRateLimit(user.id)) throw new Error("Too many requests. Slow down.");
@@ -297,7 +310,8 @@ export async function importGuestWorld(
       data: {
         name: snapshot.name,
         slug: makeSlug(snapshot.name),
-        setting: "FANTASY",
+        setting: snapshot.setting ?? "FANTASY",
+        crestSeed: snapshot.crestSeed ?? null,
         ownerId: user.id,
       },
     });
@@ -349,6 +363,18 @@ export async function replaceDynastyFromExport(
   if (!dynasty) throw new Error("Dynasty not found");
 
   const result = await prisma.$transaction(async (tx) => {
+    // The file describes a whole house. Two things it must never change:
+    // isPublic (importing must not silently publish) and slug (it is the share
+    // URL people may already have sent).
+    await tx.dynasty.update({
+      where: { id: validId },
+      data: {
+        name: data.dynasty.name,
+        setting: data.dynasty.setting,
+        ...(data.dynasty.crestSeed ? { crestSeed: data.dynasty.crestSeed } : {}),
+      },
+    });
+
     await tx.relationship.deleteMany({ where: { dynastyId: validId } });
     await tx.character.deleteMany({ where: { dynastyId: validId } });
 
@@ -411,6 +437,7 @@ export async function replaceDynastyFromExport(
   });
 
   revalidatePath(`/dashboard/${validId}`);
+  revalidatePath("/dashboard");
 
   // Same row→node/edge conversion as app/dashboard/[id]/page.tsx:53-77 (the
   // initial page load) — reused here so DynastyCanvas can treat an import
