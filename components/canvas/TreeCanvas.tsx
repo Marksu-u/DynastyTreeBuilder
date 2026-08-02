@@ -35,6 +35,7 @@ import { useFitTree } from '@/components/canvas/useFitTree';
 import { useCanvasSettled } from '@/components/canvas/useCanvasSettled';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CanvasLegend } from '@/components/canvas/CanvasLegend';
+import { useGuestHouse } from '@/store/guest-dynasty';
 import type { CharacterData } from '@/types/canvas';
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
@@ -58,6 +59,10 @@ function TreeCanvasInner() {
   const canRedo = useCanvasStore(s => s.future.length > 0);
   const toggleGrid = useCanvasStore(s => s.toggleGrid);
   const initCanvas = useCanvasStore(s => s.initCanvas);
+
+  // Hydration-safe read — the plate reaches the DOM, so it must not read the
+  // store directly. See store/guest-dynasty.ts.
+  const { name: houseName, crestSeed: houseCrestSeed } = useGuestHouse();
 
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
@@ -281,7 +286,8 @@ function TreeCanvasInner() {
             <GenerationBands
               rows={rows}
               nodes={laidOutNodes}
-              houseName={showExampleNotice ? EXAMPLE_HOUSE_NAME : 'Your Dynasty'}
+              houseName={houseName}
+              crestSeed={houseCrestSeed}
             />
           </ReactFlow>
           <div className="canvas-vignette" aria-hidden="true" />
