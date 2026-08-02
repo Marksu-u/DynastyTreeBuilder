@@ -16,13 +16,12 @@ import {
 import { toast } from "sonner";
 import { CharacterNode } from "./CharacterNode";
 import { RelationshipEdge } from "./RelationshipEdge";
-import { Toolbar, type SidebarPanel } from "./Toolbar";
+import { Toolbar } from "./Toolbar";
 import { AddCharacterPanel } from "./AddCharacterPanel";
 import { AddRelativePanel } from "./AddRelativePanel";
 import { AddRelativeHint } from "./AddRelativeHint";
 import { GenerationBands } from "./GenerationBands";
 import { CanvasContext } from "./CanvasContext";
-import { CustomOptionsPanel } from "@/components/name-bank/CustomOptionsPanel";
 import {
   createCharacter,
   updateCharacter,
@@ -103,10 +102,8 @@ export function DynastyCanvas({
   crestSeed,
   initialNodes,
   initialEdges,
-  userId,
   onSaveStatusChange,
 }: Props) {
-  const isLoggedIn = !!userId;
   const reactFlow = useReactFlow();
   const migrated = useMemo(
     () => migrateCanvas(initialNodes as never, initialEdges as never),
@@ -118,7 +115,6 @@ export function DynastyCanvas({
   const [gridVisible, setGridVisible] = useState(false);
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
-  const [sidebar, setSidebar] = useState<SidebarPanel | null>(null);
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [pendingImport, setPendingImport] = useState<File | null>(null);
@@ -168,10 +164,6 @@ export function DynastyCanvas({
     },
     [onSaveStatusChange]
   );
-
-  const handleToggleSidebar = useCallback((panel: SidebarPanel) => {
-    setSidebar((current) => (current === panel ? null : panel));
-  }, []);
 
   const characterNodes = useMemo(
     () => nodes.filter((n): n is CharacterNodeType => n.type === 'character'),
@@ -472,9 +464,6 @@ export function DynastyCanvas({
         <Toolbar
           gridVisible={gridVisible}
           onToggleGrid={() => setGridVisible((v) => !v)}
-          activeSidebar={sidebar}
-          onToggleSidebar={handleToggleSidebar}
-          showCustomOptions={isLoggedIn}
           onExport={handleExport}
           onExportJson={handleExportJson}
           onImportJson={handleImportClick}
@@ -502,7 +491,6 @@ export function DynastyCanvas({
           open={addCharacterOpen}
           onOpenChange={setAddCharacterOpen}
           onSubmit={handleAddCharacter}
-          isLoggedIn={isLoggedIn}
         />
 
         {editingCharacterId && (
@@ -515,7 +503,6 @@ export function DynastyCanvas({
             character={editingCharacter}
             onSubmit={handleUpdateCharacter}
             onDelete={handleDeleteCharacter}
-            isLoggedIn={isLoggedIn}
           />
         )}
 
@@ -534,10 +521,6 @@ export function DynastyCanvas({
           );
         })()}
       </div>
-
-      {sidebar === 'custom' && isLoggedIn && (
-        <CustomOptionsPanel />
-      )}
     </div>
     </CanvasContext.Provider>
   );

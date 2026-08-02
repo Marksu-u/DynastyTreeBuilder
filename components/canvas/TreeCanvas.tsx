@@ -18,7 +18,6 @@ import { AddCharacterPanel } from '@/components/canvas/AddCharacterPanel';
 import { AddRelativePanel } from '@/components/canvas/AddRelativePanel';
 import { AddRelativeHint } from '@/components/canvas/AddRelativeHint';
 import { GenerationBands } from '@/components/canvas/GenerationBands';
-import { CatalogProvider } from '@/components/canvas/CatalogProvider';
 import { CanvasContext } from '@/components/canvas/CanvasContext';
 import { CanvasEmptyState } from '@/components/canvas/CanvasEmptyState';
 import { ExampleDynastyNotice } from '@/components/canvas/ExampleDynastyNotice';
@@ -318,7 +317,6 @@ function TreeCanvasInner() {
             onExport={handleExport}
             onExportJson={handleExportJson}
             onImportJson={handleImportClick}
-            showCustomOptions={false}
             onFitView={fitTree}
           />
 
@@ -351,7 +349,6 @@ function TreeCanvasInner() {
             open={addCharacterOpen}
             onOpenChange={setAddCharacterOpen}
             onSubmit={handleAddCharacter}
-            isLoggedIn={false}
           />
 
           {editingCharacterId && (
@@ -362,7 +359,6 @@ function TreeCanvasInner() {
               character={editingCharacter}
               onSubmit={handleUpdateCharacter}
               onDelete={handleDeleteCharacter}
-              isLoggedIn={false}
             />
           )}
 
@@ -387,9 +383,5 @@ function TreeCanvasInner() {
 }
 
 export function TreeCanvas() {
-  return (
-    <CatalogProvider isLoggedIn={false}>
-      <TreeCanvasInner />
-    </CatalogProvider>
-  );
+  return <TreeCanvasInner />;
 }

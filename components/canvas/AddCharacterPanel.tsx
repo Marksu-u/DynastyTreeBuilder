@@ -5,7 +5,6 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { X, ChevronDown, ChevronRight } from 'lucide-react';
 import type { CharacterData, CharacterFlag, CharacterGender } from '@/types/canvas';
 import type { CharacterNodeType } from '@/store/canvas';
-import { useCatalog } from './CatalogProvider';
 
 const GENDERS: { value: CharacterGender; label: string }[] = [
   { value: 'UNKNOWN',    label: 'None / unspecified' },
@@ -28,7 +27,6 @@ interface Props {
   character?: CharacterNodeType;
   onSubmit: (data: CharacterData) => void;
   onDelete?: () => void;
-  isLoggedIn?: boolean;
 }
 
 const EMPTY: CharacterData = {
@@ -48,8 +46,6 @@ function hasDetails(d: CharacterData): boolean {
 export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onDelete }: Props) {
   const [form, setForm] = useState<CharacterData>(EMPTY);
   const [showDetails, setShowDetails] = useState(false);
-  const { getMerged } = useCatalog();
-  const roleSuggestions = getMerged('CHARACTER_STYLE');
   const isEdit = !!character;
 
   useEffect(() => {
@@ -115,17 +111,11 @@ export function AddCharacterPanel({ open, onOpenChange, character, onSubmit, onD
               <label className="mb-1 block text-xs font-medium text-zinc-400">Role</label>
               <input
                 type="text"
-                list="role-suggestions"
                 value={form.style}
                 onChange={(e) => set('style', e.target.value)}
                 placeholder="Type anything — e.g. Queen, Court Wizard, Heir…"
                 className={INPUT}
               />
-              <datalist id="role-suggestions">
-                {roleSuggestions.map((o) => (
-                  <option key={o.value} value={o.label} />
-                ))}
-              </datalist>
             </div>
 
             <div className="border-t border-zinc-800 pt-3">

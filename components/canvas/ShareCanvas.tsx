@@ -8,7 +8,6 @@ import { RelationshipEdge } from "./RelationshipEdge";
 import { ReportButton } from "./ReportButton";
 import { Download } from "lucide-react";
 import { exportCanvasToPng } from "@/lib/export";
-import { CatalogProvider } from "./CatalogProvider";
 import { GenerationBands } from "./GenerationBands";
 import { migrateCanvas } from "@/lib/migrate-canvas";
 import { useGenealogyLayout } from "./useGenealogyLayout";
@@ -62,7 +61,6 @@ export function ShareCanvas({ dynastyName, crestSeed, shareSlug, nodes, edges }:
   }, [reactFlow, dynastyName]);
 
   return (
-    <CatalogProvider isLoggedIn={false}>
     <div ref={containerRef} className={`relative h-full w-full ${settlingClass}`}>
       <div className="absolute inset-x-0 top-3 z-10 flex justify-center px-3">
         <div className="flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full border border-zinc-700 bg-zinc-900/90 px-4 py-1.5 text-xs text-zinc-400 backdrop-blur-sm">
@@ -127,7 +125,6 @@ export function ShareCanvas({ dynastyName, crestSeed, shareSlug, nodes, edges }:
       <CanvasLegend />
       </HighlightContext.Provider>
     </div>
-    </CatalogProvider>
   );
 }
 
