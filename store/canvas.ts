@@ -8,6 +8,7 @@ import {
 import type { CharacterData, RelationshipData, UnionData, LegacyRelationshipType } from '@/types/canvas';
 import { migrateCanvas } from '@/lib/migrate-canvas';
 import { computeAddRelative, computeDeleteCharacter, computeRemoveRelative, type AddRelativeInput } from '@/lib/relative-ops';
+import { safeStorage } from '@/lib/safe-storage';
 
 export type CharacterNodeType = Node<CharacterData, 'character'>;
 export type UnionNodeType = Node<UnionData, 'union'>;
@@ -55,12 +56,6 @@ const MAX_HISTORY = 50;
 function snap(state: Pick<CanvasState, 'nodes' | 'edges'>): Snapshot {
   return { nodes: state.nodes, edges: state.edges };
 }
-
-const safeStorage = {
-  getItem: (name: string) => (typeof window === 'undefined' ? null : localStorage.getItem(name)),
-  setItem: (name: string, value: string) => { if (typeof window !== 'undefined') localStorage.setItem(name, value); },
-  removeItem: (name: string) => { if (typeof window !== 'undefined') localStorage.removeItem(name); },
-};
 
 export const useCanvasStore = create<CanvasState>()(
   persist(

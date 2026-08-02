@@ -6,7 +6,7 @@ export default defineConfig({
     alias: { '@': path.resolve(__dirname, '.') },
   },
   test: {
-    include: ['lib/**/*.test.ts'],
+    include: ['lib/**/*.test.ts', 'store/**/*.test.ts'],
     passWithNoTests: true,
   },
 });

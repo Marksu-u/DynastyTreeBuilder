@@ -7,6 +7,7 @@ export const IdSchema = z.string().min(1, "ID is required");
 export const DynastySettingSchema = z.enum([
   "FANTASY", "SCI_FI", "HISTORICAL", "MODERN", "HORROR", "OTHER",
 ]);
+export type DynastySetting = z.infer<typeof DynastySettingSchema>;
 
 export const NameStyleSchema = z.enum([
   "FANTASY", "SCI_FI", "HISTORICAL", "MODERN", "HORROR", "OTHER",
