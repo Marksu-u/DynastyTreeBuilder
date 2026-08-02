@@ -73,10 +73,12 @@ export function DynastyPageClient({
       });
       if (result.error) {
         toast.error(result.error);
-        return;
+        // Keeps the dialog open so a failed save doesn't discard their edits.
+        return false;
       }
       toast.success("Settings saved");
       setIsPublic(next.isPublic ?? false);
+      return true;
     },
     [dynastyId, savedSeed],
   );

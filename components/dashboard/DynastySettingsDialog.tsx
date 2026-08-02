@@ -27,7 +27,8 @@ interface Props {
   initial: HouseSettings;
   /** Account only: the Public toggle is the cloud feature, not a house setting. */
   showPublic?: boolean;
-  onSave: (next: HouseSettings) => void | Promise<void>;
+  /** Return false to keep the dialog open — the user's edits survive a failed save. */
+  onSave: (next: HouseSettings) => void | boolean | Promise<void | boolean>;
 }
 
 export function DynastySettingsDialog({ initial, showPublic = false, onSave }: Props) {
@@ -50,13 +51,15 @@ export function DynastySettingsDialog({ initial, showPublic = false, onSave }: P
 
   function handleSave() {
     startTransition(async () => {
-      await onSave({
+      const saved = await onSave({
         name,
         setting,
         crestSeed: seed,
         ...(showPublic ? { isPublic } : {}),
       });
-      setOpen(false);
+      // Only an explicit false keeps it open, so a saver with nothing to report
+      // (the guest store, which cannot fail) closes as usual.
+      if (saved !== false) setOpen(false);
     });
   }
 
