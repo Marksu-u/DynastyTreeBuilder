@@ -132,6 +132,9 @@ export const DynastyExportSchema = z.object({
     name: z.string(),
     setting: DynastySettingSchema,
     isPublic: z.boolean(),
+    // Nullish, not required: files downloaded before crests existed must still
+    // parse as version 1 rather than forcing a version bump on every user.
+    crestSeed: CrestSeedSchema.nullish(),
   }),
   characters: z.array(
     z.object({
