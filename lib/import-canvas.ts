@@ -91,3 +91,48 @@ export function deriveExportRelationships(
 
   return pairs;
 }
+
+/**
+ * Builds a guest export file. Lives here rather than in the canvas component so
+ * the "does our own parser accept what we write" round-trip is testable.
+ */
+export function buildGuestExport(
+  nodes: AnyCanvasNode[],
+  edges: RelationshipEdgeType[],
+  house: { name: string; setting: DynastyExport['dynasty']['setting']; crestSeed: string },
+): DynastyExport {
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    dynasty: {
+      name: house.name,
+      setting: house.setting,
+      // Guest trees have no share link, so there is nothing to publish.
+      isPublic: false,
+      // Empty means the arms were never minted (the SSR-safe initial state).
+      // CrestSeedSchema rejects '', so write null rather than an invalid seed.
+      crestSeed: house.crestSeed || null,
+    },
+    characters: nodes
+      .filter((n): n is Extract<AnyCanvasNode, { type: 'character' }> => n.type === 'character')
+      .map(n => ({
+        id: n.id,
+        name: n.data.name,
+        alias: n.data.alias ?? null,
+        flags: n.data.flags ?? [],
+        style: n.data.style,
+        gender: n.data.gender,
+        note: n.data.note ?? null,
+        posX: n.position.x,
+        posY: n.position.y,
+      })),
+    relationships: deriveExportRelationships(nodes, edges).map(r => ({
+      id: crypto.randomUUID(),
+      fromId: r.fromId,
+      toId: r.toId,
+      type: r.type,
+      hook: null,
+      isMutual: false,
+    })),
+  };
+}

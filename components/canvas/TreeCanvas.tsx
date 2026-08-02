@@ -24,7 +24,7 @@ import { useGenealogyLayout } from '@/components/canvas/useGenealogyLayout';
 import { HighlightContext } from '@/components/canvas/HighlightContext';
 import { useBloodlineHighlight } from '@/components/canvas/useBloodlineHighlight';
 import { partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
-import { parseImportFile, buildCanvasFromExport, deriveExportRelationships } from '@/lib/import-canvas';
+import { parseImportFile, buildCanvasFromExport, buildGuestExport } from '@/lib/import-canvas';
 import {
   EXAMPLE_HOUSE_NAME, EXAMPLE_CREST_SEED, buildSeedCanvas, hasSeedBeenDecided,
   markSeedDecided, isShowingExample, setShowingExample,
@@ -60,7 +60,8 @@ function TreeCanvasInner() {
 
   // Hydration-safe read — the plate reaches the DOM, so it must not read the
   // store directly. See store/guest-dynasty.ts.
-  const { name: houseName, crestSeed: houseCrestSeed } = useGuestHouse();
+  const { name: houseName, setting: houseSetting, crestSeed: houseCrestSeed } = useGuestHouse();
+  const setHouse = useGuestDynastyStore(s => s.setHouse);
   const adoptExample = useGuestDynastyStore(s => s.adoptExample);
   const resetHouse = useGuestDynastyStore(s => s.resetHouse);
 
@@ -97,28 +98,14 @@ function TreeCanvasInner() {
   }, [reactFlow]);
 
   const handleExportJson = useCallback(() => {
-    const n = laidOutNodes; const e = edges;
-    const data = {
-      version: 1 as const,
-      exportedAt: new Date().toISOString(),
-      dynasty: { name: 'My Dynasty', setting: 'FANTASY' as const, isPublic: false },
-      characters: n.filter(nd => nd.type === 'character').map(nd => ({
-        id: nd.id, name: (nd as CharacterNodeType).data.name,
-        alias: (nd as CharacterNodeType).data.alias ?? null,
-        flags: (nd as CharacterNodeType).data.flags ?? [],
-        style: (nd as CharacterNodeType).data.style,
-        gender: (nd as CharacterNodeType).data.gender,
-        note: (nd as CharacterNodeType).data.note ?? null,
-        posX: nd.position.x, posY: nd.position.y,
-      })),
-      relationships: deriveExportRelationships(n, e).map(r => ({
-        id: crypto.randomUUID(), fromId: r.fromId, toId: r.toId,
-        type: r.type, hook: null, isMutual: false,
-      })),
-    };
-    triggerJsonDownload(data, 'dynasty-tree.json');
+    const data = buildGuestExport(laidOutNodes, edges, {
+      name: houseName,
+      setting: houseSetting,
+      crestSeed: houseCrestSeed,
+    });
+    triggerJsonDownload(data, `${houseName || 'dynasty-tree'}.json`);
     toast.success('Downloaded as JSON');
-  }, [laidOutNodes, edges]);
+  }, [laidOutNodes, edges, houseName, houseSetting, houseCrestSeed]);
 
   const handleAddCharacter = useCallback((data: CharacterData) => {
     addCharacter(data);
@@ -159,11 +146,18 @@ function TreeCanvasInner() {
       const data = parseImportFile(raw);
       const { nodes: importedNodes, edges: importedEdges } = buildCanvasFromExport(data);
       initCanvas(importedNodes, importedEdges);
+      // The file describes a whole house, not just its people. isPublic is
+      // deliberately ignored — a guest tree has nothing to publish.
+      setHouse({
+        name: data.dynasty.name,
+        setting: data.dynasty.setting,
+        ...(data.dynasty.crestSeed ? { crestSeed: data.dynasty.crestSeed } : {}),
+      });
       toast.success('Imported dynasty tree');
     } catch {
       toast.error("Couldn't read that file — is it a Dynasty Tree export?");
     }
-  }, [initCanvas]);
+  }, [initCanvas, setHouse]);
 
   // Importing over existing work is destructive, so it asks first — holding the
   // chosen file until the answer comes back rather than blocking on confirm().
