@@ -6,7 +6,6 @@ import { LogIn } from 'lucide-react';
 import { crestFromSeed, crestToSvg } from '@/lib/crest';
 import { useGuestDynastyStore, useGuestHouse } from '@/store/guest-dynasty';
 import { DynastySettingsDialog, type HouseSettings } from '@/components/dashboard/DynastySettingsDialog';
-import type { DynastySetting } from '@/lib/schemas';
 
 export function GuestBanner() {
   // useGuestHouse, never the store directly: `persist` rehydrates synchronously
@@ -28,7 +27,7 @@ export function GuestBanner() {
   function handleSave(next: HouseSettings) {
     setHouse({
       name: next.name.trim() || name,
-      setting: next.setting as DynastySetting,
+      setting: next.setting,
       crestSeed: next.crestSeed,
     });
   }

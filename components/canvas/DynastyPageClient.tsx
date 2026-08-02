@@ -16,6 +16,7 @@ import { triggerJsonDownload } from "@/lib/export";
 import "@xyflow/react/dist/style.css";
 import type { CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
 import type { HouseSettings } from "@/components/dashboard/DynastySettingsDialog";
+import type { DynastySetting } from "@/lib/schemas";
 
 type Props = {
   dynastyId: string;
@@ -63,22 +64,29 @@ export function DynastyPageClient({
 
   const handleSaveSettings = useCallback(
     async (next: HouseSettings) => {
-      const result = await updateDynastySettings(dynastyId, {
-        name: next.name,
-        setting: next.setting,
-        isPublic: next.isPublic,
-        // Only send it if the user actually picked a different one, so saving
-        // other fields never writes a seed where the slug fallback was fine.
-        ...(next.crestSeed !== savedSeed ? { crestSeed: next.crestSeed } : {}),
-      });
-      if (result.error) {
-        toast.error(result.error);
-        // Keeps the dialog open so a failed save doesn't discard their edits.
+      try {
+        const result = await updateDynastySettings(dynastyId, {
+          name: next.name,
+          setting: next.setting,
+          isPublic: next.isPublic,
+          // Only send it if the user actually picked a different one, so saving
+          // other fields never writes a seed where the slug fallback was fine.
+          ...(next.crestSeed !== savedSeed ? { crestSeed: next.crestSeed } : {}),
+        });
+        if (result.error) {
+          toast.error(result.error);
+          // Keeps the dialog open so a failed save doesn't discard their edits.
+          return false;
+        }
+        toast.success("Settings saved");
+        setIsPublic(next.isPublic ?? false);
+        return true;
+      } catch {
+        // A transport-level failure would otherwise reject into the route's
+        // error boundary and take the whole canvas down with it.
+        toast.error("Couldn't save — check your connection and try again.");
         return false;
       }
-      toast.success("Settings saved");
-      setIsPublic(next.isPublic ?? false);
-      return true;
     },
     [dynastyId, savedSeed],
   );
@@ -135,7 +143,9 @@ export function DynastyPageClient({
               <DynastySettingsDialog
                 initial={{
                   name: dynastyName,
-                  setting: initialSetting,
+                  // The database stores this as a plain string; the enum is
+                  // guaranteed by Prisma's schema, not by TypeScript here.
+                  setting: initialSetting as DynastySetting,
                   crestSeed: savedSeed,
                   isPublic: initialIsPublic,
                 }}

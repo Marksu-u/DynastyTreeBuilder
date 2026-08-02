@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Settings, X } from "lucide-react";
 import { CrestPicker } from "@/components/dashboard/CrestPicker";
+import type { DynastySetting } from "@/lib/schemas";
 
 const SETTINGS = [
   { value: "FANTASY", label: "Fantasy" },
@@ -16,7 +17,7 @@ const SETTINGS = [
 
 export interface HouseSettings {
   name: string;
-  setting: string;
+  setting: DynastySetting;
   crestSeed: string;
   /** Only present when showPublic is set — guest mode has nothing to publish. */
   isPublic?: boolean;
@@ -34,7 +35,7 @@ interface Props {
 export function DynastySettingsDialog({ initial, showPublic = false, onSave }: Props) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(initial.name);
-  const [setting, setSetting] = useState(initial.setting);
+  const [setting, setSetting] = useState<DynastySetting>(initial.setting);
   const [isPublic, setIsPublic] = useState(initial.isPublic ?? false);
   const [seed, setSeed] = useState(initial.crestSeed);
   const [isPending, startTransition] = useTransition();
@@ -109,7 +110,7 @@ export function DynastySettingsDialog({ initial, showPublic = false, onSave }: P
               </label>
               <select
                 value={setting}
-                onChange={(e) => setSetting(e.target.value)}
+                onChange={(e) => setSetting(e.target.value as DynastySetting)}
                 className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-500 focus:outline-none"
               >
                 {SETTINGS.map((s) => (

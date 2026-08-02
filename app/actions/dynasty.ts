@@ -136,10 +136,16 @@ export async function updateDynastySettings(
   if (parsed.data.isPublic !== undefined) update.isPublic = parsed.data.isPublic;
   if (parsed.data.crestSeed !== undefined) update.crestSeed = parsed.data.crestSeed;
 
-  await prisma.dynasty.update({
-    where: { id: idResult.data, ownerId: user.id },
-    data: update,
-  });
+  try {
+    await prisma.dynasty.update({
+      where: { id: idResult.data, ownerId: user.id },
+      data: update,
+    });
+  } catch {
+    // Mirrors deleteDynasty: a Prisma throw becomes a returned error, so every
+    // caller can handle failure inline instead of hitting the error boundary.
+    return { error: "Failed to save settings" };
+  }
 
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/${idResult.data}`);
