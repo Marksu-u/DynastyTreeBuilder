@@ -33,6 +33,30 @@ export function partnerUnionsOf(
   }));
 }
 
+export interface RelativeContext {
+  /** True when the anchor has several unions and the user must pick one. */
+  showUnionChoice: boolean;
+  showAdopted: boolean;
+  /** Pre-selected when exactly one union exists — no question worth asking. */
+  defaultUnionId?: string;
+}
+
+/**
+ * What the character dialog must ask beyond the person's own fields. Extracted
+ * from the dialog so the rule is testable in a node environment.
+ */
+export function relativeContext(
+  kind: RelativeKind,
+  unions: { unionId: string; partnerIds: string[] }[],
+): RelativeContext {
+  if (kind !== 'child') return { showUnionChoice: false, showAdopted: false };
+  return {
+    showUnionChoice: unions.length > 1,
+    showAdopted: true,
+    defaultUnionId: unions.length === 1 ? unions[0].unionId : undefined,
+  };
+}
+
 function relEdge(source: string, target: string, type: RelationshipType): RelationshipEdgeType {
   return { id: crypto.randomUUID(), type: 'relationship', source, target, data: { type, isMutual: false } };
 }
