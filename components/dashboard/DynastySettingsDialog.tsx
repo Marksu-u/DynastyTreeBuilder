@@ -3,10 +3,7 @@
 import { useState, useTransition } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Settings, X } from "lucide-react";
-import { toast } from "sonner";
-import { updateDynastySettings } from "@/app/actions/dynasty";
 import { CrestPicker } from "@/components/dashboard/CrestPicker";
-import { resolveCrestSeed } from "@/lib/crest";
 
 const SETTINGS = [
   { value: "FANTASY", label: "Fantasy" },
@@ -17,60 +14,49 @@ const SETTINGS = [
   { value: "OTHER", label: "Other" },
 ] as const;
 
-interface Props {
-  dynastyId: string;
-  initialName: string;
-  initialSetting: string;
-  initialIsPublic: boolean;
-  slug: string;
-  crestSeed: string | null;
-  onPublicChange?: (v: boolean) => void;
+export interface HouseSettings {
+  name: string;
+  setting: string;
+  crestSeed: string;
+  /** Only present when showPublic is set — guest mode has nothing to publish. */
+  isPublic?: boolean;
 }
 
-export function DynastySettingsDialog({
-  dynastyId,
-  initialName,
-  initialSetting,
-  initialIsPublic,
-  slug,
-  crestSeed,
-  onPublicChange,
-}: Props) {
-  const savedSeed = resolveCrestSeed({ slug, crestSeed });
+interface Props {
+  /** Current values. crestSeed must already be resolved — no slug fallback here. */
+  initial: HouseSettings;
+  /** Account only: the Public toggle is the cloud feature, not a house setting. */
+  showPublic?: boolean;
+  onSave: (next: HouseSettings) => void | Promise<void>;
+}
+
+export function DynastySettingsDialog({ initial, showPublic = false, onSave }: Props) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState(initialName);
-  const [setting, setSetting] = useState(initialSetting);
-  const [isPublic, setIsPublic] = useState(initialIsPublic);
-  const [seed, setSeed] = useState(savedSeed);
+  const [name, setName] = useState(initial.name);
+  const [setting, setSetting] = useState(initial.setting);
+  const [isPublic, setIsPublic] = useState(initial.isPublic ?? false);
+  const [seed, setSeed] = useState(initial.crestSeed);
   const [isPending, startTransition] = useTransition();
 
   function handleOpen(value: boolean) {
     if (value) {
-      setName(initialName);
-      setSetting(initialSetting);
-      setIsPublic(initialIsPublic);
-      setSeed(savedSeed);
+      setName(initial.name);
+      setSetting(initial.setting);
+      setIsPublic(initial.isPublic ?? false);
+      setSeed(initial.crestSeed);
     }
     setOpen(value);
   }
 
   function handleSave() {
     startTransition(async () => {
-      const result = await updateDynastySettings(dynastyId, {
+      await onSave({
         name,
         setting,
-        isPublic,
-        // Only send it if the user actually picked a different one, so saving
-        // other fields never writes a seed where the slug fallback was fine.
-        ...(seed !== savedSeed ? { crestSeed: seed } : {}),
+        crestSeed: seed,
+        ...(showPublic ? { isPublic } : {}),
       });
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success("Settings saved");
-        onPublicChange?.(isPublic);
-        setOpen(false);
-      }
+      setOpen(false);
     });
   }
 
@@ -131,28 +117,30 @@ export function DynastySettingsDialog({
               </select>
             </div>
 
-            <label className="flex cursor-pointer items-center justify-between rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5">
-              <span className="text-sm text-zinc-300">Public</span>
-              <span className="text-xs text-zinc-500 mr-auto ml-2">
-                Anyone with the link can view
-              </span>
-              <div
-                role="switch"
-                aria-checked={isPublic}
-                onClick={() => setIsPublic((v) => !v)}
-                className={`relative h-5 w-9 cursor-pointer rounded-full transition-colors ${
-                  isPublic ? "bg-[var(--accent)]" : "bg-zinc-700"
-                }`}
-              >
-                {/* The knob flips to the dark ground on the lit track: white on
-                    gold is only 2.17:1, where zinc-950 on gold is 8.85:1. */}
-                <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full shadow transition-transform ${
-                    isPublic ? "translate-x-4 bg-zinc-950" : "translate-x-0.5 bg-white"
+            {showPublic && (
+              <label className="flex cursor-pointer items-center justify-between rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5">
+                <span className="text-sm text-zinc-300">Public</span>
+                <span className="text-xs text-zinc-500 mr-auto ml-2">
+                  Anyone with the link can view
+                </span>
+                <div
+                  role="switch"
+                  aria-checked={isPublic}
+                  onClick={() => setIsPublic((v) => !v)}
+                  className={`relative h-5 w-9 cursor-pointer rounded-full transition-colors ${
+                    isPublic ? "bg-[var(--accent)]" : "bg-zinc-700"
                   }`}
-                />
-              </div>
-            </label>
+                >
+                  {/* The knob flips to the dark ground on the lit track: white on
+                      gold is only 2.17:1, where zinc-950 on gold is 8.85:1. */}
+                  <span
+                    className={`absolute top-0.5 h-4 w-4 rounded-full shadow transition-transform ${
+                      isPublic ? "translate-x-4 bg-zinc-950" : "translate-x-0.5 bg-white"
+                    }`}
+                  />
+                </div>
+              </label>
+            )}
 
             <div className="border-t border-zinc-800 pt-4">
               <CrestPicker value={seed} onChange={setSeed} disabled={isPending} />

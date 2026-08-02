@@ -90,6 +90,7 @@ function getFriendlyErrorMessage(err: any): string {
 type Props = {
   dynastyId: string;
   dynastyName: string;
+  crestSeed: string;
   initialNodes: CharacterNodeType[];
   initialEdges: LegacyEdgeType[];
   userId?: string;
@@ -99,6 +100,7 @@ type Props = {
 export function DynastyCanvas({
   dynastyId,
   dynastyName,
+  crestSeed,
   initialNodes,
   initialEdges,
   userId,
@@ -453,7 +455,7 @@ export function DynastyCanvas({
             showInteractive={false}
             className="!bottom-4 !left-auto !right-4 !top-auto"
           />
-          <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} />
+          <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} crestSeed={crestSeed} />
         </ReactFlow>
         <div className="canvas-vignette" aria-hidden="true" />
         {characterNodes.length > 0 && <CanvasLegend />}

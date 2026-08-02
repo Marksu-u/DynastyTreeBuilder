@@ -9,10 +9,13 @@ import { DynastySettingsDialog } from "@/components/dashboard/DynastySettingsDia
 import { ExportButton } from "./ExportButton";
 import { ShareButton } from "./ShareButton";
 import { CatalogProvider } from "./CatalogProvider";
-import { exportDynasty } from "@/app/actions/dynasty";
+import { exportDynasty, updateDynastySettings } from "@/app/actions/dynasty";
+import { resolveCrestSeed, crestFromSeed, crestToSvg } from "@/lib/crest";
+import { toast } from "sonner";
 import { triggerJsonDownload } from "@/lib/export";
 import "@xyflow/react/dist/style.css";
 import type { CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
+import type { HouseSettings } from "@/components/dashboard/DynastySettingsDialog";
 
 type Props = {
   dynastyId: string;
@@ -56,6 +59,28 @@ export function DynastyPageClient({
     triggerJsonDownload(data, `${dynastyName}.json`);
   }, [dynastyId, dynastyName]);
 
+  const savedSeed = resolveCrestSeed({ slug: dynastySlug, crestSeed });
+
+  const handleSaveSettings = useCallback(
+    async (next: HouseSettings) => {
+      const result = await updateDynastySettings(dynastyId, {
+        name: next.name,
+        setting: next.setting,
+        isPublic: next.isPublic,
+        // Only send it if the user actually picked a different one, so saving
+        // other fields never writes a seed where the slug fallback was fine.
+        ...(next.crestSeed !== savedSeed ? { crestSeed: next.crestSeed } : {}),
+      });
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Settings saved");
+      setIsPublic(next.isPublic ?? false);
+    },
+    [dynastyId, savedSeed],
+  );
+
   return (
     <ReactFlowProvider>
       {/* CatalogProvider fetches the user's custom catalog options once on mount
@@ -70,6 +95,11 @@ export function DynastyPageClient({
               ← Dynasties
             </Link>
             <span className="text-zinc-700">/</span>
+            <span
+              aria-hidden="true"
+              style={{ display: "inline-block", lineHeight: 0 }}
+              dangerouslySetInnerHTML={{ __html: crestToSvg(crestFromSeed(savedSeed), 20) }}
+            />
             <span className="text-sm font-medium text-zinc-200">{dynastyName}</span>
             <div className="flex items-center gap-1.5 ml-2">
               {saveStatus === 'saving' && (
@@ -101,13 +131,14 @@ export function DynastyPageClient({
               />
               <ShareButton slug={dynastySlug} isPublic={isPublic} />
               <DynastySettingsDialog
-                dynastyId={dynastyId}
-                initialName={dynastyName}
-                initialSetting={initialSetting}
-                initialIsPublic={initialIsPublic}
-                slug={dynastySlug}
-                crestSeed={crestSeed}
-                onPublicChange={setIsPublic}
+                initial={{
+                  name: dynastyName,
+                  setting: initialSetting,
+                  crestSeed: savedSeed,
+                  isPublic: initialIsPublic,
+                }}
+                showPublic
+                onSave={handleSaveSettings}
               />
             </div>
           </header>
@@ -115,6 +146,7 @@ export function DynastyPageClient({
             <DynastyCanvas
               dynastyId={dynastyId}
               dynastyName={dynastyName}
+              crestSeed={savedSeed}
               initialNodes={initialNodes}
               initialEdges={initialEdges}
               userId={userId}
