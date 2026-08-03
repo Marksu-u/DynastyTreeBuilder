@@ -85,6 +85,11 @@ small set of free tools for tabletop games.
 
 ## License
 
-No license file is present, so all rights are reserved by default. The source is
-public for transparency and reference; open an issue if you'd like to discuss
-reuse or contributing.
+[GNU AGPL v3](LICENSE) — Copyright (C) 2026 Marc GAPASIN.
+
+You are free to use, study, modify and redistribute this code. The catch is
+section 13: if you run a modified version as a network service, you have to
+offer that service's users the corresponding source. Running the unmodified
+tool, or keeping private changes to yourself, triggers nothing.
+
+Issues and pull requests are welcome, under the same license.
