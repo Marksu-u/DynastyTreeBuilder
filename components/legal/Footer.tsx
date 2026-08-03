@@ -10,6 +10,7 @@ const LABELS = {
     privacy: "Confidentialité",
     terms: "CGU",
     cookies: "Cookies",
+    twitter: "X",
     source: "Code source",
   },
   en: {
@@ -20,6 +21,7 @@ const LABELS = {
     privacy: "Privacy",
     terms: "Terms",
     cookies: "Cookies",
+    twitter: "X",
     source: "Source on GitHub",
   },
 };
@@ -60,6 +62,9 @@ export function Footer({
             </Link>
             <Link href="/cookies" className="hover:text-zinc-300">
               {t.cookies}
+            </Link>
+            <Link href="https://x.com/marksu_u" className="hover:text-zinc-300">
+              {t.twitter}
             </Link>
             <a
               href={SOURCE_REPO_URL}
