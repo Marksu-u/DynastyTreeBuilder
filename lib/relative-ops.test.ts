@@ -317,21 +317,22 @@ describe('relativeContext', () => {
   const union = (id: string) => ({ unionId: id, partnerIds: ['p1'] });
 
   it('offers nothing extra for a parent', () => {
-    expect(relativeContext('parent', [])).toEqual({
-      showUnionChoice: false,
-      showAdopted: false,
-    });
+    expect(relativeContext('parent', [])).toEqual({ showUnionChoice: false });
   });
 
   it('offers nothing extra for a partner, even with unions present', () => {
     expect(relativeContext('partner', [union('u1'), union('u2')])).toEqual({
       showUnionChoice: false,
-      showAdopted: false,
     });
   });
 
-  it('always offers the adopted flag for a child', () => {
-    expect(relativeContext('child', []).showAdopted).toBe(true);
+  it('asks nothing extra for a child of a single union', () => {
+    // Adoption is no longer asked here — the Adopted trait in the character
+    // form carries it, so one checkbox sets both the badge and the edge.
+    expect(relativeContext('child', [])).toEqual({
+      showUnionChoice: false,
+      defaultUnionId: undefined,
+    });
   });
 
   it('picks the only union silently', () => {

@@ -36,7 +36,6 @@ export function partnerUnionsOf(
 export interface RelativeContext {
   /** True when the anchor has several unions and the user must pick one. */
   showUnionChoice: boolean;
-  showAdopted: boolean;
   /** Pre-selected when exactly one union exists — no question worth asking. */
   defaultUnionId?: string;
 }
@@ -49,10 +48,9 @@ export function relativeContext(
   kind: RelativeKind,
   unions: { unionId: string; partnerIds: string[] }[],
 ): RelativeContext {
-  if (kind !== 'child') return { showUnionChoice: false, showAdopted: false };
+  if (kind !== 'child') return { showUnionChoice: false };
   return {
     showUnionChoice: unions.length > 1,
-    showAdopted: true,
     defaultUnionId: unions.length === 1 ? unions[0].unionId : undefined,
   };
 }

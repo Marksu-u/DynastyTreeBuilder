@@ -8,17 +8,17 @@ import type { CharacterNodeType } from '@/store/canvas';
 import { relativeContext, type RelativeKind, type AddRelativeInput } from '@/lib/relative-ops';
 
 const GENDERS: { value: CharacterGender; label: string }[] = [
-  { value: 'UNKNOWN',    label: 'None / unspecified' },
-  { value: 'MALE',       label: 'Male' },
-  { value: 'FEMALE',     label: 'Female' },
+  { value: 'UNKNOWN', label: 'None / unspecified' },
+  { value: 'MALE', label: 'Male' },
+  { value: 'FEMALE', label: 'Female' },
   { value: 'NON_BINARY', label: 'Non-binary' },
 ];
 
 const CHARACTER_FLAGS: { value: CharacterFlag; label: string }[] = [
-  { value: 'FOUNDER',  label: 'Founder' },
-  { value: 'BASTARD',  label: 'Bastard' },
-  { value: 'ADOPTED',  label: 'Adopted' },
-  { value: 'EXILE',    label: 'Exile' },
+  { value: 'FOUNDER', label: 'Founder' },
+  { value: 'BASTARD', label: 'Bastard' },
+  { value: 'ADOPTED', label: 'Adopted' },
+  { value: 'EXILE', label: 'Exile' },
   { value: 'DECEASED', label: 'Deceased' },
 ];
 
@@ -44,12 +44,12 @@ export type CharacterDialogMode =
   | { kind: 'create' }
   | { kind: 'edit'; character: CharacterNodeType }
   | {
-      kind: 'relative';
-      anchor: CharacterNodeType;
-      relative: RelativeKind;
-      characters: CharacterNodeType[];
-      unions: { unionId: string; partnerIds: string[] }[];
-    };
+    kind: 'relative';
+    anchor: CharacterNodeType;
+    relative: RelativeKind;
+    characters: CharacterNodeType[];
+    unions: { unionId: string; partnerIds: string[] }[];
+  };
 
 interface Props {
   mode: CharacterDialogMode;
@@ -77,19 +77,14 @@ export function CharacterDialog({
     ? relativeContext(mode.relative, mode.unions)
     : null;
 
-  // Mounting IS the reset: every call site renders this only while it should be
-  // open, so a fresh open gets fresh state from these initialisers. The
-  // alternative — a useEffect that setStates on `open` — is what the old panels
-  // did, and it trips react-hooks/set-state-in-effect for no benefit.
   const [form, setForm] = useState<CharacterData>(
     () => (mode.kind === 'edit' ? { ...mode.character.data } : EMPTY),
   );
   const [showDetails, setShowDetails] = useState(
-    () => (mode.kind === 'edit' ? hasDetails(mode.character.data) : false),
+    () => (mode.kind === 'edit' ? hasDetails(mode.character.data) : true),
   );
   const [linking, setLinking] = useState(false);
   const [search, setSearch] = useState('');
-  const [adopted, setAdopted] = useState(false);
   const [unionId, setUnionId] = useState<string | undefined>(() => ctx?.defaultUnionId);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -140,7 +135,7 @@ export function CharacterDialog({
       anchorId: mode.anchor.id,
       kind: mode.relative,
       person,
-      adopted: adopted || undefined,
+      adopted: form.flags.includes('ADOPTED') || undefined,
       unionId,
     });
     onClose();
@@ -159,8 +154,8 @@ export function CharacterDialog({
 
   const title =
     mode.kind === 'edit' ? 'Edit Character'
-    : mode.kind === 'relative' ? `Add ${KIND_LABEL[mode.relative]} for ${mode.anchor.data.name}`
-    : 'Add Character';
+      : mode.kind === 'relative' ? `Add ${KIND_LABEL[mode.relative]} for ${mode.anchor.data.name}`
+        : 'Add Character';
 
   const contextBlock = ctx && (
     <>
@@ -187,18 +182,6 @@ export function CharacterDialog({
             ))}
           </div>
         </div>
-      )}
-
-      {ctx.showAdopted && (
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-300">
-          <input
-            type="checkbox"
-            checked={adopted}
-            onChange={e => setAdopted(e.target.checked)}
-            className="rounded border-zinc-600 bg-zinc-800 accent-zinc-400"
-          />
-          Adopted
-        </label>
       )}
     </>
   );
