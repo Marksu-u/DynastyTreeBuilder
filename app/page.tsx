@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Footer } from "@/components/legal/Footer";
+import { FramedHeader } from "@/components/shell/FramedHeader";
 import { SOURCE_REPO_URL } from "@/components/legal/ecosystem";
 import { TreeScrollStager } from "@/components/landing/TreeScrollStager";
 import { renderLandingTree } from "@/lib/landing-tree";
@@ -170,6 +171,29 @@ export default function LandingPage() {
         }}
       />
       <TreeScrollStager />
+
+      {/* Framed screen, so it carries the shared 57px header — see design.md §9.
+          The column matches the hero's max-w-6xl below it. */}
+      <FramedHeader maxWidth="max-w-6xl">
+        <a
+          href="#what-it-does"
+          className="hidden text-xs text-zinc-500 transition-colors hover:text-zinc-300 sm:inline"
+        >
+          How it works
+        </a>
+        <a
+          href="#faq"
+          className="hidden text-xs text-zinc-500 transition-colors hover:text-zinc-300 sm:inline"
+        >
+          FAQ
+        </a>
+        <Link
+          href="/login"
+          className="text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+        >
+          Sign in
+        </Link>
+      </FramedHeader>
 
       <main className="flex-1">
         {/* Act one: the tree is sticky behind three beats of copy, growing a

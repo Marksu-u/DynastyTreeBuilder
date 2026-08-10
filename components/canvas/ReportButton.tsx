@@ -49,7 +49,7 @@ export function ReportButton({ shareSlug }: Props) {
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
         <button
-          className="text-zinc-500 transition-colors hover:text-red-400"
+          className="text-zinc-500 transition-colors hover:text-destructive"
           title="Report this content"
           aria-label="Report this content"
         >
@@ -135,7 +135,7 @@ export function ReportButton({ shareSlug }: Props) {
               <button
                 type="submit"
                 disabled={!reason || pending}
-                className="flex-1 rounded-md bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                className="flex-1 rounded-md bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-900 transition-colors hover:bg-white disabled:opacity-50"
               >
                 {pending ? "Submitting…" : "Submit report"}
               </button>

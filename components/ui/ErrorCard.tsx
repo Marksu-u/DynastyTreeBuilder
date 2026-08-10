@@ -15,7 +15,7 @@ export function ErrorCard({ error, reset }: Props) {
 
   return (
     <div className="flex flex-col items-center gap-3 py-16 text-center">
-      <AlertTriangle size={40} className="text-red-400" />
+      <AlertTriangle size={40} className="text-destructive" />
       <div>
         <p className="text-sm font-medium text-zinc-300">Something went wrong</p>
         <p className="mt-1 text-xs text-zinc-500">{message}</p>

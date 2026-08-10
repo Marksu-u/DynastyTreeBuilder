@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { CharacterDataSchema, DynastyExportSchema } from "./schemas";
 
 describe("CharacterDataSchema", () => {
-  it("accepts freeform human-readable role text entered via CharacterDialog", () => {
+  it("accepts freeform human-readable role text entered in the inspector", () => {
     const result = CharacterDataSchema.safeParse({
       name: "Aegon Targaryen",
       alias: undefined,

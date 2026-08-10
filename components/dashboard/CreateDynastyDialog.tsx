@@ -100,7 +100,7 @@ export function CreateDynastyDialog() {
               </Select.Root>
             </div>
 
-            {error && <p className="text-xs text-red-400">{error}</p>}
+            {error && <p className="text-xs text-destructive">{error}</p>}
 
             <button
               type="submit"

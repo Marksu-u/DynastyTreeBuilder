@@ -10,12 +10,16 @@ import { ChevronDown, HelpCircle, Skull } from 'lucide-react';
  * dot, two different dashed borders — that nobody can guess from looking at it.
  * Collapsed by default so it never competes with the tree, and remembered for
  * the session once opened.
+ *
+ * Positioning belongs to the caller: this sits in the bottom-left slot beneath
+ * the zoom controls (design.md §9), and the two share one stack so the legend
+ * expanding never lifts the zoom buttons off the corner.
  */
 export function CanvasLegend() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="absolute bottom-4 left-4 z-10 max-w-[calc(100vw-2rem)]">
+    <div className="max-w-[calc(100vw-2rem)]">
       <div className="overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900/95 shadow-lg backdrop-blur-sm">
         <button
           onClick={() => setOpen((v) => !v)}
@@ -44,12 +48,12 @@ export function CanvasLegend() {
               def="Born outside a marriage"
             />
             <Row
-              swatch={<DashSwatch color="#5DCAA5" />}
+              swatch={<DashSwatch color="var(--success)" />}
               term="Adopted"
               def="Brought into the house"
             />
             <Row
-              swatch={<DashSwatch color="#D85A30" />}
+              swatch={<DashSwatch color="var(--warning)" />}
               term="Exiled"
               def="Cast out, still kin"
             />
@@ -97,7 +101,7 @@ function DashSwatch({ color }: { color: string }) {
         height="8.5"
         rx="2"
         fill="none"
-        stroke={color}
+        style={{ stroke: color }}
         strokeWidth="1.5"
         strokeDasharray="4 3"
       />

@@ -6,7 +6,6 @@ import {
   ReactFlow,
   Background,
   BackgroundVariant,
-  Controls,
   type NodeChange,
   type EdgeChange,
   type EdgeRemoveChange,
@@ -18,7 +17,6 @@ import { toast } from "sonner";
 import { CharacterNode } from "./CharacterNode";
 import { RelationshipEdge } from "./RelationshipEdge";
 import { Toolbar } from "./Toolbar";
-import { CharacterDialog } from "./CharacterDialog";
 import { AddRelativeHint } from "./AddRelativeHint";
 import { GenerationBands } from "./GenerationBands";
 import { CanvasContext } from "./CanvasContext";
@@ -41,6 +39,9 @@ import { useFitTree } from './useFitTree';
 import { useCanvasSettled } from './useCanvasSettled';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CanvasLegend } from './CanvasLegend';
+import { ZoomControls } from './ZoomControls';
+import { IdentityChip } from './IdentityChip';
+import { Inspector, type InspectorMode } from './Inspector';
 import { computeAddRelative, computeRemoveRelative, computeDeleteCharacter, partnerUnionsOf, type AddRelativeInput, type RelativeKind } from '@/lib/relative-ops';
 import { triggerJsonDownload, exportCanvasToPng } from "@/lib/export";
 import { exportDynasty, replaceDynastyFromExport } from "@/app/actions/dynasty";
@@ -94,6 +95,10 @@ type Props = {
   initialEdges: LegacyEdgeType[];
   userId?: string;
   onSaveStatusChange?: (status: 'saved' | 'saving' | 'error', errorReason?: string) => void;
+  /** Top-right slot: account state, then the one accent action (design.md §9). */
+  topRight?: React.ReactNode;
+  /** Trailing top-left tool actions — the settings dialog trigger. */
+  toolbarExtra?: React.ReactNode;
 };
 
 export function DynastyCanvas({
@@ -103,6 +108,8 @@ export function DynastyCanvas({
   initialNodes,
   initialEdges,
   onSaveStatusChange,
+  topRight,
+  toolbarExtra,
 }: Props) {
   const reactFlow = useReactFlow();
   const router = useRouter();
@@ -174,6 +181,62 @@ export function DynastyCanvas({
     () => characterNodes.find((n) => n.id === editingCharacterId),
     [characterNodes, editingCharacterId]
   );
+
+  /**
+   * One panel, three modes. Precedence matters: hitting "+" on the inspector's
+   * Links tab has to show the relative form rather than the person you started
+   * from, and once that submits, relPicker clears and the panel falls back to
+   * the character still selected underneath — so you land back where you were.
+   */
+  const inspectorMode = useMemo<InspectorMode | null>(() => {
+    if (relPicker) {
+      const anchor = characterNodes.find((n) => n.id === relPicker.anchorId);
+      if (anchor) {
+        return {
+          kind: 'relative',
+          anchor,
+          relative: relPicker.kind,
+          characters: characterNodes,
+          unions: partnerUnionsOf(nodes, edges, relPicker.anchorId),
+        };
+      }
+    }
+    if (addCharacterOpen) return { kind: 'create' };
+    if (editingCharacter) return { kind: 'edit', character: editingCharacter };
+    return null;
+  }, [relPicker, addCharacterOpen, editingCharacter, characterNodes, nodes, edges]);
+
+  const closeInspector = useCallback(() => {
+    setRelPicker(null);
+    setAddCharacterOpen(false);
+    setEditingCharacterId(null);
+  }, []);
+
+  /**
+   * Opening one subject closes the others, so the most recent click always
+   * wins — the inspector itself is what asks about an unsaved draft before
+   * following. Add-relative is the deliberate exception: it leaves the
+   * selection alone so the panel can fall back to the anchor afterwards.
+   */
+  const openEdit = useCallback((id: string | null) => {
+    setRelPicker(null);
+    setAddCharacterOpen(false);
+    setEditingCharacterId(id);
+  }, []);
+
+  const openCreate = useCallback(() => {
+    setRelPicker(null);
+    setEditingCharacterId(null);
+    setAddCharacterOpen(true);
+  }, []);
+
+  /** The panel kept an unsaved draft; put our state back to match it. */
+  const restoreInspectorMode = useCallback((m: InspectorMode) => {
+    if (m.kind === 'edit') { openEdit(m.character.id); return; }
+    if (m.kind === 'create') { openCreate(); return; }
+    setAddCharacterOpen(false);
+    setRelPicker({ anchorId: m.anchor.id, kind: m.relative });
+  }, [openEdit, openCreate]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<AnyCanvasNode>[]) => {
@@ -272,6 +335,7 @@ export function DynastyCanvas({
     async (data: CharacterData) => {
       const tempId = crypto.randomUUID();
       setNodes((nds) => [...nds, { id: tempId, type: "character", position: { x: 0, y: 0 }, data }]);
+      setAddCharacterOpen(false);
       try {
         const { id } = await performSave(
           () => createCharacter(dynastyId, data, { x: 0, y: 0 }),
@@ -294,7 +358,8 @@ export function DynastyCanvas({
       setNodes((nds) =>
         nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...data } } : n))
       );
-      setEditingCharacterId(null);
+      // The selection survives a save: the editor is the inspector now, not a
+      // modal that closes behind you. Delete still clears it — see below.
 
       try {
         await performSave(
@@ -334,6 +399,7 @@ export function DynastyCanvas({
   }, [editingCharacterId, dynastyId, nodes, edges, performSave]);
 
   const openAddRelative = useCallback((anchorId: string, kind: RelativeKind) => {
+    setAddCharacterOpen(false);
     setRelPicker({ anchorId, kind });
   }, []);
 
@@ -414,7 +480,7 @@ export function DynastyCanvas({
   }, []);
 
   return (
-    <CanvasContext.Provider value={{ setEditingCharacterId, openAddRelative }}>
+    <CanvasContext.Provider value={{ setEditingCharacterId: openEdit, openAddRelative }}>
       <div className="flex h-full w-full">
       <div ref={containerRef} className={`relative flex-1 min-w-0 h-full ${settlingClass}`}>
         <HighlightContext.Provider value={highlightValue}>
@@ -447,14 +513,16 @@ export function DynastyCanvas({
             size={gridVisible ? 1.5 : 1.2}
             gap={20}
           />
-          <Controls
-            showInteractive={false}
-            className="!bottom-4 !left-auto !right-4 !top-auto"
-          />
           <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} crestSeed={crestSeed} />
         </ReactFlow>
         <div className="canvas-vignette" aria-hidden="true" />
-        {characterNodes.length > 0 && <CanvasLegend />}
+
+        {/* Bottom-left slot: zoom, with the legend beneath it (design.md §9).
+            One stack, so an expanded legend pushes nothing out of the corner. */}
+        <div className="absolute bottom-4 left-4 z-20 flex flex-col items-start gap-2">
+          <ZoomControls />
+          {characterNodes.length > 0 && <CanvasLegend />}
+        </div>
         </HighlightContext.Provider>
 
         <input
@@ -472,7 +540,25 @@ export function DynastyCanvas({
           onExportJson={handleExportJson}
           onImportJson={handleImportClick}
           onFitView={fitTree}
+          extra={toolbarExtra}
         />
+
+        {/* Top-centre: document identity. The stat pair is live because this
+            component owns the graph — the retired header could only ever have
+            shown the server-rendered count. */}
+        <IdentityChip
+          name={dynastyName}
+          crestSeed={crestSeed}
+          stats={`${characterNodes.length} · ${rows.length} gen`}
+          backHref="/dashboard"
+          backLabel="Back to your dynasties"
+        />
+
+        {topRight && (
+          <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+            {topRight}
+          </div>
+        )}
 
         <ConfirmDialog
           open={pendingImport !== null}
@@ -485,45 +571,29 @@ export function DynastyCanvas({
         />
 
         {characterNodes.length === 0 && (
-          <CanvasEmptyState onAddCharacter={() => setAddCharacterOpen(true)} onImportJson={handleImportClick} />
+          <CanvasEmptyState onAddCharacter={openCreate} onImportJson={handleImportClick} />
         )}
 
         <AddRelativeHint visible={characterNodes.length === 1 && !characterNodes[0].selected} />
 
-        {addCharacterOpen && (
-          <CharacterDialog
-            mode={{ kind: 'create' }}
-            onClose={() => setAddCharacterOpen(false)}
-            onSubmitCharacter={handleAddCharacter}
+        {/* The right slot — the only character surface there is. Editing,
+            creating and adding a relative are all this one panel, so the
+            canvas is never blacked out by a dialog (design.md §9). */}
+        {inspectorMode && (
+          <Inspector
+            mode={inspectorMode}
+            nodes={nodes}
+            edges={edges}
+            onSave={handleUpdateCharacter}
+            onCreate={handleAddCharacter}
+            onSubmitRelative={handleAddRelative}
+            onDelete={() => void handleDeleteCharacter()}
+            onClose={closeInspector}
+            onRestoreMode={restoreInspectorMode}
+            onSelect={openEdit}
+            onAddRelative={openAddRelative}
           />
         )}
-
-        {editingCharacter && (
-          <CharacterDialog
-            mode={{ kind: 'edit', character: editingCharacter }}
-            onClose={() => setEditingCharacterId(null)}
-            onSubmitCharacter={handleUpdateCharacter}
-            onDelete={handleDeleteCharacter}
-          />
-        )}
-
-        {relPicker && (() => {
-          const anchor = characterNodes.find((n) => n.id === relPicker.anchorId);
-          if (!anchor) return null;
-          return (
-            <CharacterDialog
-              mode={{
-                kind: 'relative',
-                anchor,
-                relative: relPicker.kind,
-                characters: characterNodes,
-                unions: partnerUnionsOf(nodes, edges, relPicker.anchorId),
-              }}
-              onClose={() => setRelPicker(null)}
-              onSubmitRelative={handleAddRelative}
-            />
-          );
-        })()}
       </div>
     </div>
     </CanvasContext.Provider>

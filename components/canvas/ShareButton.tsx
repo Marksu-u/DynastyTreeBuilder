@@ -22,10 +22,13 @@ export function ShareButton({ slug, isPublic }: Props) {
     });
   }
 
+  // The workspace's single accent action (design.md §9, top-right slot).
+  // Publishing is what this tool is *for* — handing the house to your table —
+  // so it is the one thing on the canvas allowed to carry the accent fill.
   return (
     <button
       onClick={handleShare}
-      className="flex items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-400 transition-colors hover:border-zinc-500 hover:text-zinc-200"
+      className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-zinc-950 shadow-lg transition-opacity hover:opacity-90"
       title={isPublic ? "Copy share link" : "Dynasty is private — enable in Settings"}
     >
       <Link2 size={13} />

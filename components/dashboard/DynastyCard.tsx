@@ -69,7 +69,7 @@ export function DynastyCard({ dynasty }: Props) {
       <button
         onClick={() => setConfirmOpen(true)}
         disabled={isPending}
-        className="absolute right-3 top-3 cursor-pointer rounded p-1 text-zinc-700 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-50"
+        className="absolute right-3 top-3 cursor-pointer rounded p-1 text-zinc-700 opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-50"
         aria-label={`Delete ${dynasty.name}`}
       >
         <Trash2 className="h-4 w-4" />

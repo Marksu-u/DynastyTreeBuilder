@@ -34,7 +34,7 @@ export function ConfirmDialog({
           <div className="flex gap-3">
             <div
               className={`mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
-                destructive ? 'bg-red-500/10 text-red-400' : 'bg-accent/10 text-accent'
+                destructive ? 'bg-destructive/10 text-destructive' : 'bg-accent/10 text-accent'
               }`}
             >
               <AlertTriangle size={16} aria-hidden="true" />
@@ -59,8 +59,12 @@ export function ConfirmDialog({
               autoFocus
               onClick={() => { onOpenChange(false); onConfirm(); }}
               className={`cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                // The single carve-out in the system: destructive is a fill here
+                // and nowhere else, so it gets --destructive-fill rather than the
+                // lighter --destructive that has to pass contrast as text. The
+                // accent is never present in this dialog, so the two can't collide.
                 destructive
-                  ? 'bg-red-600 text-white hover:bg-red-700'
+                  ? 'bg-destructive-fill text-white hover:bg-[#D63F46] active:bg-[#AE2C33]'
                   : 'bg-zinc-100 text-zinc-900 hover:bg-white'
               }`}
             >

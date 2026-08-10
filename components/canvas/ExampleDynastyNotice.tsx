@@ -17,7 +17,10 @@ export function ExampleDynastyNotice({ houseName, onClear, onDismiss }: Props) {
   return (
     <div
       role="status"
-      className="absolute left-1/2 top-4 z-10 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-accent/30 bg-zinc-900/95 py-2 pl-3 pr-2 shadow-lg backdrop-blur-sm"
+      // top-16, not top-4: the top-centre slot itself belongs to the document
+      // identity chip (design.md §9). This is a transient notice *about* that
+      // document, so it stacks directly beneath it rather than displacing it.
+      className="absolute left-1/2 top-16 z-20 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-3 rounded-lg border border-accent/30 bg-zinc-900/95 py-2 pl-3 pr-2 shadow-lg backdrop-blur-sm"
     >
       <Sparkles size={14} className="flex-shrink-0 text-accent" aria-hidden="true" />
       <p className="text-xs text-zinc-300">

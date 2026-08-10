@@ -62,7 +62,7 @@ export default function NewDynastyPage() {
             </select>
           </div>
           {state?.error && (
-            <p className="text-sm text-red-400">{state.error}</p>
+            <p className="text-sm text-destructive">{state.error}</p>
           )}
           <div className="flex gap-3 pt-2">
             <button

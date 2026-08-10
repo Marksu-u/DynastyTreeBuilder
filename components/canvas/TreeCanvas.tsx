@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ReactFlow,
-  Background, BackgroundVariant, Controls,
+  Background, BackgroundVariant,
   useReactFlow,
 } from '@xyflow/react';
 import { toast } from 'sonner';
@@ -14,7 +14,6 @@ import { CharacterNode } from '@/components/canvas/CharacterNode';
 import { UnionNode } from '@/components/canvas/UnionNode';
 import { RelationshipEdge } from '@/components/canvas/RelationshipEdge';
 import { Toolbar } from '@/components/canvas/Toolbar';
-import { CharacterDialog } from '@/components/canvas/CharacterDialog';
 import { AddRelativeHint } from '@/components/canvas/AddRelativeHint';
 import { GenerationBands } from '@/components/canvas/GenerationBands';
 import { CanvasContext } from '@/components/canvas/CanvasContext';
@@ -33,6 +32,11 @@ import { useFitTree } from '@/components/canvas/useFitTree';
 import { useCanvasSettled } from '@/components/canvas/useCanvasSettled';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CanvasLegend } from '@/components/canvas/CanvasLegend';
+import { ZoomControls } from '@/components/canvas/ZoomControls';
+import { Inspector, type InspectorMode } from '@/components/canvas/Inspector';
+import { IdentityChip } from '@/components/canvas/IdentityChip';
+import { AccountChip } from '@/components/canvas/AccountChip';
+import { DynastySettingsDialog, type HouseSettings } from '@/components/dashboard/DynastySettingsDialog';
 import { useGuestHouse, useGuestDynastyStore } from '@/store/guest-dynasty';
 import type { CharacterData } from '@/types/canvas';
 
@@ -62,6 +66,7 @@ function TreeCanvasInner() {
   // store directly. See store/guest-dynasty.ts.
   const { name: houseName, setting: houseSetting, crestSeed: houseCrestSeed } = useGuestHouse();
   const setHouse = useGuestDynastyStore(s => s.setHouse);
+  const ensureCrestSeed = useGuestDynastyStore(s => s.ensureCrestSeed);
   const adoptExample = useGuestDynastyStore(s => s.adoptExample);
   const resetHouse = useGuestDynastyStore(s => s.resetHouse);
 
@@ -93,6 +98,62 @@ function TreeCanvasInner() {
     [characterNodes, editingCharacterId]
   );
 
+  /**
+   * One panel, three modes. Precedence matters: hitting "+" on the inspector's
+   * Links tab has to show the relative form rather than the person you started
+   * from, and once that submits, relPicker clears and the panel falls back to
+   * the character still selected underneath — so you land back where you were.
+   */
+  const inspectorMode = useMemo<InspectorMode | null>(() => {
+    if (relPicker) {
+      const anchor = characterNodes.find(n => n.id === relPicker.anchorId);
+      if (anchor) {
+        return {
+          kind: 'relative',
+          anchor,
+          relative: relPicker.kind,
+          characters: characterNodes,
+          unions: partnerUnionsOf(nodes, edges, relPicker.anchorId),
+        };
+      }
+    }
+    if (addCharacterOpen) return { kind: 'create' };
+    if (editingCharacter) return { kind: 'edit', character: editingCharacter };
+    return null;
+  }, [relPicker, addCharacterOpen, editingCharacter, characterNodes, nodes, edges]);
+
+  const closeInspector = useCallback(() => {
+    setRelPicker(null);
+    setAddCharacterOpen(false);
+    setEditingCharacterId(null);
+  }, [setEditingCharacterId]);
+
+  /**
+   * Opening one subject closes the others, so the most recent click always
+   * wins — the inspector itself is what asks about an unsaved draft before
+   * following. Add-relative is the deliberate exception: it leaves the
+   * selection alone so the panel can fall back to the anchor afterwards.
+   */
+  const openEdit = useCallback((id: string | null) => {
+    setRelPicker(null);
+    setAddCharacterOpen(false);
+    setEditingCharacterId(id);
+  }, [setEditingCharacterId]);
+
+  const openCreate = useCallback(() => {
+    setRelPicker(null);
+    setEditingCharacterId(null);
+    setAddCharacterOpen(true);
+  }, [setEditingCharacterId]);
+
+  /** The panel kept an unsaved draft; put our state back to match it. */
+  const restoreInspectorMode = useCallback((m: InspectorMode) => {
+    if (m.kind === 'edit') { openEdit(m.character.id); return; }
+    if (m.kind === 'create') { openCreate(); return; }
+    setAddCharacterOpen(false);
+    setRelPicker({ anchorId: m.anchor.id, kind: m.relative });
+  }, [openEdit, openCreate]);
+
   const handleExport = useCallback(async () => {
     await exportCanvasToPng(reactFlow, containerRef, 'dynasty-tree');
   }, [reactFlow]);
@@ -107,8 +168,23 @@ function TreeCanvasInner() {
     toast.success('Downloaded as JSON');
   }, [laidOutNodes, edges, houseName, houseSetting, houseCrestSeed]);
 
+  // Moved here from the retired GuestBanner: the store ships an empty seed so
+  // the server and the browser's first render agree, and the arms are minted
+  // after mount. The identity chip is the thing that draws them now.
+  useEffect(() => { ensureCrestSeed(); }, [ensureCrestSeed]);
+
+  const handleSaveHouse = useCallback((next: HouseSettings) => {
+    setHouse({
+      name: next.name.trim() || houseName,
+      setting: next.setting,
+      crestSeed: next.crestSeed,
+    });
+    return true;
+  }, [setHouse, houseName]);
+
   const handleAddCharacter = useCallback((data: CharacterData) => {
     addCharacter(data);
+    setAddCharacterOpen(false);
     toast.success(`${data.name} added to the dynasty`);
   }, [addCharacter]);
 
@@ -124,6 +200,7 @@ function TreeCanvasInner() {
   }, [editingCharacterId, deleteCharacter]);
 
   const openAddRelative = useCallback((anchorId: string, kind: RelativeKind) => {
+    setAddCharacterOpen(false);
     setRelPicker({ anchorId, kind });
   }, []);
 
@@ -247,7 +324,7 @@ function TreeCanvasInner() {
   }, [undo, redo]);
 
   return (
-    <CanvasContext.Provider value={{ setEditingCharacterId, openAddRelative }}>
+    <CanvasContext.Provider value={{ setEditingCharacterId: openEdit, openAddRelative }}>
       <div className="flex h-full w-full">
         <div ref={containerRef} className={`relative flex-1 min-w-0 h-full ${settlingClass}`}>
           <HighlightContext.Provider value={highlightValue}>
@@ -280,7 +357,6 @@ function TreeCanvasInner() {
               size={gridVisible ? 1.5 : 1.2}
               gap={20}
             />
-            <Controls showInteractive={false} className="!bottom-4 !left-auto !right-4 !top-auto" />
             <GenerationBands
               rows={rows}
               nodes={laidOutNodes}
@@ -289,7 +365,12 @@ function TreeCanvasInner() {
             />
           </ReactFlow>
           <div className="canvas-vignette" aria-hidden="true" />
-          {characterNodes.length > 0 && <CanvasLegend />}
+
+          {/* Bottom-left slot: zoom, legend beneath it (design.md §9). */}
+          <div className="absolute bottom-4 left-4 z-20 flex flex-col items-start gap-2">
+            <ZoomControls />
+            {characterNodes.length > 0 && <CanvasLegend />}
+          </div>
           </HighlightContext.Provider>
 
           <input
@@ -311,10 +392,34 @@ function TreeCanvasInner() {
             onExportJson={handleExportJson}
             onImportJson={handleImportClick}
             onFitView={fitTree}
+            extra={
+              <DynastySettingsDialog
+                initial={{
+                  name: houseName,
+                  setting: houseSetting,
+                  crestSeed: houseCrestSeed,
+                }}
+                onSave={handleSaveHouse}
+              />
+            }
           />
 
+          {/* Guest mode gets the same three slots as the account workspace —
+              guest/account parity is a bug class here, not a nicety. The only
+              differences: no dashboard to go back to, and the account chip
+              says guest and offers a way in. */}
+          <IdentityChip
+            name={houseName}
+            crestSeed={houseCrestSeed}
+            stats={`${characterNodes.length} · ${rows.length} gen`}
+          />
+
+          <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+            <AccountChip mode="guest" />
+          </div>
+
           {characterNodes.length === 0 && (
-            <CanvasEmptyState onAddCharacter={() => setAddCharacterOpen(true)} onImportJson={handleImportClick} />
+            <CanvasEmptyState onAddCharacter={openCreate} onImportJson={handleImportClick} />
           )}
 
           <ConfirmDialog
@@ -337,40 +442,24 @@ function TreeCanvasInner() {
 
           <AddRelativeHint visible={characterNodes.length === 1 && !characterNodes[0].selected} />
 
-          {addCharacterOpen && (
-            <CharacterDialog
-              mode={{ kind: 'create' }}
-              onClose={() => setAddCharacterOpen(false)}
-              onSubmitCharacter={handleAddCharacter}
-            />
-          )}
-
-          {editingCharacter && (
-            <CharacterDialog
-              mode={{ kind: 'edit', character: editingCharacter }}
-              onClose={() => setEditingCharacterId(null)}
-              onSubmitCharacter={handleUpdateCharacter}
+          {/* The right slot — the only character surface there is. Editing,
+              creating and adding a relative are all this one panel, so the
+              canvas is never blacked out by a dialog (design.md §9). */}
+          {inspectorMode && (
+            <Inspector
+              mode={inspectorMode}
+              nodes={nodes}
+              edges={edges}
+              onSave={handleUpdateCharacter}
+              onCreate={handleAddCharacter}
+              onSubmitRelative={handleAddRelative}
               onDelete={handleDeleteCharacter}
+              onClose={closeInspector}
+              onRestoreMode={restoreInspectorMode}
+              onSelect={openEdit}
+              onAddRelative={openAddRelative}
             />
           )}
-
-          {relPicker && (() => {
-            const anchor = characterNodes.find(n => n.id === relPicker.anchorId);
-            if (!anchor) return null;
-            return (
-              <CharacterDialog
-                mode={{
-                  kind: 'relative',
-                  anchor,
-                  relative: relPicker.kind,
-                  characters: characterNodes,
-                  unions: partnerUnionsOf(nodes, edges, relPicker.anchorId),
-                }}
-                onClose={() => setRelPicker(null)}
-                onSubmitRelative={handleAddRelative}
-              />
-            );
-          })()}
         </div>
       </div>
     </CanvasContext.Provider>

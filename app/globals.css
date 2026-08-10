@@ -38,6 +38,22 @@
   --text-primary: #E6EAF5;     /* zinc-100 */
   --text-secondary: #93A2C4;   /* zinc-400 */
   --text-muted: #828FB2;       /* zinc-500 */
+
+  /* Three semantics, fixed suite-wide — identical in every tool regardless of
+     accent. All three were already in the canvas vocabulary as literal hexes;
+     naming them here is what lets the next tool inherit them instead of
+     re-deriving them. There is deliberately no info colour: neutral information
+     is text on --surface-2 with a --border-strong rule, carrying no hue.
+
+     Destructive needs two values. #F87171 (red-400) is what the repo uses
+     because it has to clear 4.5:1 as *text* on the ground — a properly urgent
+     red does not. But red-400 as a fill reads pastel, which is exactly wrong
+     for "this cannot be undone", and a fill never has to pass as text. */
+  --success: #5DCAA5;          /* the ADOPTED node stroke */
+  --warning: #D85A30;          /* the EXILE node stroke */
+  --destructive: #F87171;      /* text, icon, rule */
+  --destructive-fill: #C8353C; /* confirm-button fill only, white label */
+
   --accent: #ef9f27;
   --foreground: var(--text-primary);
 
@@ -58,6 +74,10 @@
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+  --color-destructive-fill: var(--destructive-fill);
   --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -210,30 +230,30 @@ body {
 }
 
 /* React Flow dark theme overrides. Driven off the tokens rather than literal
-   hexes, so re-grounding the palette carries the canvas chrome with it. */
-.react-flow__controls {
-  background: var(--surface-1) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 8px !important;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+   hexes, so re-grounding the palette carries the canvas chrome with it.
+
+   The `.react-flow__controls*` block that used to live here is gone: the zoom
+   stack is our own component now (components/canvas/ZoomControls.tsx), sitting
+   in the bottom-left slot above the legend. Owning the markup beat overriding
+   eight properties with !important, and it keeps this file close to the rule
+   that `--accent` is the only line differing between tools. */
+/* Toasts live bottom-right, and the slot map says they sit "offset clear of the
+   inspector" (design.md §9). The inspector is 292px at right-4, so while it is
+   open the toaster shifts to 292 + 16 + 16 = 324px. Driven off a data attribute
+   the inspector sets on <html>, so the shift is one CSS rule rather than lifted
+   state threaded through the layout's <Toaster>. */
+html[data-inspector="open"] [data-sonner-toaster] {
+  --offset-right: 324px;
 }
-.react-flow__controls-button {
-  background: var(--surface-1) !important;
-  border-bottom: 1px solid var(--border) !important;
-  color: var(--text-secondary) !important;
-  fill: var(--text-secondary) !important;
+
+/* Below the inspector's own breakpoint it goes full-width and the shift would
+   push toasts off screen entirely. */
+@media (max-width: 640px) {
+  html[data-inspector="open"] [data-sonner-toaster] {
+    --offset-right: 16px;
+  }
 }
-.react-flow__controls-button:hover {
-  background: var(--surface-2) !important;
-  fill: var(--text-primary) !important;
-}
-.react-flow__controls-button svg {
-  fill: var(--text-secondary) !important;
-}
-.react-flow__controls-button:hover svg {
-  fill: var(--text-primary) !important;
-}
+
 .react-flow__attribution {
   background: transparent !important;
 }

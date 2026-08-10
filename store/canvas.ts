@@ -160,7 +160,11 @@ export const useCanvasStore = create<CanvasState>()(
         set({
           nodes: state.nodes.map(n => n.id === id ? { ...n, data: { ...(n.data as CharacterData), ...data } } : n) as AnyCanvasNode[],
           past: [...state.past.slice(-(MAX_HISTORY - 1)), snap(state)],
-          future: [], editingCharacterId: null, isDirty: true,
+          // Deliberately does NOT clear editingCharacterId. Saving used to close
+          // the edit modal, but the editor is the inspector now — a panel you
+          // keep working in. Deleting still clears it below, because there is
+          // nothing left to inspect.
+          future: [], isDirty: true,
         });
       },
 

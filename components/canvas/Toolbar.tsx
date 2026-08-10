@@ -20,6 +20,10 @@ interface Props {
   /** Frames the whole tree. Supplied by the canvas because React Flow's own
    *  fitView() does not work in this app — see lib/fit-viewport.ts. */
   onFitView?: () => void;
+  /** Trailing tool actions that are document-specific, e.g. the settings
+   *  dialog trigger. The workspace is full-bleed with no header to hold them,
+   *  so they belong in this slot rather than a new one (design.md §9). */
+  extra?: React.ReactNode;
 }
 
 export function Toolbar({
@@ -33,6 +37,7 @@ export function Toolbar({
   onExportJson,
   onImportJson,
   onFitView,
+  extra,
 }: Props) {
   const { fitView } = useReactFlow();
   const [exportOpen, setExportOpen] = useState(false);
@@ -51,9 +56,14 @@ export function Toolbar({
 
   const showExport = !!onExport;
   const showDropdown = showExport && (!!onExportJson || !!onImportJson);
+  // Undo/redo only exist where there is a history to walk. The account canvas
+  // writes through to the server on every edit and keeps no snapshots, so
+  // rendering the pair there would be two permanently-disabled buttons — dead
+  // chrome in the slot the charter reserves for live tool actions.
+  const showHistory = !!onUndo || !!onRedo;
 
   return (
-    <div className="absolute left-4 top-4 z-10 flex items-center gap-0.5 rounded-lg border border-zinc-700 bg-zinc-900/95 p-1 shadow-lg backdrop-blur-sm">
+    <div className="absolute left-4 top-4 z-20 flex items-center gap-0.5 rounded-lg border border-zinc-700 bg-zinc-900/95 p-1 shadow-lg backdrop-blur-sm">
       <button
         onClick={() => (onFitView ? onFitView() : fitView({ duration: 400, padding: 0.15 }))}
         className="cursor-pointer rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
@@ -75,25 +85,29 @@ export function Toolbar({
         <Grid3X3 size={14} />
       </button>
 
-      <div className="mx-0.5 h-5 w-px bg-zinc-700" />
+      {showHistory && (
+        <>
+          <div className="mx-0.5 h-5 w-px bg-zinc-700" />
 
-      <button
-        onClick={onUndo}
-        disabled={!canUndo || !onUndo}
-        className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-30"
-        title="Undo (Ctrl/⌘+Z)"
-      >
-        <Undo2 size={14} />
-      </button>
+          <button
+            onClick={onUndo}
+            disabled={!canUndo || !onUndo}
+            className="cursor-pointer rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-30"
+            title="Undo (Ctrl/⌘+Z)"
+          >
+            <Undo2 size={14} />
+          </button>
 
-      <button
-        onClick={onRedo}
-        disabled={!canRedo || !onRedo}
-        className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-30"
-        title="Redo (Ctrl/⌘+Shift+Z)"
-      >
-        <Redo2 size={14} />
-      </button>
+          <button
+            onClick={onRedo}
+            disabled={!canRedo || !onRedo}
+            className="cursor-pointer rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-30"
+            title="Redo (Ctrl/⌘+Shift+Z)"
+          >
+            <Redo2 size={14} />
+          </button>
+        </>
+      )}
 
       {showExport && (
         <>
@@ -148,6 +162,13 @@ export function Toolbar({
               <Download size={14} />
             </button>
           )}
+        </>
+      )}
+
+      {extra && (
+        <>
+          <div className="mx-0.5 h-5 w-px bg-zinc-700" />
+          {extra}
         </>
       )}
     </div>

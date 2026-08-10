@@ -48,17 +48,19 @@ export function DeleteAccountDialog({ email }: Props) {
   return (
     <Dialog.Root open={open} onOpenChange={handleOpen}>
       <Dialog.Trigger asChild>
-        <button className="rounded-md border border-red-900/60 bg-red-950/40 px-4 py-2 text-sm font-medium text-red-300 transition-colors hover:bg-red-950/70">
+        {/* Outline, not fill — design.md §9, screen 6. The only filled
+            destructive control in the app is the confirm button inside. */}
+        <button className="rounded-md border border-destructive/50 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:border-destructive">
           Delete account
         </button>
       </Dialog.Trigger>
 
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-red-900/60 bg-background p-6 shadow-xl focus:outline-none">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-destructive/40 bg-background p-6 shadow-xl focus:outline-none">
           <div className="mb-4 flex items-start justify-between">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-400" />
+              <AlertTriangle className="h-5 w-5 text-destructive" />
               <Dialog.Title className="text-base font-semibold text-zinc-100">
                 Delete your account
               </Dialog.Title>
@@ -83,7 +85,7 @@ export function DeleteAccountDialog({ email }: Props) {
                 key={tool.name}
                 className="flex items-center gap-2 text-xs text-zinc-300"
               >
-                <Trash2 className="h-3 w-3 shrink-0 text-red-400" />
+                <Trash2 className="h-3 w-3 shrink-0 text-destructive" />
                 {tool.name}
               </li>
             ))}
@@ -104,11 +106,11 @@ export function DeleteAccountDialog({ email }: Props) {
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
             placeholder={email}
-            className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-red-700"
+            className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-destructive/50"
           />
 
           {error && (
-            <p role="alert" className="mt-3 text-xs text-red-400">
+            <p role="alert" className="mt-3 text-xs text-destructive">
               {error}
             </p>
           )}
@@ -122,7 +124,7 @@ export function DeleteAccountDialog({ email }: Props) {
             <button
               onClick={handleDelete}
               disabled={!armed || isPending || succeeded}
-              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-40 disabled:hover:bg-red-600 transition-colors"
+              className="rounded-md bg-destructive-fill px-4 py-2 text-sm font-medium text-white hover:bg-[#D63F46] active:bg-[#AE2C33] disabled:opacity-40 disabled:hover:bg-destructive-fill transition-colors"
             >
               {isPending || succeeded ? "Deleting…" : "Delete forever"}
             </button>

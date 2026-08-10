@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useCallback } from "react";
-import { ReactFlow, Background, BackgroundVariant, Controls, useReactFlow } from "@xyflow/react";
+import { ReactFlow, Background, BackgroundVariant, useReactFlow } from "@xyflow/react";
 import Link from "next/link";
 import { CharacterNode } from "./CharacterNode";
 import { RelationshipEdge } from "./RelationshipEdge";
@@ -17,6 +17,7 @@ import { useBloodlineHighlight } from "./useBloodlineHighlight";
 import { useFitTree } from "./useFitTree";
 import { useCanvasSettled } from "./useCanvasSettled";
 import { CanvasLegend } from "./CanvasLegend";
+import { ZoomControls } from "./ZoomControls";
 import "@xyflow/react/dist/style.css";
 import type { AnyCanvasNode, RelationshipEdgeType, CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
 
@@ -115,14 +116,17 @@ export function ShareCanvas({ dynastyName, crestSeed, shareSlug, nodes, edges }:
           size={1.2}
           gap={20}
         />
-        <Controls
-          showInteractive={false}
-          className="!bottom-4 !left-auto !right-4 !top-auto"
-        />
         <GenerationBands rows={rows} nodes={laidOutNodes} houseName={dynastyName} crestSeed={crestSeed} />
       </ReactFlow>
       <div className="canvas-vignette" aria-hidden="true" />
-      <CanvasLegend />
+
+      {/* Same bottom-left stack as the editable canvases (design.md §9). The
+          read-only view gets zoom and the legend but no tool actions — there is
+          nothing here to edit. */}
+      <div className="absolute bottom-4 left-4 z-20 flex flex-col items-start gap-2">
+        <ZoomControls />
+        <CanvasLegend />
+      </div>
       </HighlightContext.Provider>
     </div>
   );

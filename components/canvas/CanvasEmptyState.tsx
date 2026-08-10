@@ -18,20 +18,24 @@ export function CanvasEmptyState({ onAddCharacter, onImportJson }: Props) {
           title="Your canvas is empty"
           description="Add your first character to start building the dynasty tree."
           action={
-            <div className="flex flex-col items-center gap-2">
+            /* W5 in design.md §9: the empty canvas *is* the onboarding, so the
+               one thing to do here is the tool's primary action and carries the
+               accent fill. The import route stays a quiet text link beneath it —
+               it is the alternative, not the invitation. */
+            <div className="flex flex-col items-center gap-3">
               <button
                 onClick={onAddCharacter}
-                className="rounded border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
+                className="cursor-pointer rounded-md bg-accent px-4 py-2.5 text-sm font-medium text-zinc-950 transition-opacity hover:opacity-90"
               >
-                Add Character
+                Add the first character
               </button>
               {onImportJson && (
                 <button
                   onClick={onImportJson}
-                  className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300"
+                  className="flex cursor-pointer items-center gap-1.5 text-xs text-zinc-500 transition-colors hover:text-zinc-300"
                 >
                   <Upload size={12} />
-                  Import from file
+                  or import a JSON backup
                 </button>
               )}
             </div>

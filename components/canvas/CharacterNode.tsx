@@ -45,8 +45,8 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
 
   const statusLabels = [
     isBastard && { label: 'Bastard', color: '#EF9F27' },
-    isAdopted && { label: 'Adopted', color: '#5DCAA5' },
-    isExile   && { label: 'Exiled',  color: '#D85A30' },
+    isAdopted && { label: 'Adopted', color: 'var(--success)' },
+    isExile   && { label: 'Exiled',  color: 'var(--warning)' },
   ].filter(Boolean) as { label: string; color: string }[];
 
   const hasSubRow = (data.style && data.style !== 'OTHER') || statusLabels.length > 0;
@@ -87,8 +87,11 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
           {isAdopted && (
             <rect
               {...SVG_RECT_PROPS}
-              style={{ width: 'calc(100% - 1.5px)', height: 'calc(100% - 1.5px)' }}
-              stroke="#5DCAA5"
+              // stroke goes in `style`, not the presentation attribute: html-to-image
+              // serialises computed styles, which resolve var(), whereas a var() in a
+              // presentation attribute is the kind of thing that fails to no stroke
+              // at all rather than to a wrong colour.
+              style={{ width: 'calc(100% - 1.5px)', height: 'calc(100% - 1.5px)', stroke: 'var(--success)' }}
               strokeDasharray={dashArray}
               strokeDashoffset="0"
             />
@@ -96,8 +99,7 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
           {isExile && (
             <rect
               {...SVG_RECT_PROPS}
-              style={{ width: 'calc(100% - 1.5px)', height: 'calc(100% - 1.5px)' }}
-              stroke="#D85A30"
+              style={{ width: 'calc(100% - 1.5px)', height: 'calc(100% - 1.5px)', stroke: 'var(--warning)' }}
               strokeDasharray={dashArray}
               strokeDashoffset={isAdopted ? '10' : '0'}
             />

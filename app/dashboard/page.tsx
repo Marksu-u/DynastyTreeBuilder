@@ -9,6 +9,7 @@ import { GuestImportPrompt } from "@/components/dashboard/GuestImportPrompt";
 import { signOut } from "@/app/actions/auth";
 import { Network } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { FramedHeader } from "@/components/shell/FramedHeader";
 
 export const metadata: Metadata = {
   title: "Your Dynasties",
@@ -26,32 +27,22 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background text-zinc-100">
-      <header className="border-b border-zinc-800 px-6 py-4">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <Link
-            href="/"
-            className="text-sm font-semibold tracking-tight text-zinc-100"
+      <FramedHeader maxWidth="max-w-5xl">
+        <Link
+          href="/account"
+          className="text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+        >
+          {user.email}
+        </Link>
+        <form action={signOut}>
+          <button
+            type="submit"
+            className="cursor-pointer text-xs text-zinc-500 transition-colors hover:text-zinc-300"
           >
-            Dynasty Tree Builder
-          </Link>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/account"
-              className="text-xs text-zinc-500 hover:text-zinc-300"
-            >
-              {user.email}
-            </Link>
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="text-xs text-zinc-500 hover:text-zinc-300"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
+            Sign out
+          </button>
+        </form>
+      </FramedHeader>
 
       <main className="mx-auto max-w-5xl px-6 py-10">
         <GuestImportPrompt />

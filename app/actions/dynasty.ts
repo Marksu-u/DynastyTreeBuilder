@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -152,22 +153,20 @@ export async function updateDynastySettings(
   return {};
 }
 
-export async function exportDynasty(dynastyId: string): Promise<DynastyExport> {
-  const user = await getAuthUser();
-  const validId = IdSchema.parse(dynastyId);
+/** A dynasty row with its relations loaded — the shape both export paths read.
+ *  Shared by the single-dynasty export and the account-wide one so the two can
+ *  never drift into producing different files for the same tree. */
+type DynastyWithRelations = Prisma.DynastyGetPayload<{
+  include: { characters: true; relationships: true };
+}>;
 
-  const dynasty = await prisma.dynasty.findFirst({
-    where: { id: validId, ownerId: user.id },
-    include: {
-      characters: true,
-      relationships: true,
-    },
-  });
-  if (!dynasty) throw new Error("Dynasty not found");
-
+function serialiseDynasty(
+  dynasty: DynastyWithRelations,
+  exportedAt: string,
+): DynastyExport {
   return {
     version: 1,
-    exportedAt: new Date().toISOString(),
+    exportedAt,
     dynasty: {
       name: dynasty.name,
       setting: dynasty.setting,
@@ -193,6 +192,55 @@ export async function exportDynasty(dynastyId: string): Promise<DynastyExport> {
       hook: r.hook,
       isMutual: r.isMutual,
     })),
+  };
+}
+
+export async function exportDynasty(dynastyId: string): Promise<DynastyExport> {
+  const user = await getAuthUser();
+  const validId = IdSchema.parse(dynastyId);
+
+  const dynasty = await prisma.dynasty.findFirst({
+    where: { id: validId, ownerId: user.id },
+    include: {
+      characters: true,
+      relationships: true,
+    },
+  });
+  if (!dynasty) throw new Error("Dynasty not found");
+
+  return serialiseDynasty(dynasty, new Date().toISOString());
+}
+
+/**
+ * Everything the account holds, in one file — the "export everything" row on
+ * the account screen (design.md §9, W6). Charter non-negotiable: anything a
+ * user makes, they can take, so this is deliberately the *whole* account and
+ * not a per-dynasty loop the user has to run themselves.
+ */
+export async function exportEverything(): Promise<{
+  version: 1;
+  exportedAt: string;
+  dynasties: DynastyExport[];
+}> {
+  const user = await getAuthUser();
+
+  const dynasties = await prisma.dynasty.findMany({
+    where: { ownerId: user.id },
+    orderBy: { createdAt: "asc" },
+    include: {
+      characters: true,
+      relationships: true,
+    },
+  });
+
+  // One timestamp for the whole file rather than one per dynasty — this is a
+  // single point-in-time snapshot of the account, not a bundle of exports.
+  const exportedAt = new Date().toISOString();
+
+  return {
+    version: 1,
+    exportedAt,
+    dynasties: dynasties.map((d) => serialiseDynasty(d, exportedAt)),
   };
 }
 
