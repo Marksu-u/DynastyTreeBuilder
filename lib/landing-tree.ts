@@ -75,8 +75,8 @@ export function renderLandingTree(
     byBand[Math.min(band, generations - 1)].push(
       `<g class="dt-card">` +
       `<rect x="${p.x}" y="${p.y}" width="${CARD_W}" height="${CARD_H}" rx="10" fill="${CARD_FILL}" stroke="${isLit ? GOLD : LINE}" stroke-width="3"/>` +
-      `<rect x="${p.x + 20}" y="${p.y + 18}" width="90" height="9" rx="4" fill="${isLit ? GOLD : BAR}"/>` +
-      `<rect x="${p.x + 20}" y="${p.y + 38}" width="56" height="7" rx="3" fill="${LINE}"/>` +
+      `<rect x="${p.x + 20}" y="${p.y + (CARD_H - 27) / 2}" width="90" height="9" rx="4" fill="${isLit ? GOLD : BAR}"/>` +
+      `<rect x="${p.x + 20}" y="${p.y + (CARD_H - 27) / 2 + 20}" width="56" height="7" rx="3" fill="${LINE}"/>` +
       `</g>`,
     );
   }
