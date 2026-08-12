@@ -81,3 +81,25 @@ export function countLines(text: string, fontSize: number, maxWidth: number): nu
 
   return lines;
 }
+
+/**
+ * The name's shrink ladder, largest first. It stops at 11px because
+ * docs/design.md bottoms the type scale out at 11px for caption text and
+ * reserves 10px for badges — a name is body text, not a badge.
+ */
+export const NAME_SIZES = [14, 13, 12, 11] as const;
+
+/**
+ * Largest size from the ladder at which the text fits inside maxLines. Falls
+ * back to the smallest size when nothing fits — the card clamps from there, so
+ * a very long name is clipped rather than overflowing its neighbours.
+ */
+export function fitFontSize(
+  text: string,
+  { maxWidth, maxLines }: { maxWidth: number; maxLines: number },
+): number {
+  for (const size of NAME_SIZES) {
+    if (countLines(text, size, maxWidth) <= maxLines) return size;
+  }
+  return NAME_SIZES[NAME_SIZES.length - 1];
+}

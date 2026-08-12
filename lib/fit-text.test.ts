@@ -1,6 +1,6 @@
 // lib/fit-text.test.ts
 import { describe, it, expect } from 'vitest';
-import { measureLine, countLines } from './fit-text';
+import { measureLine, countLines, fitFontSize, NAME_SIZES } from './fit-text';
 
 describe('measureLine', () => {
   it('measures nothing as zero', () => {
@@ -54,5 +54,35 @@ describe('countLines', () => {
   it('never reports a line wider than maxWidth for breakable text', () => {
     // A single character always fits, so an unbreakable run still terminates.
     expect(countLines('W'.repeat(40), 11, 30)).toBeGreaterThan(1);
+  });
+});
+
+const opts = { maxWidth: 134, maxLines: 2 };
+
+describe('fitFontSize', () => {
+  it('leaves a short name at the largest size', () => {
+    expect(fitFontSize('Aldric Thorne', opts)).toBe(NAME_SIZES[0]);
+  });
+
+  it('steps down for a name that overflows two lines', () => {
+    const size = fitFontSize('Ser Willem Fossoway of Cider Hall the Third', opts);
+    expect(size).toBeLessThan(NAME_SIZES[0]);
+  });
+
+  it('returns a size that actually fits, whenever one exists', () => {
+    const name = 'Aelthorn Blackwood-Marchetti';
+    const size = fitFontSize(name, opts);
+    expect(countLines(name, size, opts.maxWidth)).toBeLessThanOrEqual(opts.maxLines);
+  });
+
+  it('bottoms out at the smallest size rather than going below the type scale', () => {
+    const absurd = 'Bartholomew'.repeat(10);
+    expect(fitFontSize(absurd, opts)).toBe(NAME_SIZES[NAME_SIZES.length - 1]);
+  });
+
+  it('never returns a size outside the ladder', () => {
+    for (const name of ['A', 'Aldric Thorne', 'X'.repeat(80)]) {
+      expect(NAME_SIZES).toContain(fitFontSize(name, opts));
+    }
   });
 });
