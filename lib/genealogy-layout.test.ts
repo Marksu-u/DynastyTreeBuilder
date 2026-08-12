@@ -283,9 +283,9 @@ describe('railLevels (staggered sibling rails)', () => {
     const { railLevels } = layoutGenealogy(nodes, edges);
     const levels = Object.values(railLevels);
     const max = Math.max(...levels);
-    // MAX_RAIL_LEVEL = floor((ROW_HEIGHT*0.6 - RAIL_OFFSET) / RAIL_STEP) = floor((120-24)/16) = 6
-    expect(max).toBe(6);
-    expect(railLevels['u10']).toBe(6);
+    // MAX_RAIL_LEVEL = floor((ROW_HEIGHT*0.6 - RAIL_OFFSET) / RAIL_STEP) = floor((153.6-24)/16) = 8
+    expect(max).toBe(8);
+    expect(railLevels['u10']).toBe(8);
   });
 });
 

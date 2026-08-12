@@ -4,12 +4,12 @@
 // No React / React Flow imports — unit-testable.
 
 export const CARD_W = 180;
-export const CARD_H = 64;
+export const CARD_H = 128;  // two name lines + two alias lines + sub-row, uniform
 export const PARTNER_GAP = 48;   // gap between partner cards (marriage line lives here)
 export const SIBLING_GAP = 40;   // gap between sibling blocks
 export const GROUP_GAP = 64;     // gap between child groups of different unions
 export const CLUSTER_GAP = 160;  // gap between disconnected family clusters
-export const ROW_HEIGHT = 200;   // vertical pitch per generation
+export const ROW_HEIGHT = 256;   // vertical pitch per generation
 export const RAIL_OFFSET = 24;   // sibling rail sits this far above the child row (edge renderer)
 export const MARRIAGE_OFFSET = 20; // first below-row marriage rail sits this far under the card bottom
 export const MARRIAGE_STEP = 16;   // vertical gap between a 3+-spouse anchor's stacked marriage rails
