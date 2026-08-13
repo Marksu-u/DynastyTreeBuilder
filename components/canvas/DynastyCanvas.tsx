@@ -46,6 +46,7 @@ import { computeAddRelative, computeRemoveRelative, computeDeleteCharacter, part
 import { triggerJsonDownload, exportCanvasToPng } from "@/lib/export";
 import { exportDynasty, replaceDynastyFromExport } from "@/app/actions/dynasty";
 import { parseImportFile } from "@/lib/import-canvas";
+import { advanceSave, type SaveStatus, type SavePhase } from "@/lib/save-status";
 
 const nodeTypes = { character: CharacterNode, union: UnionNode } as const;
 const edgeTypes = { relationship: RelationshipEdge } as const;
@@ -94,7 +95,7 @@ type Props = {
   initialNodes: CharacterNodeType[];
   initialEdges: LegacyEdgeType[];
   userId?: string;
-  onSaveStatusChange?: (status: 'saved' | 'saving' | 'error', errorReason?: string) => void;
+  onSaveStatusChange?: (status: SaveStatus, errorReason?: string) => void;
   /** Top-right slot: account state, then the one accent action (design.md §9). */
   topRight?: React.ReactNode;
   /** Trailing top-left tool actions — the settings dialog trigger. */
@@ -124,7 +125,10 @@ export function DynastyCanvas({
   const [addCharacterOpen, setAddCharacterOpen] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<string | null>(null);
   const [relPicker, setRelPicker] = useState<{ anchorId: string; kind: RelativeKind } | null>(null);
-  const [pendingCount, setPendingCount] = useState(0);
+  // A ref, not state: nothing renders from the count, and holding it in state
+  // invited the bookkeeping into a setState updater — where React replays it
+  // during render (see reportSave).
+  const pendingRef = useRef(0);
   const [pendingImport, setPendingImport] = useState<File | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -138,30 +142,36 @@ export function DynastyCanvas({
     [highlight.chars, highlight.edges, highlight.pinned, highlight.onUnionHover],
   );
 
+  /**
+   * Moves the pending count on and tells the chip about it. Both halves happen
+   * here in the async flow rather than inside a setState updater: React treats
+   * updaters as pure and replays them while rendering this component, so a
+   * report from in there lands as a setState on the parent mid-render.
+   */
+  const reportSave = useCallback(
+    (phase: SavePhase, errorReason?: string) => {
+      const { pending, report } = advanceSave(pendingRef.current, phase);
+      pendingRef.current = pending;
+      if (report) {
+        onSaveStatusChange?.(report, errorReason);
+      }
+    },
+    [onSaveStatusChange]
+  );
+
   const performSave = useCallback(
     async <T,>(action: () => Promise<T>, successMessage?: string, errorMessage?: string): Promise<T> => {
-      setPendingCount((c) => c + 1);
-      onSaveStatusChange?.('saving');
+      reportSave('begin');
       try {
         const res = await action();
-        setPendingCount((c) => {
-          const nextCount = c - 1;
-          if (nextCount === 0) {
-            onSaveStatusChange?.('saved');
-          }
-          return nextCount;
-        });
+        reportSave('settle');
         if (successMessage) {
           toast.success(successMessage);
         }
         return res;
       } catch (err) {
         const friendlyError = getFriendlyErrorMessage(err);
-        setPendingCount((c) => {
-          const nextCount = c - 1;
-          onSaveStatusChange?.('error', friendlyError);
-          return nextCount;
-        });
+        reportSave('fail', friendlyError);
         if (errorMessage) {
           toast.error(`${errorMessage}: ${friendlyError}`);
         } else {
@@ -170,7 +180,7 @@ export function DynastyCanvas({
         throw err;
       }
     },
-    [onSaveStatusChange]
+    [reportSave]
   );
 
   const characterNodes = useMemo(

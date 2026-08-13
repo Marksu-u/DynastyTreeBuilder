@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { computeFitViewport, type FitNode } from './fit-viewport';
+import { CARD_W, CARD_H } from './genealogy-layout';
 
 const container = { width: 1000, height: 600 };
 
@@ -18,10 +19,12 @@ describe('computeFitViewport', () => {
 
   it('centres a single card in the container', () => {
     const vp = computeFitViewport([charAt(0, 0)], container, { maxZoom: 1 })!;
-    // Card is 180x64, so its centre sits at (90, 32).
+    // The card's centre is half its size in from the origin. Derived from the
+    // constants rather than written out, so growing the card cannot silently
+    // leave a stale expectation behind.
     expect(vp.zoom).toBe(1);
-    expect(vp.x).toBeCloseTo(1000 / 2 - 90);
-    expect(vp.y).toBeCloseTo(600 / 2 - 32);
+    expect(vp.x).toBeCloseTo(1000 / 2 - CARD_W / 2);
+    expect(vp.y).toBeCloseTo(600 / 2 - CARD_H / 2);
   });
 
   it('zooms out so a wide tree fits inside the padded container', () => {

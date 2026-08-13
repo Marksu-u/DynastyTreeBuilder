@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { Loader2, Check, CloudOff } from "lucide-react";
 
-export type SaveStatus = "saved" | "saving" | "error";
+import type { SaveStatus } from "@/lib/save-status";
+
+export type { SaveStatus };
 
 /**
  * The top-right slot: account state (design.md §9). The one accent action sits
