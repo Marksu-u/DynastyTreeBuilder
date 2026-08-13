@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // NEXT_DIST_DIR builds land here (see next.config.ts). Without this,
+    // `eslint` with no arguments lints the compiled bundles and buries the
+    // project's own findings under ~12k reports from generated code.
+    ".next-build/**",
   ]),
 ]);
 

@@ -37,7 +37,7 @@ export function ShareCanvas({ dynastyName, crestSeed, shareSlug, nodes, edges }:
   const reactFlow = useReactFlow();
 
   const migrated = useMemo(
-    () => migrateCanvas(nodes as never, edges as never),
+    () => migrateCanvas(nodes, edges),
     [nodes, edges],
   );
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(

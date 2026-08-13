@@ -1,17 +1,27 @@
 // lib/migrate-canvas.ts
-import type { Node, Edge } from '@xyflow/react';
-import type { CharacterData, RelationshipData, UnionData } from '@/types/canvas';
-
-type AnyNode = Node<CharacterData, 'character'> | Node<UnionData, 'union'>;
-type AnyEdge = Edge<RelationshipData, 'relationship'>;
+// One definition, shared: this file's own `AnyNode` used to be a fourth copy of
+// the same union.
+import type {
+  AnyCanvasNode as AnyNode,
+  RelationshipEdgeType as AnyEdge,
+  IncomingEdge,
+  RelationshipData,
+} from '@/types/canvas';
 
 const pairKey = (a: string, b: string) => [a, b].sort().join('::');
 
+/**
+ * Legacy DB pair edges (SPOUSE/PARENT/ADOPTED) → the union-node client model.
+ * Idempotent: a graph that already has union nodes is returned untouched.
+ */
 export function migrateCanvas(
   nodes: AnyNode[],
-  edges: AnyEdge[],
+  edges: IncomingEdge[],
 ): { nodes: AnyNode[]; edges: AnyEdge[] } {
-  if (nodes.some(n => n.type === 'union')) return { nodes, edges };
+  // A graph carrying union nodes is already in the client model, so its edges
+  // are already client edges. This is the one place that assumption lives — it
+  // used to be spread across every call site as `as never`.
+  if (nodes.some(n => n.type === 'union')) return { nodes, edges: edges as AnyEdge[] };
 
   const newNodes: AnyNode[] = [...nodes];
   const newEdges: AnyEdge[] = [];

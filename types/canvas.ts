@@ -1,4 +1,6 @@
 // types/canvas.ts
+import type { Node, Edge } from '@xyflow/react';
+
 export type NameStyle = 'FANTASY' | 'SCI_FI' | 'HISTORICAL' | 'MODERN' | 'HORROR' | 'OTHER';
 
 export type CharacterStyle = string;
@@ -36,3 +38,29 @@ export interface UnionData extends Record<string, unknown> {
   railLevel?: number;
   colorIndex?: number;
 }
+
+// ─── React Flow node / edge shapes ────────────────────────────────────────────
+// Declared here, once, and re-exported from store/canvas.ts for the components
+// that already import them from there. They used to be redeclared in
+// store/canvas.ts, lib/migrate-canvas.ts, lib/import-canvas.ts and two test
+// files — and the copies had drifted: the test files' `AnyNode` omitted the
+// union variant, so every call they made into migrateCanvas was a type error
+// that only `tsc --noEmit` could see, and nothing ran it.
+
+export type CharacterNodeType = Node<CharacterData, 'character'>;
+export type UnionNodeType = Node<UnionData, 'union'>;
+export type AnyCanvasNode = CharacterNodeType | UnionNodeType;
+export type RelationshipEdgeType = Edge<RelationshipData, 'relationship'>;
+/** Edge type used at server→client boundaries before migrateCanvas runs. */
+export type LegacyEdgeType = Edge<
+  Omit<RelationshipData, 'type'> & { type: LegacyRelationshipType },
+  'relationship'
+>;
+
+/**
+ * What migrateCanvas accepts: either DB pair edges straight off the wire, or
+ * edges that have already been through it. Naming that union is what let the
+ * `as never` casts come off every call site — the casts were there because the
+ * parameter claimed to take only the migrated shape.
+ */
+export type IncomingEdge = RelationshipEdgeType | LegacyEdgeType;

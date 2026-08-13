@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildFamilyGraph, assignGenerations, layoutGenealogy, buildOrderingUnits, orderLayers, assignX,
   CARD_W, CARD_H, PARTNER_GAP, ROW_HEIGHT, CLUSTER_GAP,
+  type LayoutNodeIn, type LayoutEdgeIn,
 } from './genealogy-layout';
 
 // ── fixture helpers ───────────────────────────────────────────────────────────
@@ -74,7 +75,10 @@ describe('assignGenerations', () => {
 });
 
 describe('layoutGenealogy — placement invariants', () => {
-  function positionsOf(fix: { nodes: { id: string; type?: string }[]; edges: ReturnType<typeof partner>[] }) {
+  // Typed with layoutGenealogy's own input types. This used to say
+  // `edges: ReturnType<typeof partner>[]`, which is the PARTNER shape alone — so
+  // every fixture mixing in CHILD edges (all of them) was a type error.
+  function positionsOf(fix: { nodes: LayoutNodeIn[]; edges: LayoutEdgeIn[] }) {
     return layoutGenealogy(fix.nodes, fix.edges).positions;
   }
 

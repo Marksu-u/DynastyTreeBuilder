@@ -23,7 +23,7 @@ import { CanvasContext } from "./CanvasContext";
 import {
   createCharacter,
   updateCharacter,
-  deleteCharacter,
+  deleteCharacters,
 } from "@/app/actions/character";
 import { addRelative, deleteRelativeEdges } from "@/app/actions/relationship";
 import type { CharacterData } from "@/types/canvas";
@@ -115,7 +115,7 @@ export function DynastyCanvas({
   const reactFlow = useReactFlow();
   const router = useRouter();
   const migrated = useMemo(
-    () => migrateCanvas(initialNodes as never, initialEdges as never),
+    () => migrateCanvas(initialNodes, initialEdges),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
@@ -131,6 +131,27 @@ export function DynastyCanvas({
   const pendingRef = useRef(0);
   const [pendingImport, setPendingImport] = useState<File | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  /**
+   * Ids that exist on the canvas but not yet in the database.
+   *
+   * Adding a person paints the node immediately under a client-minted id and
+   * swaps in the real one when the insert returns. Anything sent to the server
+   * against the provisional id in that window addresses a row that does not
+   * exist, so edits and deletes wait rather than throwing a Prisma "record not
+   * found" at the user. State, not a ref, because the inspector's controls
+   * render from it.
+   */
+  const [provisionalIds, setProvisionalIds] = useState<Set<string>>(new Set());
+
+  const markProvisional = useCallback((id: string, provisional: boolean) => {
+    setProvisionalIds((prev) => {
+      if (provisional === prev.has(id)) return prev;
+      const next = new Set(prev);
+      if (provisional) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
 
   const { nodes: laidOutNodes, rows } = useGenealogyLayout(nodes, edges);
   const { fitTree, bind: fitBind } = useFitTree(laidOutNodes, containerRef);
@@ -283,8 +304,10 @@ export function DynastyCanvas({
       setNodes(nextNodes);
       setEdges(nextEdges);
 
+      // One batched call, not one per character: a partial failure across
+      // several calls left the canvas and the database disagreeing.
       performSave(
-        () => Promise.all(characterIds.map((id) => deleteCharacter(id, dynastyId))),
+        () => deleteCharacters(dynastyId, characterIds),
         characterIds.length === 1 ? 'Character removed' : 'Characters removed',
         'Failed to delete — reverted'
       ).catch(() => {
@@ -346,6 +369,7 @@ export function DynastyCanvas({
       const tempId = crypto.randomUUID();
       setNodes((nds) => [...nds, { id: tempId, type: "character", position: { x: 0, y: 0 }, data }]);
       setAddCharacterOpen(false);
+      markProvisional(tempId, true);
       try {
         const { id } = await performSave(
           () => createCharacter(dynastyId, data, { x: 0, y: 0 }),
@@ -353,17 +377,28 @@ export function DynastyCanvas({
           "Failed to save character"
         );
         setNodes((nds) => nds.map((n) => (n.id === tempId ? { ...n, id } : n)));
+        // If the inspector was opened on the temp id, follow it to the real one
+        // so the panel stays on the same person.
+        setEditingCharacterId((current) => (current === tempId ? id : current));
       } catch {
         setNodes((nds) => nds.filter((n) => n.id !== tempId));
+      } finally {
+        markProvisional(tempId, false);
       }
     },
-    [dynastyId, performSave]
+    [dynastyId, performSave, markProvisional]
   );
 
   const handleUpdateCharacter = useCallback(
     async (data: CharacterData) => {
       if (!editingCharacterId) return;
       const id = editingCharacterId;
+      // Backstop to the disabled control in the inspector: saving against an id
+      // the database has not seen yet would fail as "record not found".
+      if (provisionalIds.has(id)) {
+        toast.info('Still saving this person — try again in a moment.');
+        return;
+      }
       const prevNodes = nodes;
       setNodes((nds) =>
         nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, ...data } } : n))
@@ -381,12 +416,16 @@ export function DynastyCanvas({
         setNodes(prevNodes);
       }
     },
-    [editingCharacterId, dynastyId, nodes, performSave]
+    [editingCharacterId, dynastyId, nodes, performSave, provisionalIds]
   );
 
   const handleDeleteCharacter = useCallback(async () => {
     if (!editingCharacterId) return;
     const id = editingCharacterId;
+    if (provisionalIds.has(id)) {
+      toast.info('Still saving this person — try again in a moment.');
+      return;
+    }
     const prevNodes = nodes;
     const prevEdges = edges;
 
@@ -398,7 +437,7 @@ export function DynastyCanvas({
 
     try {
       await performSave(
-        () => deleteCharacter(id, dynastyId),
+        () => deleteCharacters(dynastyId, [id]),
         "Character removed",
         "Failed to delete character"
       );
@@ -406,7 +445,7 @@ export function DynastyCanvas({
       setNodes(prevNodes);
       setEdges(prevEdges);
     }
-  }, [editingCharacterId, dynastyId, nodes, edges, performSave]);
+  }, [editingCharacterId, dynastyId, nodes, edges, performSave, provisionalIds]);
 
   const openAddRelative = useCallback((anchorId: string, kind: RelativeKind) => {
     setAddCharacterOpen(false);
@@ -425,6 +464,10 @@ export function DynastyCanvas({
     const prevEdges = edges;
     setNodes(result.nodes);
     setEdges(result.edges);
+    // Only a brand-new person carries a client-minted id; linking an existing
+    // one addresses a row that is already there.
+    const isNewPerson = 'newData' in input.person;
+    if (isNewPerson) markProvisional(result.personId, true);
 
     try {
       const { id: realId } = await performSave(
@@ -436,12 +479,15 @@ export function DynastyCanvas({
         const remap = (v: string) => (v === result.personId ? realId : v);
         setNodes(nds => nds.map(n => (n.id === result.personId ? { ...n, id: realId } : n)));
         setEdges(eds => eds.map(e => ({ ...e, source: remap(e.source), target: remap(e.target) })));
+        setEditingCharacterId((current) => (current === result.personId ? realId : current));
       }
     } catch {
       setNodes(prevNodes);
       setEdges(prevEdges);
+    } finally {
+      if (isNewPerson) markProvisional(result.personId, false);
     }
-  }, [nodes, edges, dynastyId, performSave]);
+  }, [nodes, edges, dynastyId, performSave, markProvisional]);
 
   const handleExport = useCallback(async () => {
     await exportCanvasToPng(reactFlow, containerRef, dynastyName);
@@ -462,11 +508,20 @@ export function DynastyCanvas({
   }, []);
 
   const runImport = useCallback(async (file: File) => {
+    // Reading the file and writing it to the database are separate failures with
+    // separate causes. Under one try/catch, a rate-limit rejection or a server
+    // error told the user their file was unreadable when it was fine.
+    let data;
     try {
-      const raw = await file.text();
-      const data = parseImportFile(raw);
+      data = parseImportFile(await file.text());
+    } catch {
+      toast.error("Couldn't read that file — is it a Dynasty Tree export?");
+      return;
+    }
+
+    try {
       const result = await replaceDynastyFromExport(dynastyId, data);
-      const migrated = migrateCanvas(result.nodes as never, result.edges as never);
+      const migrated = migrateCanvas(result.nodes, result.edges);
       setNodes(migrated.nodes as AnyCanvasNode[]);
       setEdges(migrated.edges);
       setEditingCharacterId(null);
@@ -474,8 +529,8 @@ export function DynastyCanvas({
       // row, which the import just rewrote.
       router.refresh();
       toast.success('Imported dynasty tree');
-    } catch {
-      toast.error("Couldn't read that file — is it a Dynasty Tree export?");
+    } catch (err) {
+      toast.error(`Import failed: ${getFriendlyErrorMessage(err)}`);
     }
   }, [dynastyId, router]);
 
@@ -592,6 +647,10 @@ export function DynastyCanvas({
         {inspectorMode && (
           <Inspector
             mode={inspectorMode}
+            isProvisional={
+              inspectorMode.kind === 'edit' &&
+              provisionalIds.has(inspectorMode.character.id)
+            }
             nodes={nodes}
             edges={edges}
             onSave={handleUpdateCharacter}

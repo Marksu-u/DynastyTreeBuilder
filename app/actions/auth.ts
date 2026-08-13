@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { ensureAppUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 
@@ -16,14 +17,9 @@ export async function syncUser() {
 
   if (!user || !user.email) return;
 
-  await prisma.user.upsert({
-    where: { supabaseId: user.id },
-    update: {},
-    create: {
-      supabaseId: user.id,
-      email: user.email,
-    },
-  });
+  // Shared with getAuthUser, which repairs a missing row on the read path, so
+  // the two can never disagree about what an app-side user looks like.
+  await ensureAppUser(user.id, user.email);
 }
 
 export async function signInWithGoogle() {

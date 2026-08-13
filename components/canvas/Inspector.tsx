@@ -119,10 +119,16 @@ export function Inspector({
   onSelect,
   onAddRelative,
   onRestoreMode,
+  isProvisional = false,
 }: {
   mode: InspectorMode;
   nodes: AnyCanvasNode[];
   edges: RelationshipEdgeType[];
+  /**
+   * The subject exists on the canvas but its insert has not come back yet, so
+   * there is no row to save against or delete. Reads fine, writes wait.
+   */
+  isProvisional?: boolean;
   /** edit */
   onSave?: (data: CharacterData) => void;
   /** create */
@@ -217,7 +223,8 @@ export function Inspector({
   }, [active, search]);
 
   const contextIncomplete = !!ctx?.showUnionChoice && !unionId;
-  const canSubmit = !!form.name.trim() && !contextIncomplete && !submitting && dirty;
+  const canSubmit =
+    !!form.name.trim() && !contextIncomplete && !submitting && dirty && !isProvisional;
 
   const set = <K extends keyof CharacterData>(key: K, value: CharacterData[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -573,7 +580,7 @@ export function Inspector({
               disabled={!canSubmit}
               className="flex-1 cursor-pointer rounded-md bg-zinc-100 py-2 text-[13px] font-medium text-zinc-900 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {isEdit ? (dirty ? 'Save' : 'Saved') : 'Add'}
+              {isProvisional ? 'Saving…' : isEdit ? (dirty ? 'Save' : 'Saved') : 'Add'}
             </button>
             {/* Destructive is never red at rest (design.md §4) — it earns its
                 colour on hover, same as DynastyCard's trash. */}
@@ -581,8 +588,9 @@ export function Inspector({
               <button
                 type="button"
                 onClick={onDelete}
+                disabled={isProvisional}
                 aria-label={`Delete ${active.character.data.name}`}
-                className="cursor-pointer rounded-md p-2 text-zinc-600 transition-colors hover:text-destructive"
+                className="cursor-pointer rounded-md p-2 text-zinc-600 transition-colors hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-zinc-600"
               >
                 <Trash2 size={15} />
               </button>

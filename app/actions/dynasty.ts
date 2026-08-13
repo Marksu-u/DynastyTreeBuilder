@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { createWithUniqueSlug } from "@/lib/slug";
 import {
   IdSchema,
   DynastyNameSchema,
@@ -33,15 +34,6 @@ import type { CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
 function revalidateShare(slug: string): void {
   revalidatePath(`/share/${slug}`);
   revalidatePath(`/share/${slug}/og`);
-}
-
-function makeSlug(name: string): string {
-  const base =
-    name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "") || "dynasty";
-  return `${base}-${Date.now()}`;
 }
 
 
@@ -79,14 +71,24 @@ export async function createDynasty(
   );
   if (!settingResult.success) return { error: settingResult.error.issues[0].message };
 
-  const dynasty = await prisma.dynasty.create({
-    data: {
-      name: nameResult.data,
-      slug: makeSlug(nameResult.data),
-      setting: settingResult.data,
-      ownerId: user.id,
-    },
-  });
+  let dynasty: { id: string };
+  try {
+    dynasty = await createWithUniqueSlug(nameResult.data, (slug) =>
+      prisma.dynasty.create({
+        data: {
+          name: nameResult.data,
+          slug,
+          setting: settingResult.data,
+          ownerId: user.id,
+        },
+        select: { id: true },
+      }),
+    );
+  } catch {
+    // This used to throw straight into the route's error boundary, losing the
+    // form. Returning the error keeps the user on the page they filled in.
+    return { error: "Couldn't create that dynasty. Please try again." };
+  }
 
   redirect(`/dashboard/${dynasty.id}`);
 }
@@ -415,47 +417,51 @@ export async function importGuestWorld(
   // coerce would otherwise create an empty dynasty and call it a success.
   if (rows.length === 0) throw new Error("Nothing to import");
 
-  const dynasty = await prisma.$transaction(async (tx) => {
-    const created = await tx.dynasty.create({
-      data: {
-        name: snapshot.name,
-        slug: makeSlug(snapshot.name),
-        setting: snapshot.setting ?? "FANTASY",
-        crestSeed: snapshot.crestSeed ?? null,
-        ownerId: user.id,
-      },
-    });
-
-    // One INSERT ... RETURNING rather than one round trip per character. The
-    // rows come back in the order they were sent, which is what lets the index
-    // below line up with `rows` — the length check makes that assumption loud
-    // if it ever stops holding.
-    const createdChars = await tx.character.createManyAndReturn({
-      data: rows.map(({ row }) => ({ dynastyId: created.id, ...row })),
-      select: { id: true },
-    });
-    if (createdChars.length !== rows.length) {
-      throw new Error("Import failed");
-    }
-    const idMap = new Map(
-      rows.map(({ sourceId }, i) => [sourceId, createdChars[i].id]),
-    );
-
-    const relationships = deriveRelationships(snapshot, idMap);
-    if (relationships.length > 0) {
-      await tx.relationship.createMany({
-        data: relationships.map((r) => ({
-          dynastyId: created.id,
-          fromId: r.fromId,
-          toId: r.toId,
-          type: r.type,
-          isMutual: false,
-        })),
+  // The whole transaction is the retry unit: a slug collision aborts it, and the
+  // next attempt starts from a clean slate with a fresh slug.
+  const dynasty = await createWithUniqueSlug(snapshot.name, (slug) =>
+    prisma.$transaction(async (tx) => {
+      const created = await tx.dynasty.create({
+        data: {
+          name: snapshot.name,
+          slug,
+          setting: snapshot.setting ?? "FANTASY",
+          crestSeed: snapshot.crestSeed ?? null,
+          ownerId: user.id,
+        },
       });
-    }
 
-    return created;
-  });
+      // One INSERT ... RETURNING rather than one round trip per character. The
+      // rows come back in the order they were sent, which is what lets the index
+      // below line up with `rows` — the length check makes that assumption loud
+      // if it ever stops holding.
+      const createdChars = await tx.character.createManyAndReturn({
+        data: rows.map(({ row }) => ({ dynastyId: created.id, ...row })),
+        select: { id: true },
+      });
+      if (createdChars.length !== rows.length) {
+        throw new Error("Import failed");
+      }
+      const idMap = new Map(
+        rows.map(({ sourceId }, i) => [sourceId, createdChars[i].id]),
+      );
+
+      const relationships = deriveRelationships(snapshot, idMap);
+      if (relationships.length > 0) {
+        await tx.relationship.createMany({
+          data: relationships.map((r) => ({
+            dynastyId: created.id,
+            fromId: r.fromId,
+            toId: r.toId,
+            type: r.type,
+            isMutual: false,
+          })),
+        });
+      }
+
+      return created;
+    }),
+  );
 
   return { id: dynasty.id };
 }

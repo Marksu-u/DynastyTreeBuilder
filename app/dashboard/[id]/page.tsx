@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth";
 import { DynastyPageClient } from "@/components/canvas/DynastyPageClient";
 import type { CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
 import type {
@@ -42,17 +43,10 @@ export default async function DynastyPage({
 }) {
   const { id } = await params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const dbUser = await prisma.user.findUnique({
-    where: { supabaseId: user.id },
-    select: { id: true },
-  });
-  if (!dbUser) redirect("/login");
+  // getAuthUser rather than an inline session + user lookup: it is the one place
+  // that knows a database failure must not redirect (see lib/auth.ts), and this
+  // page previously carried its own copy of the loop.
+  const dbUser = await getAuthUser();
 
   const dynasty = await prisma.dynasty.findFirst({
     where: { id, ownerId: dbUser.id },

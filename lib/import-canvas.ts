@@ -8,13 +8,14 @@
 //     file never references a union-node id that isn't in `characters[]`)
 import { migrateCanvas } from '@/lib/migrate-canvas';
 import { DynastyExportSchema, type DynastyExport } from '@/lib/schemas';
-import type { AnyCanvasNode, RelationshipEdgeType } from '@/store/canvas';
-import type { CharacterData, RelationshipData, UnionData } from '@/types/canvas';
+import type {
+  AnyCanvasNode,
+  RelationshipEdgeType,
+  AnyCanvasNode as AnyNode,
+  RelationshipEdgeType as AnyEdge,
+} from '@/types/canvas';
+import type { RelationshipData } from '@/types/canvas';
 import type { PairEdge } from '@/lib/relative-ops';
-import type { Node, Edge } from '@xyflow/react';
-
-type AnyNode = Node<CharacterData, 'character'> | Node<UnionData, 'union'>;
-type AnyEdge = Edge<RelationshipData, 'relationship'>;
 
 export function parseImportFile(raw: string): DynastyExport {
   return DynastyExportSchema.parse(JSON.parse(raw));

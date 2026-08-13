@@ -1,17 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import { migrateCanvas } from './migrate-canvas';
-import type { Node, Edge } from '@xyflow/react';
-import type { CharacterData, RelationshipData } from '@/types/canvas';
-
-type AnyNode = Node<CharacterData, 'character'>;
-type AnyEdge = Edge<RelationshipData, 'relationship'>;
+// The shared types, not local copies. The copies that used to live here declared
+// AnyNode without the union variant and AnyEdge with only the client-side
+// relationship types, so every migrateCanvas call below was a type error and
+// every `SPOUSE` fixture needed an `as never` to compile. Vitest never
+// typechecks, so none of it showed up until `tsc --noEmit` was wired into CI.
+import type {
+  AnyCanvasNode as AnyNode,
+  LegacyEdgeType,
+  RelationshipEdgeType as AnyEdge,
+} from '@/types/canvas';
 
 const charNode = (id: string): AnyNode =>
   ({ id, type: 'character', position: { x: 0, y: 0 }, data: { name: id, flags: [], style: 'OTHER', gender: 'UNKNOWN' } });
-const spouseEdge = (id: string, source: string, target: string): AnyEdge =>
+// Legacy edges: these are the DB pair shapes migrateCanvas exists to convert.
+const spouseEdge = (id: string, source: string, target: string): LegacyEdgeType =>
   ({ id, type: 'relationship', source, target, data: { type: 'SPOUSE', isMutual: false } });
-const parentEdge = (id: string, source: string, target: string, adopted = false): AnyEdge =>
-  ({ id, type: 'relationship', source, target, data: { type: (adopted ? 'ADOPTED' : 'PARENT') as never, isMutual: false } });
+const parentEdge = (id: string, source: string, target: string, adopted = false): LegacyEdgeType =>
+  ({ id, type: 'relationship', source, target, data: { type: adopted ? 'ADOPTED' : 'PARENT', isMutual: false } });
 
 // Union → children helper for assertions
 function unionsWithChildren(out: { nodes: AnyNode[]; edges: AnyEdge[] }) {

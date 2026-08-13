@@ -2,20 +2,30 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import {
-  Node, Edge, NodeChange, EdgeChange,
+  NodeChange, EdgeChange,
   applyNodeChanges, applyEdgeChanges,
 } from '@xyflow/react';
-import type { CharacterData, RelationshipData, UnionData, LegacyRelationshipType } from '@/types/canvas';
+import type { CharacterData } from '@/types/canvas';
 import { migrateCanvas } from '@/lib/migrate-canvas';
 import { computeAddRelative, computeDeleteCharacter, computeRemoveRelative, type AddRelativeInput } from '@/lib/relative-ops';
 import { safeStorage } from '@/lib/safe-storage';
 
-export type CharacterNodeType = Node<CharacterData, 'character'>;
-export type UnionNodeType = Node<UnionData, 'union'>;
-export type AnyCanvasNode = CharacterNodeType | UnionNodeType;
-export type RelationshipEdgeType = Edge<RelationshipData, 'relationship'>;
-/** Edge type used at server→client boundaries before migrateCanvas runs. */
-export type LegacyEdgeType = Edge<Omit<RelationshipData, 'type'> & { type: LegacyRelationshipType }, 'relationship'>;
+// Re-exported, not redeclared — these live in types/canvas.ts now. Kept here so
+// the many `from '@/store/canvas'` imports across the components stay valid.
+export type {
+  CharacterNodeType,
+  UnionNodeType,
+  AnyCanvasNode,
+  RelationshipEdgeType,
+  LegacyEdgeType,
+} from '@/types/canvas';
+
+import type {
+  AnyCanvasNode,
+  RelationshipEdgeType,
+  CharacterNodeType,
+  UnionNodeType,
+} from '@/types/canvas';
 
 type Snapshot = { nodes: AnyCanvasNode[]; edges: RelationshipEdgeType[] };
 
@@ -251,7 +261,7 @@ export const useCanvasStore = create<CanvasState>()(
       setEditingCharacterId: (id) => set({ editingCharacterId: id }),
 
       initCanvas: (nodes, edges) => {
-        const migrated = migrateCanvas(nodes as never, edges);
+        const migrated = migrateCanvas(nodes, edges);
         set({ nodes: migrated.nodes as AnyCanvasNode[], edges: migrated.edges, past: [], future: [], isDirty: false });
       },
 

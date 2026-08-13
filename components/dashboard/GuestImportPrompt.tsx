@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Import, X } from "lucide-react";
 import { useCanvasStore } from "@/store/canvas";
-import { useGuestDynastyStore } from "@/store/guest-dynasty";
+import { useGuestDynastyStore, useGuestHouse } from "@/store/guest-dynasty";
 import { importGuestWorld } from "@/app/actions/dynasty";
 import { MAX_DYNASTY_NAME } from "@/lib/schemas";
 
@@ -16,24 +16,32 @@ export function GuestImportPrompt() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
-  const [name, setName] = useState("");
+  /**
+   * What the user has typed, or null for "hasn't touched it".
+   *
+   * The field used to be seeded from the store inside an effect that listed
+   * `houseName` as a dependency, so any change to the stored house name threw
+   * away what they were typing. A draft that starts as null needs no effect at
+   * all: the house name shows through until there is something to show instead.
+   */
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
 
   const nodes = useCanvasStore((s) => s.nodes);
   const edges = useCanvasStore((s) => s.edges);
-  const houseName = useGuestDynastyStore((s) => s.name);
-  const houseSetting = useGuestDynastyStore((s) => s.setting);
-  const houseCrestSeed = useGuestDynastyStore((s) => s.crestSeed);
+  // useGuestHouse rather than the raw store: this reads during render, and the
+  // store rehydrates from localStorage before React's hydration pass (see
+  // store/guest-dynasty.ts).
+  const { name: houseName, setting: houseSetting, crestSeed: houseCrestSeed } =
+    useGuestHouse();
+  const name = nameDraft ?? houseName;
 
   useEffect(() => {
     setMounted(true);
-    // Read after mount: the persisted store has not rehydrated during SSR, so
-    // seeding useState directly would bake in the default name.
-    setName(houseName);
     if (typeof window !== "undefined" && localStorage.getItem(DISMISS_KEY)) {
       setDismissed(true);
     }
-  }, [houseName]);
+  }, []);
 
   // Guard against SSR/hydration mismatch and only prompt when there's real work.
   const characterCount = nodes.filter(
@@ -96,7 +104,7 @@ export function GuestImportPrompt() {
           <input
             maxLength={MAX_DYNASTY_NAME}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => setNameDraft(e.target.value)}
             disabled={importing}
             aria-label="Dynasty name"
             className="w-36 rounded border border-zinc-700 bg-background px-2 py-1.5 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none disabled:opacity-50"
