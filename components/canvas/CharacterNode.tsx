@@ -6,6 +6,7 @@ import { Pencil, Skull, Plus } from 'lucide-react';
 import { useCanvasStore } from '@/store/canvas';
 import { useCanvasContext } from './CanvasContext';
 import { useHighlight, tierStyle } from './HighlightContext';
+import { fitFontSize } from '@/lib/fit-text';
 import type { CharacterData } from '@/types/canvas';
 
 type CharacterNodeType = Node<CharacterData, 'character'>;
@@ -21,6 +22,12 @@ const SVG_RECT_PROPS = {
   x: 0.75, y: 0.75, rx: 7.25, ry: 7.25,
   fill: 'none', strokeWidth: 1.5,
 } as const;
+
+// The card is 180px with px-3 either side, and the edit pencil takes the right
+// edge of the header row — leaving this much for text. Measured on the live
+// canvas rather than derived, so keep it in step if the padding changes.
+const TEXT_COL_W = 134;
+const NAME_MAX_LINES = 2;
 
 export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNodeType>) => {
   const canvasCtx = useCanvasContext();
@@ -51,10 +58,16 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
 
   const hasSubRow = (data.style && data.style !== 'OTHER') || statusLabels.length > 0;
 
+  const displayName = isGhost ? 'Unknown' : data.name;
+  const nameSize = fitFontSize(displayName, {
+    maxWidth: TEXT_COL_W,
+    maxLines: NAME_MAX_LINES,
+  });
+
   return (
     <div
       className={[
-        'character-node relative w-[180px] rounded-lg bg-zinc-800/95 px-3 py-3 shadow-lg transition-colors duration-100',
+        'character-node relative flex h-[128px] w-[180px] flex-col justify-center rounded-lg bg-zinc-800/95 px-3 py-3 shadow-lg transition-colors duration-100',
         // Selection is chrome, not semantics, so it stays hue-neutral. It used
         // to be blue-400, which sits 9.7° from the ancestor tint (#5AA9E6) at
         // the same lightness — two indistinguishable blue card borders meaning
@@ -135,44 +148,50 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
 
       <div className="flex items-start justify-between gap-1">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1">
+          {/* The glyphs are inline, not flex siblings: as siblings they narrowed
+              every line of a wrapped name, and by a different amount per card.
+              Inline they only occupy the tail of the last line. */}
+          <p
+            className={`line-clamp-2 font-semibold leading-tight [overflow-wrap:anywhere] ${
+              isGhost
+                ? 'text-zinc-500 italic'
+                : hl.tint
+                ? ''
+                : 'text-zinc-100'
+            }`}
+            style={{
+              fontSize: `${nameSize}px`,
+              ...(!isGhost && hl.tint ? { color: hl.tint } : {}),
+            }}
+          >
             {isFounder && (
-              <span className="flex-shrink-0 text-[10px] text-[#F5A623]">◆</span>
+              <span className="mr-1 text-[10px] text-[#F5A623]">◆</span>
             )}
             {isBastard && (
-              <span className="flex-shrink-0 h-[7px] w-[7px] rounded-full bg-[#EF9F27]" />
+              <span className="mr-1 inline-block h-[7px] w-[7px] rounded-full bg-[#EF9F27] align-middle" />
             )}
-            <p
-              className={`truncate text-sm font-semibold leading-tight ${
-                isGhost
-                  ? 'text-zinc-500 italic'
-                  : hl.tint
-                  ? ''
-                  : 'text-zinc-100'
-              }`}
-              style={!isGhost && hl.tint ? { color: hl.tint } : undefined}
-            >
-              {isGhost ? 'Unknown' : data.name}
-            </p>
+            {displayName}
             {data.gender === 'MALE' && (
-              <span className="flex-shrink-0 text-[14px] leading-none text-[#4DA3FF]">♂</span>
+              <span className="ml-1 text-[14px] leading-none text-[#4DA3FF]">♂</span>
             )}
             {data.gender === 'FEMALE' && (
-              <span className="flex-shrink-0 text-[14px] leading-none text-[#FF6FA5]">♀</span>
+              <span className="ml-1 text-[14px] leading-none text-[#FF6FA5]">♀</span>
             )}
             {data.gender === 'NON_BINARY' && (
-              <span className="flex-shrink-0 text-[13px] leading-none text-[#C9A8FF]">⚧</span>
+              <span className="ml-1 text-[13px] leading-none text-[#C9A8FF]">⚧</span>
             )}
             {data.gender === 'UNKNOWN' && (
-              <span className="flex-shrink-0 text-[12px] font-bold leading-none text-zinc-500">?</span>
+              <span className="ml-1 text-[12px] font-bold leading-none text-zinc-500">?</span>
             )}
             {isDeceased && (
-              <Skull size={12} className="flex-shrink-0 text-zinc-300" />
+              <Skull size={12} className="ml-1 inline align-middle text-zinc-300" />
             )}
-          </div>
+          </p>
 
           {data.alias && (
-            <p className="truncate text-[11px] italic text-zinc-400">&quot;{data.alias}&quot;</p>
+            <p className="line-clamp-2 text-[11px] italic text-zinc-400 [overflow-wrap:anywhere]">
+              &quot;{data.alias}&quot;
+            </p>
           )}
         </div>
 
