@@ -18,7 +18,12 @@ export async function ensureAppUser(
 ): Promise<User> {
   return prisma.user.upsert({
     where: { supabaseId },
-    update: {},
+    // Refreshed, not left alone. `update: {}` meant the address we stored at
+    // first sign-in never changed again, so a user who moved their Google
+    // account to a new address left us holding one they no longer own — a
+    // record we tell them (privacy.md) that we keep accurate. Safe to write now
+    // that email is no longer a unique column; before, this could collide.
+    update: { email },
     create: { supabaseId, email },
   });
 }

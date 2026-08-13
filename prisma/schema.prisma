@@ -66,7 +66,9 @@ enum ReportStatus {
 model User {
   id         String   @id @default(cuid())
   supabaseId String   @unique
-  email      String   @unique
+  /// Stored attribute, not an identity — supabaseId is the key. Deliberately
+  /// not @unique: see migration drop_user_email_unique.
+  email      String
   username   String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

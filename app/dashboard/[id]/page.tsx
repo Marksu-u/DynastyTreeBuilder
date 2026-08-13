@@ -61,7 +61,7 @@ export default async function DynastyPage({
     data: {
       name: char.name,
       alias: char.alias ?? undefined,
-      flags: (char as any).flags as CharacterFlag[],
+      flags: char.flags as CharacterFlag[],
       style: char.style,
       gender: char.gender as CharacterGender,
       note: char.note ?? undefined,
@@ -90,7 +90,6 @@ export default async function DynastyPage({
       initialIsPublic={dynasty.isPublic}
       initialNodes={nodes}
       initialEdges={edges}
-      userId={dbUser.id}
     />
   );
 }

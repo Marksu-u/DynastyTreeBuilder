@@ -62,9 +62,6 @@ export const TokenSchema = z
   .max(40, "Token is too long")
   .regex(/^[A-Z0-9_]+$/, "Token must be uppercase letters, digits, or underscores");
 
-// Legacy alias — kept so any remaining import of CharacterStyleSchema still resolves
-export const CharacterStyleSchema = TokenSchema;
-
 // ─── Domain schemas ───────────────────────────────────────────────────────────
 
 export const PositionSchema = z.object({

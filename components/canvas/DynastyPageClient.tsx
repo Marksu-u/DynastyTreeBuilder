@@ -23,7 +23,6 @@ type Props = {
   initialIsPublic: boolean;
   initialNodes: CharacterNodeType[];
   initialEdges: LegacyEdgeType[];
-  userId: string;
 };
 
 export function DynastyPageClient({
@@ -35,7 +34,6 @@ export function DynastyPageClient({
   initialIsPublic,
   initialNodes,
   initialEdges,
-  userId,
 }: Props) {
   const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
@@ -97,7 +95,6 @@ export function DynastyPageClient({
           crestSeed={savedSeed}
           initialNodes={initialNodes}
           initialEdges={initialEdges}
-          userId={userId}
           onSaveStatusChange={handleSaveStatusChange}
           topRight={
             <>

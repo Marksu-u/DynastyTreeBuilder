@@ -99,7 +99,7 @@ export default async function SharePage({
     data: {
       name: char.name,
       alias: char.alias ?? undefined,
-      flags: (char as any).flags as CharacterFlag[],
+      flags: char.flags as CharacterFlag[],
       style: char.style,
       gender: char.gender as CharacterGender,
       note: char.note ?? undefined,

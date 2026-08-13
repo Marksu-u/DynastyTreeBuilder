@@ -94,7 +94,6 @@ type Props = {
   crestSeed: string;
   initialNodes: CharacterNodeType[];
   initialEdges: LegacyEdgeType[];
-  userId?: string;
   onSaveStatusChange?: (status: SaveStatus, errorReason?: string) => void;
   /** Top-right slot: account state, then the one accent action (design.md §9). */
   topRight?: React.ReactNode;

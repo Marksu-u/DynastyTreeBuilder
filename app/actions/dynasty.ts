@@ -208,7 +208,7 @@ function serialiseDynasty(
       id: c.id,
       name: c.name,
       alias: c.alias,
-      flags: (c as any).flags ?? [],
+      flags: c.flags as CharacterFlag[],
       style: c.style,
       gender: c.gender,
       note: c.note,
@@ -598,13 +598,6 @@ export async function replaceDynastyFromExport(
   };
 }
 
-export async function getDynasty(dynastyId: string) {
-  const user = await getAuthUser();
-
-  const idResult = IdSchema.safeParse(dynastyId);
-  if (!idResult.success) return null;
-
-  return prisma.dynasty.findFirst({
-    where: { id: idResult.data, ownerId: user.id },
-  });
-}
+// getDynasty was removed here: nothing called it, but it was a registered
+// Server Action — a live endpoint kept alive for no caller. The page that would
+// have used it loads its dynasty directly in app/dashboard/[id]/page.tsx.
