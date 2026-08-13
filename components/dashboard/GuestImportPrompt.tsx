@@ -7,6 +7,7 @@ import { Import, X } from "lucide-react";
 import { useCanvasStore } from "@/store/canvas";
 import { useGuestDynastyStore } from "@/store/guest-dynasty";
 import { importGuestWorld } from "@/app/actions/dynasty";
+import { MAX_DYNASTY_NAME } from "@/lib/schemas";
 
 const DISMISS_KEY = "dynasty-guest-import-dismissed";
 const GUEST_STORE_KEY = "dynasty-tree-guest";
@@ -93,6 +94,7 @@ export function GuestImportPrompt() {
 
         <div className="flex items-center gap-2">
           <input
+            maxLength={MAX_DYNASTY_NAME}
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={importing}

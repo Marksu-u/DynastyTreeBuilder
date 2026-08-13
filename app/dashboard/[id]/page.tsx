@@ -16,8 +16,18 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
+
+  // Owner-scoped, like the page's own query below. Without the ownerId chain
+  // this read returns any dynasty's name to any signed-in visitor who has its
+  // id, while the page body itself correctly 404s — a title is still a leak.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { title: "Dynasty Canvas" };
+
   const dynasty = await prisma.dynasty.findFirst({
-    where: { id },
+    where: { id, owner: { supabaseId: user.id } },
     select: { name: true },
   });
   return {

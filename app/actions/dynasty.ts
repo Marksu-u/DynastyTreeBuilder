@@ -2,22 +2,38 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import {
   IdSchema,
+  DynastyNameSchema,
   DynastySettingSchema,
   DynastySettingsSchema,
-  CrestSeedSchema,
   GuestSnapshotSchema,
   DynastyExportSchema,
+  MAX_ALIAS,
+  MAX_CHARACTER_NAME,
+  MAX_NOTE,
 } from "@/lib/schemas";
 import type { DynastyExport, GuestSnapshot } from "@/lib/schemas";
 import type { CharacterFlag, CharacterGender, LegacyRelationshipType } from "@/types/canvas";
 import type { CharacterNodeType, LegacyEdgeType } from "@/store/canvas";
+
+/**
+ * Drops the cached public surface for one dynasty.
+ *
+ * Both share routes are ISR — the page at 60s, the OG card at an hour — so
+ * without this, unpublishing a dynasty left its tree being served to anyone
+ * holding the link for up to that long, and the OG card kept rendering the
+ * structure for an hour. Every action that changes what the share page shows,
+ * or whether it should show anything at all, has to call this.
+ */
+function revalidateShare(slug: string): void {
+  revalidatePath(`/share/${slug}`);
+  revalidatePath(`/share/${slug}/og`);
+}
 
 function makeSlug(name: string): string {
   const base =
@@ -27,6 +43,7 @@ function makeSlug(name: string): string {
       .replace(/(^-|-$)/g, "") || "dynasty";
   return `${base}-${Date.now()}`;
 }
+
 
 export async function listDynasties() {
   const user = await getAuthUser();
@@ -54,9 +71,7 @@ export async function createDynasty(
   const user = await getAuthUser();
   if (!checkRateLimit(user.id)) return { error: "Too many requests. Slow down." };
 
-  const nameResult = z.string().min(1, "Name is required").safeParse(
-    (formData.get("name") as string | null)?.trim() ?? ""
-  );
+  const nameResult = DynastyNameSchema.safeParse(formData.get("name") ?? "");
   if (!nameResult.success) return { error: nameResult.error.issues[0].message };
 
   const settingResult = DynastySettingSchema.safeParse(
@@ -86,16 +101,18 @@ export async function renameDynasty(
   const idResult = IdSchema.safeParse(id);
   if (!idResult.success) return { error: idResult.error.issues[0].message };
 
-  const nameResult = z.string().min(1, "Name is required").safeParse(name.trim());
+  const nameResult = DynastyNameSchema.safeParse(name);
   if (!nameResult.success) return { error: nameResult.error.issues[0].message };
 
-  await prisma.dynasty.update({
+  const updated = await prisma.dynasty.update({
     where: { id: idResult.data, ownerId: user.id },
     data: { name: nameResult.data },
+    select: { slug: true },
   });
 
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/${idResult.data}`);
+  revalidateShare(updated.slug);
   return {};
 }
 
@@ -106,15 +123,21 @@ export async function deleteDynasty(id: string): Promise<{ error?: string }> {
   const idResult = IdSchema.safeParse(id);
   if (!idResult.success) return { error: idResult.error.issues[0].message };
 
+  let slug: string;
   try {
-    await prisma.dynasty.delete({
+    const deleted = await prisma.dynasty.delete({
       where: { id: idResult.data, ownerId: user.id },
+      select: { slug: true },
     });
+    slug = deleted.slug;
   } catch {
     return { error: "Failed to delete dynasty" };
   }
 
   revalidatePath("/dashboard");
+  // A deleted dynasty whose share page is still cached would keep serving the
+  // tree to anyone holding the link.
+  revalidateShare(slug);
   return {};
 }
 
@@ -137,11 +160,14 @@ export async function updateDynastySettings(
   if (parsed.data.isPublic !== undefined) update.isPublic = parsed.data.isPublic;
   if (parsed.data.crestSeed !== undefined) update.crestSeed = parsed.data.crestSeed;
 
+  let slug: string;
   try {
-    await prisma.dynasty.update({
+    const updated = await prisma.dynasty.update({
       where: { id: idResult.data, ownerId: user.id },
       data: update,
+      select: { slug: true },
     });
+    slug = updated.slug;
   } catch {
     // Mirrors deleteDynasty: a Prisma throw becomes a returned error, so every
     // caller can handle failure inline instead of hitting the error boundary.
@@ -150,6 +176,9 @@ export async function updateDynastySettings(
 
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/${idResult.data}`);
+  // This is the action that flips isPublic, so it is the one that must drop the
+  // public cache — see revalidateShare.
+  revalidateShare(slug);
   return {};
 }
 
@@ -264,36 +293,53 @@ type CharacterRow = {
   posY: number;
 };
 
-/** Defensively coerce a guest character node's loose `data` into a DB row. */
+/** Reads a loose value as a bounded string, or null if there is nothing there. */
+function boundedText(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, max) : null;
+}
+
+/** Defensively coerce a guest character node's loose `data` into a DB row.
+ *
+ *  `GuestNodeSchema.data` is an open record — it has to be, because it carries
+ *  whatever React Flow left in localStorage — so the field-level caps that
+ *  CharacterDataSchema applies elsewhere are applied here instead. Values are
+ *  truncated rather than rejected: a snapshot is the guest's own work, and
+ *  losing the tail of one over-long note beats failing the whole import. */
 function toCharacterRow(
   data: Record<string, unknown>,
   position: { x: number; y: number },
 ): CharacterRow | null {
-  const name = typeof data.name === "string" ? data.name.trim() : "";
+  const name = boundedText(data.name, MAX_CHARACTER_NAME);
   if (!name) return null;
+  // Deduplicated: the flags column is a set, and a snapshot repeating one flag
+  // 10,000 times would otherwise write all of them.
   const flags = Array.isArray(data.flags)
-    ? (data.flags.filter(
-        (f): f is CharacterFlag => VALID_FLAGS.includes(f as CharacterFlag),
-      ))
+    ? [...new Set(
+        data.flags.filter(
+          (f): f is CharacterFlag => VALID_FLAGS.includes(f as CharacterFlag),
+        ),
+      )]
     : [];
   const gender = VALID_GENDERS.includes(data.gender as CharacterGender)
     ? (data.gender as CharacterGender)
     : "UNKNOWN";
   return {
     name,
-    alias: typeof data.alias === "string" && data.alias.trim() ? data.alias.trim() : null,
+    alias: boundedText(data.alias, MAX_ALIAS),
     flags,
-    style: typeof data.style === "string" && data.style ? data.style : "OTHER",
+    style: boundedText(data.style, 60) ?? "OTHER",
     gender,
-    note: typeof data.note === "string" && data.note ? data.note : null,
+    note: boundedText(data.note, MAX_NOTE),
     posX: position.x,
     posY: position.y,
   };
 }
 
 /**
- * Convert the union-node canvas model into DB pair edges (SPOUSE/PARENT/ADOPTED),
- * mirroring `createFamily`. Only emits edges between persisted (non-ghost) chars.
+ * Convert the union-node canvas model into DB pair edges (SPOUSE/PARENT/ADOPTED).
+ * Only emits edges between persisted (non-ghost) chars.
  */
 function deriveRelationships(
   snapshot: GuestSnapshot,
@@ -305,8 +351,13 @@ function deriveRelationships(
   const pairs: { fromId: string; toId: string; type: string }[] = [];
 
   for (const unionId of unionIds) {
+    // Capped at two, which is what a union *is* — one couple. Without the cap
+    // the parent × child loop below is quadratic in a value the caller
+    // controls: a crafted snapshot with 6,000 PARTNER edges and 6,000 CHILD
+    // edges into a single union derives 36M rows from a 12k-edge input.
     const partnerIds = snapshot.edges
       .filter((e) => e.target === unionId && e.data?.type === "PARTNER")
+      .slice(0, 2)
       .map((e) => idMap.get(e.source))
       .filter((id): id is string => !!id);
     const childIds = snapshot.edges
@@ -351,7 +402,18 @@ export async function importGuestWorld(
   const characterNodes = snapshot.nodes.filter(
     (n) => n.type === "character" && n.data.isGhost !== true,
   );
-  if (characterNodes.length === 0) throw new Error("Nothing to import");
+
+  // Coerce before opening the transaction, and keep each row paired with the
+  // snapshot id it came from so the relationship pass can be remapped onto the
+  // real ids afterwards.
+  const rows: { sourceId: string; row: CharacterRow }[] = [];
+  for (const node of characterNodes) {
+    const row = toCharacterRow(node.data, node.position);
+    if (row) rows.push({ sourceId: node.id, row });
+  }
+  // Checked after coercion, not before: a snapshot of nodes that all fail to
+  // coerce would otherwise create an empty dynasty and call it a success.
+  if (rows.length === 0) throw new Error("Nothing to import");
 
   const dynasty = await prisma.$transaction(async (tx) => {
     const created = await tx.dynasty.create({
@@ -364,15 +426,20 @@ export async function importGuestWorld(
       },
     });
 
-    const idMap = new Map<string, string>();
-    for (const node of characterNodes) {
-      const row = toCharacterRow(node.data, node.position);
-      if (!row) continue;
-      const char = await tx.character.create({
-        data: { dynastyId: created.id, ...row },
-      });
-      idMap.set(node.id, char.id);
+    // One INSERT ... RETURNING rather than one round trip per character. The
+    // rows come back in the order they were sent, which is what lets the index
+    // below line up with `rows` — the length check makes that assumption loud
+    // if it ever stops holding.
+    const createdChars = await tx.character.createManyAndReturn({
+      data: rows.map(({ row }) => ({ dynastyId: created.id, ...row })),
+      select: { id: true },
+    });
+    if (createdChars.length !== rows.length) {
+      throw new Error("Import failed");
     }
+    const idMap = new Map(
+      rows.map(({ sourceId }, i) => [sourceId, createdChars[i].id]),
+    );
 
     const relationships = deriveRelationships(snapshot, idMap);
     if (relationships.length > 0) {
@@ -406,7 +473,7 @@ export async function replaceDynastyFromExport(
 
   const dynasty = await prisma.dynasty.findFirst({
     where: { id: validId, ownerId: user.id },
-    select: { id: true },
+    select: { id: true, slug: true },
   });
   if (!dynasty) throw new Error("Dynasty not found");
 
@@ -426,25 +493,29 @@ export async function replaceDynastyFromExport(
     await tx.relationship.deleteMany({ where: { dynastyId: validId } });
     await tx.character.deleteMany({ where: { dynastyId: validId } });
 
-    const idMap = new Map<string, string>();
-    const characters = [];
-    for (const c of data.characters) {
-      const row = await tx.character.create({
-        data: {
-          dynastyId: validId,
-          name: c.name,
-          alias: c.alias,
-          flags: c.flags,
-          style: c.style,
-          gender: c.gender,
-          note: c.note,
-          posX: c.posX,
-          posY: c.posY,
-        },
-      });
-      idMap.set(c.id, row.id);
-      characters.push(row);
+    // One INSERT ... RETURNING for the whole file rather than one round trip
+    // per character — same ordering contract as importGuestWorld above.
+    const characters = data.characters.length
+      ? await tx.character.createManyAndReturn({
+          data: data.characters.map((c) => ({
+            dynastyId: validId,
+            name: c.name,
+            alias: c.alias,
+            flags: c.flags,
+            style: c.style,
+            gender: c.gender,
+            note: c.note,
+            posX: c.posX,
+            posY: c.posY,
+          })),
+        })
+      : [];
+    if (characters.length !== data.characters.length) {
+      throw new Error("Import failed");
     }
+    const idMap = new Map(
+      data.characters.map((c, i) => [c.id, characters[i].id]),
+    );
 
     const relationshipsData = data.relationships
       .map((r) => ({
@@ -486,6 +557,9 @@ export async function replaceDynastyFromExport(
 
   revalidatePath(`/dashboard/${validId}`);
   revalidatePath("/dashboard");
+  // The import rewrote every character and relationship, so a cached share page
+  // is now showing a tree that no longer exists.
+  revalidateShare(dynasty.slug);
 
   // Same row→node/edge conversion as app/dashboard/[id]/page.tsx:53-77 (the
   // initial page load) — reused here so DynastyCanvas can treat an import

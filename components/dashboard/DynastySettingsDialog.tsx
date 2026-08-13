@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Settings, X } from "lucide-react";
 import { CrestPicker } from "@/components/dashboard/CrestPicker";
-import type { DynastySetting } from "@/lib/schemas";
+import { MAX_DYNASTY_NAME, type DynastySetting } from "@/lib/schemas";
 
 const SETTINGS = [
   { value: "FANTASY", label: "Fantasy" },
@@ -97,6 +97,7 @@ export function DynastySettingsDialog({ initial, showPublic = false, onSave }: P
               </label>
               <input
                 type="text"
+                maxLength={MAX_DYNASTY_NAME}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"

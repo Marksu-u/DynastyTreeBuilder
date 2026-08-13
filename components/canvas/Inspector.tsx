@@ -6,6 +6,9 @@ import type { CharacterData, CharacterFlag, CharacterGender } from '@/types/canv
 import type { AnyCanvasNode, CharacterNodeType, RelationshipEdgeType } from '@/store/canvas';
 import { characterLinks, type LinkedPerson } from '@/lib/character-links';
 import { relativeContext, type RelativeKind, type AddRelativeInput } from '@/lib/relative-ops';
+// The same caps the Server Action enforces, so the field stops you rather than
+// the save failing after the fact.
+import { MAX_ALIAS, MAX_CHARACTER_NAME, MAX_NOTE } from '@/lib/schemas';
 
 const GENDERS: { value: CharacterGender; label: string }[] = [
   { value: 'UNKNOWN', label: 'None' },
@@ -446,6 +449,7 @@ export function Inspector({
                 <input
                   autoFocus={!isEdit}
                   required
+                  maxLength={MAX_CHARACTER_NAME}
                   value={form.name}
                   onChange={(e) => set('name', e.target.value)}
                   placeholder="e.g. Aegon Targaryen"
@@ -455,6 +459,7 @@ export function Inspector({
 
               <Field label="Alias">
                 <input
+                  maxLength={MAX_ALIAS}
                   value={form.alias ?? ''}
                   onChange={(e) => set('alias', e.target.value)}
                   placeholder='"The Heir"'
@@ -550,6 +555,7 @@ export function Inspector({
           ) : (
             <Field label="Plot hook">
               <textarea
+                maxLength={MAX_NOTE}
                 value={form.note ?? ''}
                 onChange={(e) => set('note', e.target.value)}
                 placeholder="Why this person matters at the table."

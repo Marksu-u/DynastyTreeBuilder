@@ -78,20 +78,7 @@ export async function deleteCharacter(
   });
 }
 
-// Not rate limited — called on every drag-end (debounced 500ms), not a mutation vector
-export async function updatePosition(
-  id: string,
-  dynastyId: string,
-  x: number,
-  y: number
-): Promise<void> {
-  const user = await getAuthUser();
-  const validId = IdSchema.parse(id);
-  const validDynastyId = IdSchema.parse(dynastyId);
-  const validPos = PositionSchema.parse({ x, y });
-
-  await prisma.character.update({
-    where: { id: validId, dynasty: { id: validDynastyId, ownerId: user.id } },
-    data: { posX: validPos.x, posY: validPos.y },
-  });
-}
+// updatePosition was removed here: the canvas is laid out by
+// useGenealogyLayout with nodesDraggable={false}, so no drag-end ever fired and
+// nothing called it. Positions are still persisted by createCharacter, and read
+// back on load, which is all the layout needs.
