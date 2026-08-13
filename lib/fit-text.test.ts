@@ -86,3 +86,49 @@ describe('fitFontSize', () => {
     }
   });
 });
+
+describe('countLines with reserved marker space', () => {
+  it('matches the unreserved result when there is no reserve', () => {
+    expect(countLines('Aldric Thorne', 14, 134, {})).toBe(countLines('Aldric Thorne', 14, 134));
+  });
+
+  it('wraps trailing markers to a new line when they do not fit', () => {
+    const bare = countLines('Rhaenyra Velaryon', 14, 134);
+    const withMarkers = countLines('Rhaenyra Velaryon', 14, 134, { trailing: 32 });
+    expect(withMarkers).toBeGreaterThan(bare);
+  });
+
+  it('counts leading markers against the first line', () => {
+    const bare = countLines('Aldric Thorne', 14, 100);
+    const withLeading = countLines('Aldric Thorne', 14, 100, { leading: 22 });
+    expect(withLeading).toBeGreaterThanOrEqual(bare);
+  });
+
+  it('keeps the first word with its leading marker', () => {
+    // No break opportunity exists between an inline marker and the word after
+    // it, so the word cannot be pushed to line 2 on its own.
+    expect(countLines('Aldric', 14, 60, { leading: 22 })).toBe(1);
+  });
+
+  it('does not let a trailing space trigger the marker wrap', () => {
+    // 'Aldric ' ends in a space; that space must not count against the
+    // trailing reserve, because a line break eats it.
+    expect(countLines('Aldric ', 14, 60, { trailing: 0 })).toBe(1);
+  });
+});
+
+describe('fitFontSize with reserved marker space', () => {
+  it('steps down further when markers take space', () => {
+    const name = 'Ser Willem Fossoway of Cider Hall the Third';
+    const bare = fitFontSize(name, { maxWidth: 134, maxLines: 2 });
+    const withMarkers = fitFontSize(name, { maxWidth: 134, maxLines: 2, trailing: 16 });
+    expect(withMarkers).toBeLessThanOrEqual(bare);
+  });
+
+  it('returns a size whose layout actually fits, markers included', () => {
+    const name = 'Ser Willem Fossoway of Cider Hall the Third';
+    const reserve = { leading: 11, trailing: 16 };
+    const size = fitFontSize(name, { maxWidth: 134, maxLines: 2, ...reserve });
+    expect(countLines(name, size, 134, reserve)).toBeLessThanOrEqual(2);
+  });
+});

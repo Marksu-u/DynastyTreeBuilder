@@ -29,6 +29,16 @@ const SVG_RECT_PROPS = {
 const TEXT_COL_W = 134;
 const NAME_MAX_LINES = 2;
 
+// Inline marker widths in layout px — the element plus its 4px margin —
+// measured on the live canvas. They are fixed sizes and do not scale with the
+// name, so the name's own size calculation has to reserve room for them.
+const MARKER_W = {
+  founder: 11,
+  bastard: 11,
+  gender: 16,   // widest of ♂ ♀ ⚧ ?
+  deceased: 16,
+} as const;
+
 export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNodeType>) => {
   const canvasCtx = useCanvasContext();
   const setEditingCharacterIdStore = useCanvasStore((s) => s.setEditingCharacterId);
@@ -59,9 +69,16 @@ export const CharacterNode = memo(({ id, data, selected }: NodeProps<CharacterNo
   const hasSubRow = (data.style && data.style !== 'OTHER') || statusLabels.length > 0;
 
   const displayName = isGhost ? 'Unknown' : data.name;
+  const hasGenderGlyph =
+    data.gender === 'MALE' ||
+    data.gender === 'FEMALE' ||
+    data.gender === 'NON_BINARY' ||
+    data.gender === 'UNKNOWN';
   const nameSize = fitFontSize(displayName, {
     maxWidth: TEXT_COL_W,
     maxLines: NAME_MAX_LINES,
+    leading: (isFounder ? MARKER_W.founder : 0) + (isBastard ? MARKER_W.bastard : 0),
+    trailing: (hasGenderGlyph ? MARKER_W.gender : 0) + (isDeceased ? MARKER_W.deceased : 0),
   });
 
   return (

@@ -44,25 +44,43 @@ function tokenize(text: string): string[] {
   return out;
 }
 
+/** Space taken by inline markers that share the name's paragraph. */
+export type Reserve = { leading?: number; trailing?: number };
+
 /**
  * Lines this text needs at this size, wrapping greedily the way a browser
  * does. Trailing whitespace does not push a line over, because a break eats it.
+ *
+ * `reserve` accounts for inline markers sharing the paragraph — the founder
+ * diamond and bastard dot ahead of the name, the gender glyph and skull after
+ * it. They are fixed-px and do not scale with fontSize.
  */
-export function countLines(text: string, fontSize: number, maxWidth: number): number {
+export function countLines(
+  text: string,
+  fontSize: number,
+  maxWidth: number,
+  reserve: Reserve = {},
+): number {
+  const leading = reserve.leading ?? 0;
+  const trailing = reserve.trailing ?? 0;
   const tokens = tokenize(text);
-  if (tokens.length === 0) return 1;
 
   let lines = 1;
-  let x = 0;
+  let x = leading;      // includes the trailing space of any placed token
+  let xInk = leading;   // width up to the last non-space character
+  let first = true;
 
   for (const token of tokens) {
     const trimmed = token.replace(/\s+$/, '');
     const trimmedWidth = measureLine(trimmed, fontSize);
 
-    if (x > 0 && x + trimmedWidth > maxWidth) {
+    // The first token cannot be pushed off line 1: there is no break
+    // opportunity between a leading marker and the word that follows it.
+    if (!first && x > 0 && x + trimmedWidth > maxWidth) {
       lines += 1;
       x = 0;
     }
+    first = false;
 
     if (trimmedWidth > maxWidth) {
       // Wider than a whole line even on its own: break between characters.
@@ -74,10 +92,16 @@ export function countLines(text: string, fontSize: number, maxWidth: number): nu
         }
         x += w;
       }
+      xInk = x;
     } else {
+      xInk = x + trimmedWidth;
       x += measureLine(token, fontSize);
     }
   }
+
+  // Trailing markers sit immediately after the last character; if they do not
+  // fit on that line, they wrap to another one.
+  if (trailing > 0 && xInk + trailing > maxWidth) lines += 1;
 
   return lines;
 }
@@ -96,10 +120,15 @@ export const NAME_SIZES = [14, 13, 12, 11] as const;
  */
 export function fitFontSize(
   text: string,
-  { maxWidth, maxLines }: { maxWidth: number; maxLines: number },
+  {
+    maxWidth,
+    maxLines,
+    leading = 0,
+    trailing = 0,
+  }: { maxWidth: number; maxLines: number; leading?: number; trailing?: number },
 ): number {
   for (const size of NAME_SIZES) {
-    if (countLines(text, size, maxWidth) <= maxLines) return size;
+    if (countLines(text, size, maxWidth, { leading, trailing }) <= maxLines) return size;
   }
   return NAME_SIZES[NAME_SIZES.length - 1];
 }
