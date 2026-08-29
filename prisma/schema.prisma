@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+// CharacterRole, CharacterStyle, RelationshipType, RelationshipTag were converted
+// to free-text String columns in migration open_catalog_columns to support
+// user-defined custom catalog values. The catalog defaults live in lib/catalog/.
+
+enum DynastySetting {
+  FANTASY
+  SCI_FI
+  HISTORICAL
+  MODERN
+  HORROR
+  OTHER
+}
+
+enum CharacterGender {
+  MALE
+  FEMALE
+  NON_BINARY
+  UNKNOWN
+}
+
+enum NameStyle {
+  FANTASY
+  SCI_FI
+  HISTORICAL
+  MODERN
+  HORROR
+  OTHER
+}
+
+// CustomOptionKind: developer-controlled set of extendable catalog dimensions.
+// Users can add custom values within each kind, but new kinds are added by devs only.
+enum CustomOptionKind {
+  CHARACTER_STYLE
+  RELATIONSHIP_TYPE
+}
+
+enum AppSource {
+  DYNASTY_TREE_BUILDER
+}
+
+enum ReportReason {
+  ILLEGAL_CONTENT
+  HATE_SPEECH
+  SPAM
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id         String   @id @default(cuid())
+  supabaseId String   @unique
+  /// Stored attribute, not an identity — supabaseId is the key. Deliberately
+  /// not @unique: see migration drop_user_email_unique.
+  email      String
+  username   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  dynasties       Dynasty[]
+  nameBankEntries CustomName[]
+  customOptions   CustomOption[]
+
+  @@map("users")
+}
+
+model Dynasty {
+  id        String         @id @default(cuid())
+  name      String
+  slug      String         @unique
+  setting   DynastySetting @default(FANTASY)
+  /// Chosen crest seed. Null means "derive from slug", so existing dynasties get
+  /// a stable crest with no backfill and a rename never changes the arms.
+  crestSeed String?
+  isPublic  Boolean        @default(false)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  characters    Character[]
+  relationships Relationship[]
+
+  @@index([ownerId])
+  @@map("dynasties")
+}
+
+model Character {
+  id        String          @id @default(cuid())
+  name      String
+  alias     String?
+  // flags replaces role + isFounder + isLost — open array of permanent genealogical facts
+  flags     String[]        @default([])
+  style     String          @default("OTHER")
+  gender    CharacterGender @default(UNKNOWN)
+  note      String?
+  posX      Float           @default(0)
+  posY      Float           @default(0)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  dynastyId String
+  dynasty   Dynasty @relation(fields: [dynastyId], references: [id], onDelete: Cascade)
+
+  relationsFrom Relationship[] @relation("RelationshipFrom")
+  relationsTo   Relationship[] @relation("RelationshipTo")
+
+  @@index([dynastyId])
+  @@map("characters")
+}
+
+model Relationship {
+  id        String   @id @default(cuid())
+  // type is restricted to PARENT | SPOUSE | ADOPTED
+  type      String   @default("PARENT")
+  hook      String?
+  isMutual  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dynastyId String
+  dynasty   Dynasty @relation(fields: [dynastyId], references: [id], onDelete: Cascade)
+
+  fromId String
+  from   Character @relation("RelationshipFrom", fields: [fromId], references: [id], onDelete: Cascade)
+
+  toId String
+  to   Character @relation("RelationshipTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@index([dynastyId])
+  @@index([fromId])
+  @@index([toId])
+  @@map("relationships")
+}
+
+model CustomName {
+  id        String          @id @default(cuid())
+  name      String
+  style     NameStyle       @default(FANTASY)
+  gender    CharacterGender @default(UNKNOWN)
+  note      String?
+  createdAt DateTime        @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("custom_names")
+}
+
+// User-authored catalog option — extends one of the four open CatalogKinds
+model CustomOption {
+  id          String           @id @default(cuid())
+  kind        CustomOptionKind
+  // Server-derived token from the label (e.g. "SPYMASTER"). Immutable after creation.
+  value       String
+  label       String
+  // Optional hex color (#RRGGBB) for canvas badge/edge rendering
+  color       String?
+  description String?
+  createdAt   DateTime         @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Prevent duplicate tokens per user per kind
+  @@unique([userId, kind, value])
+  @@index([userId])
+  @@map("custom_options")
+}
+
+model Report {
+  id        String       @id @default(cuid())
+  source    AppSource
+  shareSlug String
+  reason    ReportReason
+  details   String?
+  status    ReportStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+
+  @@index([source])
+  @@index([status])
+  @@map("reports")
+}
