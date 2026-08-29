@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" fill="none">
+  <rect x=".5" y=".5" width="31" height="31" rx="7.5" fill="#0F172A" stroke="#1E293B"/>
+
+  <!-- Descent: founder down to the two heirs, joined by the sibling bar. -->
+  <path d="M16 9L8 19M16 9L24 19M8 19H24" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- The founder. -->
+  <path d="M16 5L20 9L16 13L12 9L16 5Z" fill="#F59E0B" stroke="#FDE68A" stroke-linejoin="round"/>
+
+  <!-- The two heirs, each a branch of the house. -->
+  <path d="M8 16L11 19L8 22L5 19L8 16Z" fill="#8B5CF6" stroke="#C4B5FD" stroke-width=".8" stroke-linejoin="round"/>
+  <path d="M24 16L27 19L24 22L21 19L24 16Z" fill="#10B981" stroke="#6EE7B7" stroke-width=".8" stroke-linejoin="round"/>
+
+  <!-- Direct line: the junction where the bar meets the founder's descent. -->
+  <circle cx="16" cy="19" r="1.5" fill="#F59E0B"/>
+</svg>
