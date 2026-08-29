@@ -1,0 +1,755 @@
+{
+  "site": {
+    "name": "Dynasty Tree Builder",
+    "description": "Un outil de canvas gratuit pour les meneurs de jeu de rôle : construisez des arbres dynastiques avec personnages, relations et étiquettes narratives.",
+    "jsonLdDescription": "Un créateur d'arbre généalogique gratuit pour vos campagnes de JdR : cartographiez maisons nobles, lignées et relations entre PNJ sur un canvas, puis partagez un lien ou exportez un PNG.",
+    "orgDescription": "Des outils web gratuits pour le jeu sur table.",
+    "ogAlt": "Dynasty Tree Builder — un arbre généalogique fantasy sur cinq générations, sur un canvas sombre"
+  },
+  "consent": {
+    "label": "Mesure d'audience",
+    "body": "Nous aimerions mesurer la fréquentation du site avec Google Analytics, ce qui dépose des cookies sur votre appareil. Le site fonctionne exactement de la même façon si vous refusez.",
+    "policy": "Politique des cookies",
+    "accept": "Accepter",
+    "decline": "Refuser",
+    "prefs": {
+      "granted": "Vous avez accepté la mesure d'audience.",
+      "denied": "Vous avez refusé la mesure d'audience. Aucun cookie Google Analytics n'est déposé.",
+      "unanswered": "Vous n'avez pas encore répondu. La mesure d'audience est désactivée.",
+      "note": "Vous pouvez changer d'avis à tout moment ; refuser après avoir accepté supprime immédiatement les cookies concernés. Votre choix est conservé six mois sur cet appareil, puis la question vous est reposée.",
+      "pending": "Chargement…"
+    }
+  },
+  "footer": {
+    "partOf": "fait partie de",
+    "tagline": "des outils gratuits, pour toujours.",
+    "moreTools": "Autres outils",
+    "legal": "Mentions Légales",
+    "privacy": "Confidentialité",
+    "terms": "CGU",
+    "cookies": "Cookies",
+    "twitter": "X",
+    "source": "Code source"
+  },
+  "language": {
+    "label": "Langue",
+    "en": "English",
+    "fr": "Français"
+  },
+  "legalPages": {
+    "back": "← Retour à Dynasty Tree Builder",
+    "updated": "Dernière mise à jour : {date}",
+    "cookies": {
+      "title": "Politique des Cookies",
+      "metaTitle": "Politique des Cookies · Bag Of Holding Tools",
+      "updated": "Août 2026",
+      "s1": {
+        "heading": "1. Qu'est-ce qu'un cookie ?",
+        "p1": "Un cookie est un petit fichier déposé sur votre navigateur lors de la consultation d'un site. Cette page vous explique quels cookies et technologies de stockage sont utilisés par Bag Of Holding Tools et ses outils, dont Dynasty Tree Builder (ci-après, le « Site »).",
+        "p2": "Le Site n'utilise <b>aucun cookie publicitaire, de réseau social ni de personnalisation</b>. Vos usages ne sont jamais revendus ni exploités à des fins commerciales. Seule une <b>mesure d'audience</b>, décrite à l'article 4, est susceptible d'être activée — et uniquement si vous l'acceptez explicitement."
+      },
+      "s2": {
+        "heading": "2. Cookies techniques et fonctionnels",
+        "p1": "Ces cookies sont strictement nécessaires au fonctionnement du Site. Conformément à la réglementation, ils ne requièrent pas votre consentement.",
+        "item1": "<b>Cookie de session Supabase</b> (par ex. <code>sb-…-auth-token</code>) — vous maintient connecté à votre compte. Déposé uniquement si vous créez un compte et vous connectez. Durée : jusqu'à votre déconnexion ou l'expiration de la session."
+      },
+      "s3": {
+        "heading": "3. Stockage local (mode invité)",
+        "p1": "En mode invité (sans compte), le Site utilise le stockage local (<code>localStorage</code>) de votre navigateur pour enregistrer votre travail sur votre propre appareil. Ces données ne sont jamais envoyées à nos serveurs et sont supprimées lorsque vous videz le stockage de votre navigateur. Ce mécanisme est strictement nécessaire et ne requiert pas votre consentement.",
+        "p2": "Votre réponse à la demande de consentement décrite à l'article 4 y est également conservée (clé <code>boh-analytics-consent</code>), afin de ne pas vous reposer la question à chaque visite. Cet enregistrement est lui aussi strictement nécessaire : sans lui, votre refus ne pourrait pas être respecté."
+      },
+      "s4": {
+        "heading": "4. Mesure d'audience (soumise à votre consentement)",
+        "p1": "Avec votre accord préalable, le Site utilise <b>Google Analytics 4</b> pour mesurer sa fréquentation : nombre de visites, pages consultées, provenance approximative et type d'appareil. Cela nous sert uniquement à savoir quels outils méritent d'être développés.",
+        "item1": "<code>_ga</code> et <code>_ga_<stream>identifiant du flux</stream></code> — distinguent les visiteurs et les sessions. Durée : 13 mois maximum.",
+        "p2": "<b>Rien n'est déposé tant que vous n'avez pas accepté.</b> Si vous refusez, ou si vous ne répondez pas, aucun cookie de mesure d'audience n'est créé et aucune donnée n'est transmise à Google. Le Site fonctionne exactement de la même façon dans les deux cas : aucune fonctionnalité n'est conditionnée à votre acceptation.",
+        "p3": "Le contenu que vous créez — personnages, relations, arbres, notes — n'est jamais transmis à Google. Google intervient en qualité de sous-traitant ; les données peuvent être transférées aux États-Unis dans les conditions décrites à l'article 9 de la Charte de Confidentialité."
+      },
+      "s5": {
+        "heading": "5. Cookies non utilisés",
+        "p1": "Par transparence, les catégories de cookies suivantes ne sont <b>jamais</b> utilisées par le Site :",
+        "items": [
+          "Cookies publicitaires — néant",
+          "Cookies de réseaux sociaux — néant",
+          "Cookies de personnalisation de contenu — néant",
+          "Revente ou partage de vos données à des fins commerciales — néant"
+        ]
+      },
+      "s6": {
+        "heading": "6. Paramétrer votre navigateur",
+        "p1": "Vous pouvez à tout moment configurer votre navigateur pour bloquer ou supprimer les cookies. Attention : sans le cookie de session, vous ne pourrez pas rester connecté à votre compte. Pour en savoir plus, consultez le site de la CNIL : <cnil>cnil.fr</cnil>.",
+        "cnilUrl": "https://www.cnil.fr/fr/cookies-et-autres-traceurs"
+      }
+    },
+    "terms": {
+      "title": "Conditions Générales d'Utilisation",
+      "metaTitle": "Conditions Générales d'Utilisation · Bag Of Holding Tools",
+      "updated": "Août 2026",
+      "s1": {
+        "heading": "1. Objet",
+        "p1": "Les présentes conditions générales d'utilisation (« CGU ») régissent l'accès et l'utilisation de tous les outils publiés sous Bag Of Holding Tools par une personne physique agissant à titre personnel et non commercial, publiant sous le pseudonyme {alias} conformément à l'article 6-III-2 de la LCEN (« Nous »), dont Dynasty Tree Builder (ci-après, ensemble, les « Outils »). Chaque Outil est gratuit, avec ou sans compte, et n'implique aucun paiement."
+      },
+      "s2": {
+        "heading": "2. Acceptation",
+        "p1": "En utilisant un Outil, vous acceptez pleinement et sans réserve les présentes CGU. Si vous n'acceptez pas ces conditions, vous ne devez pas utiliser les Outils."
+      },
+      "s3": {
+        "heading": "3. Capacité juridique",
+        "p1": "Les Outils sont accessibles à toute personne disposant de la capacité juridique pour s'engager au titre des présentes. Une personne mineure ne peut les utiliser qu'avec l'accord de son représentant légal."
+      },
+      "s4": {
+        "heading": "4. Compte",
+        "p1": "La création d'un compte est facultative et sert uniquement à sauvegarder votre travail dans le cloud et à y accéder depuis plusieurs appareils. Un même compte fonctionne sur l'ensemble des Outils. Vous êtes responsable de la sécurité de votre compte et vous engagez à ne pas laisser un tiers l'utiliser à votre place."
+      },
+      "s5": {
+        "heading": "5. Disponibilité et absence de garantie",
+        "p1": "Les Outils sont fournis « en l'état », sans garantie de disponibilité, d'exactitude ou d'adéquation à un usage particulier. Nous ne garantissons pas que les Outils seront exempts d'anomalies ou fonctionneront sans interruption, et pourrons suspendre l'accès pour maintenance ou mise à jour."
+      },
+      "s6": {
+        "heading": "6. Votre contenu",
+        "p1": "Vous conservez la pleine propriété des données que vous créez dans un Outil. En rendant un contenu public (par exemple en partageant un arbre via un lien), vous autorisez toute personne disposant du lien à le consulter. Vous pouvez révoquer ce partage à tout moment en le repassant en privé."
+      },
+      "s7": {
+        "heading": "7. Données concernant d'autres personnes",
+        "p1": "Certains Outils vous permettent de saisir des informations sur d'autres personnes réelles (par exemple des membres de votre famille). Vous êtes seul responsable du droit de saisir ces informations et de l'usage que vous en faites. Vous ne devez pas saisir de données sur une personne que vous n'êtes pas en droit de partager. En cas de réclamation concernant un contenu relatif à une personne réelle, nous pourrons le supprimer ou en restreindre l'accès sans préavis, et vous vous engagez à nous garantir contre toute réclamation résultant des données que vous avez saisies sur des tiers."
+      },
+      "s8": {
+        "heading": "8. Comportements prohibés",
+        "p1": "Il est notamment interdit :",
+        "items": [
+          "de créer ou partager un contenu illégal, préjudiciable, diffamatoire, haineux, incitant à la violence ou portant atteinte aux droits de tiers ;",
+          "de perturber, ralentir ou tenter d'intrusion dans les systèmes ou infrastructures des Outils ;",
+          "de contourner les dispositifs de sécurité ou d'authentification ;",
+          "de revendre, monnayer ou concéder l'accès aux Outils."
+        ]
+      },
+      "s9": {
+        "heading": "9. Signalement et modération",
+        "p1": "Les contenus publics sont accessibles à toute personne disposant du lien. Les signalements sont examinés et peuvent conduire à rendre un contenu privé ou à le supprimer sans préavis. Pour signaler un contenu : <mail>{email}</mail>."
+      },
+      "s10": {
+        "heading": "10. Propriété intellectuelle",
+        "p1": "Nous demeurons titulaires des droits de propriété intellectuelle sur les Outils. Les présentes CGU n'opèrent aucun transfert de ces droits à votre bénéfice, en dehors d'un droit d'utilisation personnel et non exclusif limité à la durée de votre utilisation."
+      },
+      "s11": {
+        "heading": "11. Responsabilité",
+        "p1": "Les Outils étant fournis gratuitement, et dans toute la mesure permise par la loi, nous ne saurions être tenus responsables des dommages résultant de l'utilisation ou de l'impossibilité d'utiliser un Outil, ni des contenus créés, partagés ou consultés par les utilisateurs."
+      },
+      "s12": {
+        "heading": "12. Résiliation",
+        "p1": "Vous pouvez supprimer votre compte à tout moment. Nous nous réservons le droit de suspendre l'accès ou de supprimer tout contenu, dans tout Outil, en cas de violation des présentes."
+      },
+      "s13": {
+        "heading": "13. Données personnelles",
+        "p1": "Le traitement de vos données personnelles est décrit dans notre <privacy>Charte de Confidentialité</privacy>."
+      },
+      "s14": {
+        "heading": "14. Modifications",
+        "p1": "Nous pouvons modifier les présentes CGU à mesure que des Outils sont ajoutés ou modifiés. Toute utilisation postérieure à une mise à jour vaut acceptation des CGU révisées."
+      },
+      "s15": {
+        "heading": "15. Langue",
+        "p1": "Les présentes CGU sont rédigées en français et en anglais. En cas de contradiction ou de contestation sur la signification d'un terme, la version française prévaut."
+      },
+      "s16": {
+        "heading": "16. Loi applicable",
+        "p1": "Les présentes CGU sont régies par la loi française. Tout litige non résolu à l'amiable relèvera de la compétence exclusive des tribunaux français."
+      },
+      "s17": {
+        "heading": "17. Contact",
+        "p1": "Toute question relative aux présentes CGU : <mail>{email}</mail>."
+      }
+    },
+    "notice": {
+      "title": "Mentions Légales",
+      "metaTitle": "Mentions Légales · Bag Of Holding Tools",
+      "updated": "Août 2026",
+      "publisher": {
+        "heading": "Édition du site",
+        "p1": "Le site Bag Of Holding Tools et l'ensemble de ses outils, dont Dynasty Tree Builder (ci-après, le « Site »), sont édités à titre personnel et non commercial par une personne physique (ci-après, l'« Éditeur »). Ses coordonnées ont été communiquées à l'hébergeur, conformément à l'article 6-III-2 de la LCEN.",
+        "p2": "L'Éditeur peut être contacté à l'adresse email <mail>{email}</mail>."
+      },
+      "director": {
+        "heading": "Directeur de la publication",
+        "p1": "Le directeur de la publication est {alias}."
+      },
+      "host": {
+        "heading": "Hébergement du site",
+        "p1": "Le Site est hébergé par {host}, {address} (<hostLink>vercel.com</hostLink>). L'hébergeur peut être contacté à l'adresse <hostMail>{hostEmail}</hostMail>.",
+        "p2": "Les données de compte sont stockées par {dataHost}, dans une région située au sein de l'Union européenne (<dataLink>supabase.com</dataLink>)."
+      },
+      "ip": {
+        "heading": "Propriété intellectuelle",
+        "p1": "Toutes les marques, textes, illustrations, images ainsi que les applications informatiques qui composent le Site sont protégés au titre de la propriété intellectuelle et sont la propriété de l'Éditeur, sauf mentions particulières. Toute reproduction, représentation ou adaptation, en tout ou partie, sans l'accord préalable et écrit de l'Éditeur, est strictement interdite.",
+        "p2": "Les données que vous créez au sein d'un outil (par exemple votre arbre généalogique) vous appartiennent et ne sont pas revendiquées par l'Éditeur."
+      },
+      "links": {
+        "heading": "Liens hypertextes",
+        "p1": "Le Site peut contenir des liens vers d'autres sites édités et gérés par des tiers. L'Éditeur ne saurait être tenu responsable, directement ou indirectement, du contenu de ces sites tiers."
+      }
+    },
+    "privacy": {
+      "title": "Charte de Confidentialité",
+      "metaTitle": "Charte de Confidentialité · Bag Of Holding Tools",
+      "updated": "Août 2026",
+      "preamble": {
+        "heading": "Préambule",
+        "p1": "La présente charte s'applique à l'ensemble des outils publiés sous Bag Of Holding Tools, dont Dynasty Tree Builder. Tous les outils partagent le même système de compte, une seule charte les couvre donc tous. Elle a pour objet de vous expliquer comment sont collectées, traitées et conservées vos données à caractère personnel, conformément à la loi n° 78-17 du 6 janvier 1978 (« Informatique et Libertés ») et au règlement (UE) 2016/679 (« RGPD »)."
+      },
+      "s1": {
+        "heading": "1. Définition",
+        "p1": "Le terme « données à caractère personnel » désigne toute information permettant de vous identifier directement ou indirectement, comme votre adresse email."
+      },
+      "s2": {
+        "heading": "2. Responsable de traitement",
+        "p1": "Le responsable de traitement est l'éditeur du Site : une personne physique agissant à titre personnel et non commercial, publiant sous le pseudonyme {alias} conformément à l'article 6-III-2 de la LCEN (« Nous »). Ses coordonnées complètes sont détenues par l'hébergeur.",
+        "p2": "Le responsable de traitement peut être contacté à tout moment à l'adresse <mail>{email}</mail>. Cette adresse est le point de contact unique pour l'ensemble des demandes relatives à vos données."
+      },
+      "s3": {
+        "heading": "3. Mode invité (sans compte)",
+        "p1": "Vous pouvez utiliser tous les outils sans créer de compte. En mode invité, vos données (personnages, relations et tout contenu créé) sont stockées uniquement dans votre navigateur (localStorage) et ne sont jamais envoyées à nos serveurs. L'export en PNG ou JSON se fait entièrement sur votre appareil. Nous n'avons aucun accès aux données du mode invité.",
+        "p2": "Le mode invité n'est pas exclu de la mesure d'audience facultative décrite à l'article 5. Celle-ci ne porte que sur la navigation (pages consultées, type d'appareil), jamais sur le contenu que vous créez, et elle reste désactivée tant que vous ne l'avez pas acceptée."
+      },
+      "s4": {
+        "heading": "4. Données collectées et finalités (mode compte)",
+        "p1": "La création d'un compte est facultative et sert uniquement à sauvegarder votre travail dans le cloud. Lorsque vous vous connectez avec Google, nous collectons :",
+        "items": [
+          "Votre adresse email (fournie par Google) ;",
+          "Les données que vous créez dans chaque outil (par ex. personnages, relations, rôles et noms personnalisés pour Dynasty Tree Builder)."
+        ],
+        "p2": "Nous ne collectons ni votre nom, ni votre photo de profil, ni aucune autre donnée de votre compte Google au-delà de votre adresse email. La base juridique de ces traitements est l'exécution du contrat que vous concluez en créant un compte. Vos données servent exclusivement à vous identifier et à vous permettre d'accéder à votre travail entre vos sessions et appareils."
+      },
+      "s5": {
+        "heading": "5. Destinataires et sous-traitants",
+        "p1": "Vos données de compte sont traitées par les prestataires suivants, aux seules fins de fournir le service :",
+        "item1": "<b>Supabase</b> (région Union européenne) — authentification et hébergement de la base de données ;",
+        "item2": "<b>Vercel</b> — hébergement de l'application ;",
+        "item3": "<b>Google</b> — fournisseur de connexion (OAuth).",
+        "item4": "<b>Google Analytics</b> — mesure d'audience, <b>uniquement si vous l'avez acceptée</b>. Aucune donnée ne lui est transmise avant votre accord, et votre contenu ne lui est jamais transmis. Voir la <cookies>Politique des Cookies</cookies>.",
+        "p2": "Vos données ne sont jamais vendues, louées ni partagées avec un tiers en dehors de ces prestataires."
+      },
+      "s6": {
+        "heading": "6. Durée de conservation",
+        "p1": "Vos données de compte sont conservées tant que votre compte existe. Vous pouvez demander la suppression de votre compte et de toutes les données associées à tout moment en écrivant à <mail>{email}</mail>. La suppression est définitive."
+      },
+      "s7": {
+        "heading": "7. Sécurité",
+        "p1": "Nous mettons en œuvre les mesures techniques et organisationnelles appropriées pour préserver la sécurité, l'intégrité et la confidentialité de vos données et empêcher qu'un tiers non autorisé y ait accès."
+      },
+      "s8": {
+        "heading": "8. Hébergement",
+        "p1": "Vos données de compte sont stockées sur les serveurs de Supabase, dans une région située au sein de l'Union européenne."
+      },
+      "s9": {
+        "heading": "9. Transfert hors de l'Union européenne",
+        "p1": "Vercel et Google sont établis aux États-Unis. Lorsque vos données sont transférées hors de l'Union européenne, ce transfert est encadré soit par une décision d'adéquation (dont le EU–US Data Privacy Framework), soit par les clauses contractuelles types approuvées par la Commission européenne."
+      },
+      "s10": {
+        "heading": "10. Vos droits",
+        "p1": "Conformément au RGPD, vous disposez des droits suivants :",
+        "items": [
+          "Droit d'accès, de rectification et d'effacement de vos données ;",
+          "Droit à la limitation du traitement ;",
+          "Droit à la portabilité (recevoir vos données dans un format lisible par machine) ;",
+          "Droit d'opposition au traitement ;",
+          "Droit de retirer votre consentement à tout moment ;",
+          "Droit de définir des directives relatives au sort de vos données après votre décès."
+        ],
+        "p2": "Ces droits s'exercent en écrivant à <mail>{email}</mail>. Nous répondons dans un délai d'un mois à compter de la réception de votre demande."
+      },
+      "s11": {
+        "heading": "11. Réclamation auprès d'une autorité de contrôle",
+        "p1": "Vous avez le droit d'introduire une réclamation auprès d'une autorité de contrôle, en France la <cnil>CNIL</cnil>, si vous estimez que le traitement de vos données constitue une violation des textes applicables.",
+        "cnilUrl": "https://www.cnil.fr"
+      },
+      "s12": {
+        "heading": "12. Données concernant des tiers",
+        "p1": "Certains outils vous permettent de saisir des informations sur d'autres personnes (par exemple des membres de votre famille). Vous êtes responsable du droit de saisir ces informations — voir nos <terms>Conditions Générales d'Utilisation</terms>. Si un tiers souhaite que des informations le concernant soient supprimées d'un compte qu'il ne contrôle pas, il peut nous contacter et nous transmettrons la demande au titulaire du compte ou y donnerons suite lorsque la loi l'exige."
+      },
+      "s13": {
+        "heading": "13. Mineurs",
+        "p1": "Nos outils ne sont pas destinés aux enfants de moins de 15 ans. Si vous pensez qu'un enfant de moins de 15 ans a créé un compte, contactez-nous et nous le supprimerons."
+      },
+      "s14": {
+        "heading": "14. Modifications",
+        "p1": "Nous pouvons modifier la présente charte à mesure que des outils sont ajoutés ou modifiés. Les modifications entrent en vigueur dès leur publication, reflétée par la date de mise à jour ci-dessus."
+      },
+      "s15": {
+        "heading": "15. Contact",
+        "p1": "Toute question relative à la présente charte : <mail>{email}</mail>."
+      }
+    }
+  },
+  "notFound": {
+    "metaTitle": "Page introuvable",
+    "code": "404",
+    "heading": "Cette branche de l'arbre est manquante",
+    "body": "Il n'y a rien à cette adresse. La dynastie a peut-être été dépubliée, ou le lien a été mal saisi.",
+    "canvas": "Ouvrir le canvas",
+    "about": "Ce que fait Dynasty Tree Builder"
+  },
+  "errorCard": {
+    "heading": "Une erreur est survenue",
+    "fallback": "Une erreur inattendue s'est produite. Veuillez réessayer.",
+    "retry": "Réessayer"
+  },
+  "canvas": {
+    "account": {
+      "guest": "Invité — enregistré dans ce navigateur",
+      "signIn": "Se connecter",
+      "saving": "Enregistrement…",
+      "saved": "Enregistré",
+      "errorSaving": "Échec de l'enregistrement"
+    },
+    "legend": {
+      "title": "Légende",
+      "founder": "Fondateur",
+      "founderDef": "À l'origine de la lignée",
+      "bastard": "Bâtard",
+      "bastardDef": "Né hors mariage",
+      "adopted": "Adopté",
+      "adoptedDef": "Recueilli par la maison",
+      "exiled": "Exilé",
+      "exiledDef": "Banni, mais toujours de la famille",
+      "deceased": "Décédé",
+      "deceasedDef": "N'est plus en vie",
+      "gender": "Genre",
+      "genderDef": "Homme, femme, non-binaire"
+    },
+    "empty": {
+      "watermark": "Votre dynastie vous attend",
+      "title": "Votre canvas est vide",
+      "description": "Ajoutez votre premier personnage pour commencer à construire l'arbre dynastique.",
+      "addFirst": "Ajouter le premier personnage",
+      "import": "ou importer une sauvegarde JSON"
+    },
+    "example": {
+      "body": "Ceci est <name>{houseName}</name>, un exemple — déplacez-le, ou effacez-le pour construire le vôtre.",
+      "start": "Commencer la mienne",
+      "dismiss": "Fermer"
+    },
+    "zoom": {
+      "in": "Zoom avant",
+      "out": "Zoom arrière",
+      "reset": "Réinitialiser le zoom à 100 %"
+    },
+    "hint": {
+      "addRelative": "Sélectionnez ce personnage, puis utilisez les boutons <plus>+</plus> pour ajouter des proches"
+    },
+    "toolbar": {
+      "fit": "Ajuster à la vue",
+      "grid": "Afficher/masquer la grille",
+      "undo": "Annuler (Ctrl/⌘+Z)",
+      "redo": "Rétablir (Ctrl/⌘+Maj+Z)",
+      "export": "Exporter",
+      "exportPng": "Exporter en PNG",
+      "exportJson": "Télécharger le JSON",
+      "importJson": "Importer un JSON",
+      "exportAsPng": "Exporter en PNG"
+    },
+    "share": {
+      "label": "Partager",
+      "copy": "Copier le lien de partage",
+      "private": "Cette dynastie est privée — activez le partage dans les Réglages",
+      "makePublic": "Rendez d'abord cette dynastie publique dans les Réglages",
+      "copied": "Lien copié !",
+      "copyFailed": "Copie impossible — vérifiez l'autorisation du presse-papiers"
+    },
+    "toasts": {
+      "failedToSave": "Échec de l'enregistrement : {error}",
+      "saveErrorDetail": "{message} : {error}",
+      "stillSaving": "Enregistrement de ce personnage en cours — réessayez dans un instant.",
+      "pickPartner": "Choisissez d'abord le partenaire",
+      "downloadedJson": "Téléchargé en JSON",
+      "exportFailed": "L'export a échoué",
+      "unreadableFile": "Impossible de lire ce fichier — s'agit-il bien d'un export Dynasty Tree ?",
+      "imported": "Arbre dynastique importé",
+      "importFailed": "L'import a échoué : {error}",
+      "added": "{name} a rejoint la dynastie",
+      "removed": "Personnage supprimé",
+      "addedToTree": "Ajouté à l'arbre"
+    },
+    "replaceDynasty": {
+      "title": "Remplacer « {name} » ?",
+      "description": "Importer un fichier remplace définitivement tous les personnages et toutes les relations de cette dynastie. Cette action est irréversible.",
+      "confirmLabel": "Remplacer la dynastie"
+    },
+    "replaceTree": {
+      "title": "Remplacer votre arbre actuel ?",
+      "description": "Importer un fichier remplace tout ce qui se trouve sur ce canvas. Votre arbre invité actuel sera définitivement perdu.",
+      "confirmLabel": "Remplacer l'arbre"
+    },
+    "inspector": {
+      "aria": "Inspecteur — {title}",
+      "close": "Fermer l'inspecteur",
+      "kinds": {
+        "partner": "partenaire",
+        "child": "enfant",
+        "parent": "parent"
+      },
+      "unsaved": {
+        "title": "Modifications non enregistrées",
+        "body": "{subject} comporte des modifications non enregistrées. Ouvrir {target} les abandonnera.",
+        "keep": "Continuer l'édition",
+        "discard": "Abandonner et continuer"
+      },
+      "subject": {
+        "edit": "Ce personnage",
+        "create": "Ce nouveau personnage",
+        "relative": "Ce nouveau {kind}"
+      },
+      "target": {
+        "another": "un autre personnage",
+        "create": "un nouveau personnage",
+        "relative": "un nouveau {kind}"
+      },
+      "title": {
+        "unnamed": "Sans nom",
+        "create": "Nouveau personnage",
+        "relative": "Ajouter un {kind}"
+      },
+      "subtitle": "pour {name}",
+      "tabs": {
+        "details": "détails",
+        "links": "liens",
+        "notes": "notes"
+      },
+      "fields": {
+        "search": "Rechercher",
+        "searchPlaceholder": "Rechercher des personnages…",
+        "name": "Nom",
+        "nameRequired": "Nom *",
+        "namePlaceholder": "ex. Aegon Targaryen",
+        "alias": "Alias",
+        "aliasPlaceholder": "« L'héritier »",
+        "role": "Rôle",
+        "rolePlaceholder": "Héritier",
+        "gender": "Genre",
+        "flags": "Attributs",
+        "partners": "Partenaires",
+        "parents": "Parents",
+        "children": "Enfants",
+        "plotHook": "Accroche narrative",
+        "plotHookPlaceholder": "Pourquoi ce personnage compte à la table.",
+        "whichPartner": "Avec quel partenaire ?"
+      },
+      "add": {
+        "partner": "Ajouter un partenaire",
+        "parent": "Ajouter un parent",
+        "child": "Ajouter un enfant"
+      },
+      "none": "Aucun",
+      "adopted": "Adopté",
+      "unknown": "Inconnu",
+      "genders": {
+        "UNKNOWN": "Aucun",
+        "MALE": "Homme",
+        "FEMALE": "Femme",
+        "NON_BINARY": "Non-binaire"
+      },
+      "flags": {
+        "FOUNDER": "Fondateur",
+        "BASTARD": "Bâtard",
+        "ADOPTED": "Adopté",
+        "EXILE": "Exilé",
+        "DECEASED": "Décédé"
+      }
+    },
+    "report": {
+      "trigger": "Signaler ce contenu",
+      "title": "Signaler ce contenu",
+      "reason": "Motif",
+      "reasonPlaceholder": "Choisissez un motif…",
+      "reasons": {
+        "ILLEGAL_CONTENT": "Contenu illégal",
+        "HATE_SPEECH": "Discours haineux",
+        "SPAM": "Spam",
+        "OTHER": "Autre"
+      },
+      "details": "Précisions",
+      "detailsHint": "(facultatif, 500 caractères maximum)",
+      "detailsPlaceholder": "Décrivez le problème…",
+      "submit": "Envoyer le signalement",
+      "submitting": "Envoi…",
+      "success": "Signalement envoyé — merci."
+    },
+    "node": {
+      "addParent": "Ajouter un parent",
+      "addPartner": "Ajouter un partenaire",
+      "addChild": "Ajouter un enfant",
+      "edit": "Modifier le personnage"
+    },
+    "settingsToast": {
+      "saved": "Réglages enregistrés",
+      "failed": "Enregistrement impossible — vérifiez votre connexion et réessayez."
+    },
+    "shareView": {
+      "exportTitle": "Exporter en PNG",
+      "exportLabel": "Exporter en PNG",
+      "viewing": "👁 Consultation de <b>{name}</b> · Lecture seule",
+      "buildOwn": "Créez le vôtre — sans compte →"
+    }
+  },
+  "login": {
+    "metaTitle": "Connexion",
+    "heading": "Dynasty Tree Builder",
+    "subtitle": "Connectez-vous pour conserver vos dynasties d'une session à l'autre.",
+    "google": "Se connecter avec Google",
+    "redirecting": "Redirection…",
+    "legal": "En vous connectant, vous acceptez nos <terms>Conditions Générales d'Utilisation</terms> et notre <privacy>Charte de Confidentialité</privacy>.",
+    "guest": "Aucun compte n'est nécessaire pour utiliser l'outil.",
+    "guestLink": "Essayer en invité →",
+    "errors": {
+      "auth_callback_failed": "Nous n'avons pas pu finaliser votre connexion. Veuillez réessayer.",
+      "sync_failed": "Vous êtes connecté, mais nous n'avons pas pu charger votre compte. Veuillez réessayer dans un instant.",
+      "generic": "La connexion a échoué. Veuillez réessayer.",
+      "unknown": "Une erreur est survenue"
+    }
+  },
+  "account": {
+    "metaTitle": "Compte",
+    "back": "← Vos dynasties",
+    "signOut": "Se déconnecter",
+    "heading": "Compte",
+    "email": "Email",
+    "saved": "Dynasties enregistrées",
+    "exportAll": "Tout exporter",
+    "danger": {
+      "heading": "Zone de danger",
+      "body": "Supprimer votre compte efface définitivement tout ce qui y est rattaché : vos dynasties, personnages, relations et options personnalisées — ainsi que votre identifiant de connexion lui-même. Cette action est irréversible.",
+      "ecosystem": "Un seul compte couvre toutes les applications Bag Of Holding Tools : cette suppression efface donc vos données dans chacune d'elles :"
+    },
+    "export": {
+      "download": "Télécharger le JSON",
+      "preparing": "Préparation…",
+      "success": "Vos données de compte ont été téléchargées",
+      "error": "L'export a échoué — veuillez réessayer."
+    },
+    "delete": {
+      "trigger": "Supprimer le compte",
+      "title": "Supprimer votre compte",
+      "body": "Cette action supprime définitivement votre compte et <b>tout ce qui y est rattaché</b>. Vos données seront effacées de toutes les applications Bag Of Holding Tools, pas seulement de celle-ci. Cette action est irréversible.",
+      "confirmLabel": "Saisissez <b>{email}</b> pour confirmer",
+      "confirm": "Supprimer définitivement",
+      "deleting": "Suppression…",
+      "success": "Votre compte et toutes ses données ont été supprimés."
+    }
+  },
+  "settings": {
+    "FANTASY": "Fantasy",
+    "SCI_FI": "Science-fiction",
+    "HISTORICAL": "Historique",
+    "MODERN": "Moderne",
+    "HORROR": "Horreur",
+    "OTHER": "Autre"
+  },
+  "dashboard": {
+    "metaTitle": "Vos dynasties",
+    "heading": "Vos dynasties",
+    "signOut": "Se déconnecter",
+    "count": "{count, plural, one {# dynastie} other {# dynasties}}",
+    "empty": {
+      "title": "Aucune dynastie pour l'instant",
+      "description": "Créez votre première dynastie pour commencer à cartographier votre monde."
+    },
+    "new": {
+      "heading": "Nouvelle dynastie",
+      "name": "Nom de la dynastie",
+      "namePlaceholder": "Maison Varek…",
+      "setting": "Univers",
+      "create": "Créer la dynastie",
+      "creating": "Création…",
+      "cancel": "Annuler"
+    },
+    "card": {
+      "characters": "{count, plural, one {# personnage} other {# personnages}}",
+      "updated": "Modifiée le {date}",
+      "deleteAria": "Supprimer {name}",
+      "deleted": "« {name} » supprimée",
+      "confirmTitle": "Supprimer « {name} » ?",
+      "confirmBody": "Cette action supprime la dynastie ainsi que tous les personnages et relations qu'elle contient. Elle est irréversible.",
+      "confirmLabel": "Supprimer la dynastie"
+    },
+    "create": {
+      "trigger": "Nouvelle dynastie",
+      "title": "Créer une dynastie",
+      "close": "Fermer"
+    },
+    "canvasFallback": "Canvas de dynastie",
+    "guestImport": {
+      "heading": "Vous avez construit un arbre en mode invité",
+      "body": "Importez ses {count, plural, one {# personnage} other {# personnages}} dans une dynastie enregistrée sur votre compte.",
+      "nameLabel": "Nom de la dynastie",
+      "namePlaceholder": "Ma dynastie",
+      "import": "Importer",
+      "importing": "Import…",
+      "dismiss": "Fermer",
+      "success": "Votre arbre invité a été importé",
+      "error": "L'import de votre arbre invité a échoué"
+    },
+    "crest": {
+      "heading": "Blason de la maison",
+      "hint": "Choisissez-en un ci-dessous, ou affichez-en six autres.",
+      "use": "Utiliser ce blason"
+    },
+    "settings": {
+      "trigger": "Réglages de la dynastie",
+      "title": "Réglages de la dynastie",
+      "name": "Nom",
+      "namePlaceholder": "Nom de la dynastie",
+      "setting": "Univers",
+      "public": "Publique",
+      "publicHint": "Toute personne disposant du lien peut la consulter",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "triggerLabel": "Réglages"
+    }
+  },
+  "share": {
+    "notFound": "Arbre introuvable",
+    "description": "Explorez l'arbre dynastique {name} — un arbre généalogique {setting} créé avec Dynasty Tree Builder.",
+    "ogTitle": "{name} · Dynasty Tree Builder",
+    "home": "Dynasty Tree Builder",
+    "ogMeta": "{setting} · {count, plural, one {# personnage} other {# personnages}}"
+  },
+  "common": {
+    "cancel": "Annuler",
+    "close": "Fermer"
+  },
+  "home": {
+    "metaTitle": "Dynasty Tree Builder — Créateur d'arbres généalogiques pour D&D et JdR",
+    "metaDescription": "Un créateur d'arbre généalogique gratuit pour vos campagnes de D&D et de JdR. Cartographiez maisons nobles, relations entre PNJ, lignées et rivalités sur un canvas en glisser-déposer, puis partagez un lien ou exportez un PNG. Sans compte.",
+    "nav": {
+      "how": "Comment ça marche",
+      "faq": "FAQ",
+      "signIn": "Se connecter"
+    },
+    "hero": {
+      "eyebrow": "Dynasty Tree Builder",
+      "heading": "Toute maison noble est une <accent>toile de sang et de trahisons</accent>. Cartographiez la vôtre.",
+      "lede": "Un créateur d'arbre généalogique gratuit pour vos campagnes de D&D et de JdR — personnages, lignées, unions et les rivalités sur lesquelles vos joueurs ne cessent de trébucher.",
+      "cta": "Commencer — sans compte",
+      "dashboard": "Ouvrir le tableau de bord",
+      "note": "Le mode invité enregistre dans votre navigateur — connectez-vous uniquement pour synchroniser entre vos appareils."
+    },
+    "beats": [
+      {
+        "title": "Tout commence par un nom",
+        "body": "Ouvrez le canvas et ajoutez un fondateur. Pas de compte, pas de configuration, pas d'assistant de projet vide — une carte sur fond sombre, et de la place pour la suivante."
+      },
+      {
+        "title": "Puis la maison se complique",
+        "body": "Ajoutez des partenaires, des enfants, des remariages. Le moteur de mise en page garde les générations en bandes et resserre les fratries, si bien que la forme reste lisible pendant que vous improvisez. Bâtards, adoptions et exils sont des attributs, pas des contournements."
+      },
+      {
+        "title": "Jusqu'à une forme que vous pouvez confier à vos joueurs",
+        "body": "Survolez un personnage pour illuminer toute sa lignée. Publiez et vous obtenez un lien en lecture seule — le canvas en direct, sans compte de leur côté — ou exportez l'arbre en PNG pour le wiki de campagne."
+      }
+    ],
+    "what": {
+      "heading": "Un générateur de dynasties pour vos campagnes",
+      "p1": "La plupart des logiciels d'arbre généalogique sont conçus pour la généalogie réelle : ancêtres attestés, actes de naissance, dates vérifiables. Les familles de campagne sont plus désordonnées. La moitié des parents sont inconnus, un tiers des héritiers sont secrètement des bâtards, deux maisons se sont unies pour un traité depuis rompu — et l'ensemble doit rester lisible pendant que vous improvisez à la table.",
+      "p2": "Dynasty Tree Builder est fait pour cela. Vous déposez des personnages sur un canvas, vous les reliez comme parents, partenaires ou enfants adoptés, et le moteur de mise en page dispose les générations pour vous. Chaque personnage porte un rôle et une série d'attributs narratifs : l'arbre devient ainsi une véritable carte des relations entre PNJ, et pas seulement un tableau de filiations.",
+      "p3": "Tout se passe dans le navigateur, c'est gratuit, et vous construisez en moins de dix secondes — <canvas>ouvrez le canvas en invité</canvas> et jugez par vous-même."
+    },
+    "features": {
+      "heading": "Ce que vous obtenez",
+      "items": [
+        {
+          "title": "Un canvas pensé pour les lignées",
+          "body": "Déplacez les personnages sur un canvas infini. Les générations s'alignent en bandes horizontales et les fratries se resserrent : une maison sur dix générations se lit de haut en bas, sans lignes qui se croisent."
+        },
+        {
+          "title": "Des relations qui ont du sens",
+          "body": "Reliez les personnes en parent/enfant, partenaire ou adoption. Chaque type de relation trace son propre style de lien, et chaque lien peut porter une accroche narrative — la raison pour laquelle cette relation compte à la table."
+        },
+        {
+          "title": "Rôles et attributs narratifs",
+          "body": "Donnez un rôle à un personnage (chef de maison, héritier, consort, rival, mage, roublard…) et empilez par-dessus des attributs permanents : fondateur, bâtard, adopté, exilé, décédé. Les utilisateurs connectés peuvent ajouter leurs propres rôles."
+        },
+        {
+          "title": "Partagez un lien en lecture seule",
+          "body": "Publiez une dynastie et donnez le lien à vos joueurs. Ils obtiennent le canvas en direct — se déplacer, zoomer, éclairer une lignée — sans pouvoir modifier quoi que ce soit ni créer de compte. Dépubliez dès que le secret cesse d'en être un."
+        },
+        {
+          "title": "Export PNG",
+          "body": "Exportez l'arbre en PNG haute résolution, recadré sur vos personnages. Fonctionne depuis l'éditeur comme depuis une vue partagée : vos joueurs peuvent en récupérer leur propre copie pour le wiki de campagne."
+        },
+        {
+          "title": "Mode invité, sans inscription",
+          "body": "Ouvrez le canvas et commencez. Les dynasties en mode invité vivent dans le stockage local de votre navigateur. Créez un compte uniquement lorsque vous voulez retrouver l'arbre sur plusieurs appareils — votre travail d'invité peut être importé."
+        }
+      ]
+    },
+    "useCases": {
+      "heading": "À qui cela s'adresse",
+      "items": [
+        {
+          "title": "Meneurs de jeu",
+          "body": "Gardez au même endroit la carte des relations entre PNJ d'une intrigue de cour. Quand un joueur demande qui le demi-frère du duc a épousé, vous avez la réponse à l'écran plutôt qu'enfouie trois séances plus tôt dans vos notes."
+        },
+        {
+          "title": "Créateurs de mondes",
+          "body": "Suivez une lignée fondatrice à travers les siècles, séparez-la en branches cadettes, et marquez les lignes éteintes. Les bandes de générations rendent visible d'un coup d'œil l'ascension et l'effondrement d'une dynastie."
+        },
+        {
+          "title": "Joueurs avec un passé",
+          "body": "Cartographiez la maison de votre personnage avant la première séance — qui l'a élevé, qui l'a renié, quel cousin détient le titre aujourd'hui. Partagez le lien avec votre MJ pour que les détails survivent au contact de la campagne."
+        },
+        {
+          "title": "Auteurs et groupes de jeu par forum",
+          "body": "Rien ici n'est propre à D&D. Toute histoire avec une succession, une vendetta ou une famille embrouillée fonctionne : maisons de science-fiction, lignées d'horreur, fiction historique, ou le casting d'un roman que vous perdez sans cesse de vue."
+        }
+      ]
+    },
+    "faq": {
+      "heading": "Questions fréquentes",
+      "jsonLdName": "Dynasty Tree Builder — questions fréquentes",
+      "items": [
+        {
+          "q": "Dynasty Tree Builder est-il gratuit ?",
+          "a": "Oui. Créer, partager et exporter des arbres dynastiques est gratuit, sans période d'essai ni coordonnées bancaires. La connexion est facultative et sert uniquement à retrouver vos arbres d'un appareil à l'autre."
+        },
+        {
+          "q": "Faut-il un compte pour créer un arbre généalogique ?",
+          "a": "Non. Le mode invité ouvre directement le canvas et enregistre votre dynastie dans le stockage local de votre navigateur. Si vous créez un compte par la suite, l'arbre construit en invité peut y être importé."
+        },
+        {
+          "q": "Puis-je l'utiliser pour D&D, Pathfinder ou un système maison ?",
+          "a": "Oui. Rien dans l'outil n'est lié à un système de règles. Les personnages portent un nom, un alias facultatif, un rôle et des attributs narratifs : cela fonctionne pour n'importe quel JdR sur table, jeu par forum ou projet de roman."
+        },
+        {
+          "q": "Comment partager un arbre dynastique avec mes joueurs ?",
+          "a": "Publiez la dynastie et vous obtenez un lien de partage en lecture seule. Toute personne disposant du lien voit le même canvas — se déplacer, zoomer, suivre les lignées et exporter un PNG — sans rien pouvoir modifier. Dépubliez à tout moment pour rompre le lien."
+        },
+        {
+          "q": "Puis-je exporter l'arbre généalogique en image ?",
+          "a": "Oui. Un clic exporte tout le canvas en PNG haute résolution, recadré sur vos personnages : vous pouvez le déposer dans un wiki de campagne, un salon Discord, un document de séance ou une table virtuelle."
+        },
+        {
+          "q": "Combien de personnages une dynastie peut-elle contenir ?",
+          "a": "Il n'y a pas de limite fixe. Le moteur de mise en page place les générations en bandes et resserre les fratries, si bien que les grandes maisons sur de nombreuses générations restent lisibles au lieu de devenir un enchevêtrement de lignes."
+        },
+        {
+          "q": "Gère-t-il les bâtards, les adoptions et les partenaires multiples ?",
+          "a": "Oui. Un personnage peut avoir plusieurs partenaires, chacun avec sa propre descendance, et les enfants peuvent être marqués comme adoptés ou bâtards. Les parents inconnus peuvent rester des nœuds fantômes, afin qu'une lignée incomplète s'affiche correctement."
+        }
+      ]
+    },
+    "closing": {
+      "heading": "Cartographiez votre première maison",
+      "body": "Pas d'inscription, pas d'essai, pas de carte bancaire. Ouvrez le canvas, ajoutez un fondateur, et laissez les branches pousser.",
+      "cta": "Ouvrir le canvas"
+    },
+    "jsonLd": {
+      "subCategory": "Créateur d'arbre généalogique pour campagnes de jeu de rôle",
+      "description": "Un créateur d'arbre généalogique gratuit, dans le navigateur, pour vos campagnes de D&D et autres JdR. Cartographiez personnages, lignées, unions et rivalités sur un canvas, puis partagez un lien en lecture seule ou exportez un PNG."
+    }
+  },
+  "tree": {
+    "metaTitle": "Créer un arbre généalogique — canvas gratuit",
+    "metaDescription": "Ouvrez le canvas et commencez à cartographier une dynastie : ajoutez des personnages, reliez parents, partenaires et enfants adoptés, puis exportez un PNG. Gratuit et sans compte.",
+    "srHeading": "Dynasty tree builder — canvas d'arbre généalogique gratuit pour campagnes de JdR",
+    "srBody": "Ajoutez des personnages, reliez-les comme parents, partenaires ou enfants adoptés, et le moteur de mise en page dispose les générations pour vous. Votre travail est enregistré dans ce navigateur. <about>En savoir plus sur Dynasty Tree Builder</about>."
+  }
+}
