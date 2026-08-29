@@ -93,7 +93,7 @@ export default async function LandingPage({
     // either surface can resolve the other instead of guessing what the tool is.
     sameAs: [SOURCE_REPO_URL],
     codeRepository: SOURCE_REPO_URL,
-    license: "https://www.gnu.org/licenses/agpl-3.0.html",
+    license: "https://opensource.org/licenses/MIT",
     // References, not copies — both nodes are declared in the root layout.
     publisher: { "@id": `${siteUrl}/#publisher` },
     isPartOf: { "@id": `${siteUrl}/#website` },

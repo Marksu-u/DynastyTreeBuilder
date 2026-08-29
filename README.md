@@ -85,11 +85,10 @@ small set of free tools for tabletop games.
 
 ## License
 
-[GNU AGPL v3](LICENSE) — Copyright (C) 2026 mKzz.
+[MIT](LICENSE) — Copyright (c) 2026 mKzz.
 
-You are free to use, study, modify and redistribute this code. The catch is
-section 13: if you run a modified version as a network service, you have to
-offer that service's users the corresponding source. Running the unmodified
-tool, or keeping private changes to yourself, triggers nothing.
+You are free to use, study, modify, redistribute and sell this code, including
+in closed-source work. The only condition is that the copyright notice and the
+licence text travel with it.
 
 Issues and pull requests are welcome, under the same license.
