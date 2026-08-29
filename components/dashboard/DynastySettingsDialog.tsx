@@ -1,0 +1,178 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
+import * as Dialog from "@radix-ui/react-dialog";
+import { Settings, X } from "lucide-react";
+import { CrestPicker } from "@/components/dashboard/CrestPicker";
+import { MAX_DYNASTY_NAME, type DynastySetting } from "@/lib/schemas";
+
+/** Stored values. Their labels live in the `settings` message namespace. */
+const SETTINGS = [
+  "FANTASY",
+  "SCI_FI",
+  "HISTORICAL",
+  "MODERN",
+  "HORROR",
+  "OTHER",
+] as const;
+
+export interface HouseSettings {
+  name: string;
+  setting: DynastySetting;
+  crestSeed: string;
+  /** Only present when showPublic is set — guest mode has nothing to publish. */
+  isPublic?: boolean;
+}
+
+interface Props {
+  /** Current values. crestSeed must already be resolved — no slug fallback here. */
+  initial: HouseSettings;
+  /** Account only: the Public toggle is the cloud feature, not a house setting. */
+  showPublic?: boolean;
+  /** Return false to keep the dialog open — the user's edits survive a failed save. */
+  onSave: (next: HouseSettings) => void | boolean | Promise<void | boolean>;
+}
+
+export function DynastySettingsDialog({ initial, showPublic = false, onSave }: Props) {
+  const t = useTranslations("dashboard.settings");
+  const tSetting = useTranslations("settings");
+  const tCommon = useTranslations("common");
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(initial.name);
+  const [setting, setSetting] = useState<DynastySetting>(initial.setting);
+  const [isPublic, setIsPublic] = useState(initial.isPublic ?? false);
+  const [seed, setSeed] = useState(initial.crestSeed);
+  const [isPending, startTransition] = useTransition();
+
+  function handleOpen(value: boolean) {
+    if (value) {
+      setName(initial.name);
+      setSetting(initial.setting);
+      setIsPublic(initial.isPublic ?? false);
+      setSeed(initial.crestSeed);
+    }
+    setOpen(value);
+  }
+
+  function handleSave() {
+    startTransition(async () => {
+      const saved = await onSave({
+        name,
+        setting,
+        crestSeed: seed,
+        ...(showPublic ? { isPublic } : {}),
+      });
+      // Only an explicit false keeps it open, so a saver with nothing to report
+      // (the guest store, which cannot fail) closes as usual.
+      if (saved !== false) setOpen(false);
+    });
+  }
+
+  return (
+    <Dialog.Root open={open} onOpenChange={handleOpen}>
+      <Dialog.Trigger asChild>
+        <button
+          className="flex items-center gap-1.5 rounded px-2 py-1 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
+          aria-label={t("trigger")}
+        >
+          <Settings className="h-3.5 w-3.5" />
+          {t("triggerLabel")}
+        </button>
+      </Dialog.Trigger>
+
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-xl focus:outline-none">
+          <div className="mb-5 flex items-center justify-between">
+            <Dialog.Title className="text-sm font-semibold text-zinc-100">
+              {t("title")}
+            </Dialog.Title>
+            <Dialog.Close asChild>
+              <button className="rounded p-1 text-zinc-500 hover:text-zinc-300">
+                <X className="h-4 w-4" />
+              </button>
+            </Dialog.Close>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+                {t("name")}
+              </label>
+              <input
+                type="text"
+                maxLength={MAX_DYNASTY_NAME}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500 focus:outline-none"
+                placeholder={t("namePlaceholder")}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-400">
+                {t("setting")}
+              </label>
+              <select
+                value={setting}
+                onChange={(e) => setSetting(e.target.value as DynastySetting)}
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-500 focus:outline-none"
+              >
+                {SETTINGS.map((value) => (
+                  <option key={value} value={value}>
+                    {tSetting(value)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {showPublic && (
+              <label className="flex cursor-pointer items-center justify-between rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2.5">
+                <span className="text-sm text-zinc-300">{t("public")}</span>
+                <span className="text-xs text-zinc-500 mr-auto ml-2">
+                  {t("publicHint")}
+                </span>
+                <div
+                  role="switch"
+                  aria-checked={isPublic}
+                  onClick={() => setIsPublic((v) => !v)}
+                  className={`relative h-5 w-9 cursor-pointer rounded-full transition-colors ${
+                    isPublic ? "bg-[var(--accent)]" : "bg-zinc-700"
+                  }`}
+                >
+                  {/* The knob flips to the dark ground on the lit track: white on
+                      gold is only 2.17:1, where zinc-950 on gold is 8.85:1. */}
+                  <span
+                    className={`absolute top-0.5 h-4 w-4 rounded-full shadow transition-transform ${
+                      isPublic ? "translate-x-4 bg-zinc-950" : "translate-x-0.5 bg-white"
+                    }`}
+                  />
+                </div>
+              </label>
+            )}
+
+            <div className="border-t border-zinc-800 pt-4">
+              <CrestPicker value={seed} onChange={setSeed} disabled={isPending} />
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end gap-2">
+            <Dialog.Close asChild>
+              <button className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 transition-colors">
+                {tCommon("cancel")}
+              </button>
+            </Dialog.Close>
+            <button
+              onClick={handleSave}
+              disabled={isPending || !name.trim()}
+              className="rounded-lg bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-white disabled:opacity-50 transition-colors"
+            >
+              {isPending ? t("saving") : t("save")}
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
