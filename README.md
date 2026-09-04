@@ -1,94 +1,82 @@
 # Dynasty Tree Builder
 
-**A free family tree maker for D&D and TTRPG campaigns.** Map noble houses, NPC
-relationships, bloodlines and rivalries on a drag-and-drop canvas, then share a
-read-only link with your players or export the whole thing as a PNG.
+Dynasty Tree Builder is a free family-tree and relationship-map editor designed
+for D&D, Pathfinder, other TTRPG campaigns, and fictional worldbuilding.
 
-🔗 **[dynastytreebuilder.vercel.app](https://dynastytreebuilder.vercel.app)** — no account needed, guest mode opens straight onto the canvas.
+Create noble houses, trace bloodlines, connect partners and adopted children,
+record plot hooks, and share a read-only tree with players. An account is
+optional: guest mode opens directly on the canvas and stores its work in the
+browser.
 
----
+[Open Dynasty Tree Builder](https://dynasty.bagofholdingtools.com/)
 
 ## Why it exists
 
-Most family tree software is built for genealogy: real ancestors, birth
-certificates, dates you can verify. Campaign families are messier. Half the
-parents are unknown, a third of the heirs are secretly bastards, two houses
-married for a treaty that has since collapsed, and the whole thing has to stay
-legible while you improvise at the table.
+Traditional genealogy applications assume documented ancestors and orderly
+relationships. Fictional dynasties contain unknown parents, secret heirs,
+political marriages, adoption, exile, contested succession, and several
+generations invented during play.
 
-Dynasty Tree Builder is built for that instead. Characters carry a **role** and
-a set of **narrative flags**, so the tree doubles as a campaign NPC relationship
-map rather than a chart of who begat whom.
+Dynasty Tree Builder treats those complications as normal campaign data. Its
+canvas is optimized for readable generations and story relationships rather
+than real-world genealogy records.
 
 ## Features
 
-- **A canvas built for lineages** — generations snap into horizontal bands and
-  siblings pack tightly, so a ten-generation house reads top to bottom without
-  crossing lines.
-- **Relationships that mean something** — parent/child, partner and adopted
-  links each draw their own edge style, and every link can carry a plot hook.
-- **Roles and narrative flags** — Head of House, Heir, Consort, Rival, Mage,
-  Rogue…, stacked with permanent flags: founder, bastard, adopted, exile,
-  deceased. Signed-in users can define custom roles.
-- **Multiple partners and messy lineages** — a character can have several
-  partners, each with their own offspring line; unknown parents can stay as
-  placeholder nodes so an incomplete bloodline still renders correctly.
-- **Share a read-only link** — publish a dynasty and hand players a link. They
-  get the live canvas (pan, zoom, highlight a bloodline) with no edit rights and
-  no account. Unpublish at any time to break the link.
-- **PNG export** — high-resolution, cropped to your characters, from the editor
-  or from a shared view. Drop it into a campaign wiki, Discord or a VTT.
-- **Guest mode** — dynasties live in your browser's local storage. Create an
-  account only when you want them on more than one device; guest work can be
-  imported.
+- Drag-and-drop lineage canvas with pan, zoom, selection, and automatic fitting.
+- Generation-aware layout that keeps siblings grouped and bloodlines readable.
+- Parent, partner, child, and adopted-child relationships.
+- Character names, aliases, free-text roles, gender, notes, and narrative flags.
+- Relationship plot hooks, unknown parents, and multiple partners.
+- Stable generated dynasty crests.
+- Guest drafts stored locally in the browser.
+- Cloud persistence for signed-in users, including guest-work import.
+- Revocable public read-only share links.
+- High-resolution PNG and editable JSON export.
+- English and French interfaces.
 
-## Who it's for
+## Who it is for
 
-Dungeon masters running court-intrigue arcs, worldbuilders tracing a founding
-bloodline across centuries, players mapping a character's house before session
-one, and writers or play-by-post groups who keep losing track of the cast.
-Nothing in the tool is tied to a ruleset — D&D, Pathfinder, homebrew, or no
-system at all.
+Dungeon masters running court-intrigue campaigns, worldbuilders tracing a
+founding bloodline across centuries, players defining a character's house, and
+writers who need a clear map of a complicated cast. Nothing in the editor is
+tied to a specific game system.
 
 ## Tech stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · [React Flow](https://reactflow.dev)
-(`@xyflow/react`) for the canvas · Zustand for client state · Tailwind CSS ·
-Radix UI primitives · Prisma + PostgreSQL · Supabase Auth · Vitest.
+Next.js 16 · React 19 · TypeScript · React Flow · Zustand · Tailwind CSS ·
+Radix UI · Prisma · PostgreSQL · Supabase Auth · Vitest · Vercel.
 
-The genealogy layout is a custom engine
-([`components/canvas/useGenealogyLayout.ts`](components/canvas/useGenealogyLayout.ts))
-rather than a generic graph layout: it assigns generation bands, then packs
-siblings and keeps bloodlines vertical.
+The genealogy layout is a custom engine in
+[`components/canvas/useGenealogyLayout.ts`](components/canvas/useGenealogyLayout.ts).
+It assigns generation bands, packs related characters, and keeps family lines
+vertical instead of applying a generic graph layout.
+
+Dynasty Tree Builder is part of **Bag Of Holding Tools**, a family of free TTRPG
+utilities with a shared visual language and optional account system.
 
 ## Running locally
 
 ```bash
+cp env.example .env.local
 npm install
-cp .env.local.example .env.local   # fill in Supabase + database credentials
-npx prisma migrate dev
+npx prisma generate
 npm run dev
 ```
 
-Open http://localhost:3000. Guest mode (`/tree`) works without any database or
-auth configuration — only the dashboard and sharing need the full setup.
+Open [http://localhost:3000](http://localhost:3000). Guest mode is available at
+`/tree` without signing in.
 
 ```bash
-npm test     # vitest
-npm run lint # eslint
+npm run typecheck
+npm run lint
+npm test
+npm run build
 ```
 
-## Project status
-
-Actively developed. Dynasty Tree Builder is part of **Bag Of Holding Tools**, a
-small set of free tools for tabletop games.
+Deployment-specific values are documented in `env.example` and configured in
+the hosting environment rather than in this README.
 
 ## License
 
-[MIT](LICENSE) — Copyright (c) 2026 mKzz.
-
-You are free to use, study, modify, redistribute and sell this code, including
-in closed-source work. The only condition is that the copyright notice and the
-licence text travel with it.
-
-Issues and pull requests are welcome, under the same license.
+[MIT](LICENSE) — Copyright © 2026 mKzz.
