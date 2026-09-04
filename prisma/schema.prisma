@@ -28,22 +28,6 @@ enum CharacterGender {
   UNKNOWN
 }
 
-enum NameStyle {
-  FANTASY
-  SCI_FI
-  HISTORICAL
-  MODERN
-  HORROR
-  OTHER
-}
-
-// CustomOptionKind: developer-controlled set of extendable catalog dimensions.
-// Users can add custom values within each kind, but new kinds are added by devs only.
-enum CustomOptionKind {
-  CHARACTER_STYLE
-  RELATIONSHIP_TYPE
-}
-
 enum AppSource {
   DYNASTY_TREE_BUILDER
 }
@@ -69,13 +53,10 @@ model User {
   /// Stored attribute, not an identity — supabaseId is the key. Deliberately
   /// not @unique: see migration drop_user_email_unique.
   email      String
-  username   String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  dynasties       Dynasty[]
-  nameBankEntries CustomName[]
-  customOptions   CustomOption[]
+  dynasties Dynasty[]
 
   @@map("users")
 }
@@ -148,42 +129,6 @@ model Relationship {
   @@index([fromId])
   @@index([toId])
   @@map("relationships")
-}
-
-model CustomName {
-  id        String          @id @default(cuid())
-  name      String
-  style     NameStyle       @default(FANTASY)
-  gender    CharacterGender @default(UNKNOWN)
-  note      String?
-  createdAt DateTime        @default(now())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("custom_names")
-}
-
-// User-authored catalog option — extends one of the four open CatalogKinds
-model CustomOption {
-  id          String           @id @default(cuid())
-  kind        CustomOptionKind
-  // Server-derived token from the label (e.g. "SPYMASTER"). Immutable after creation.
-  value       String
-  label       String
-  // Optional hex color (#RRGGBB) for canvas badge/edge rendering
-  color       String?
-  description String?
-  createdAt   DateTime         @default(now())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Prevent duplicate tokens per user per kind
-  @@unique([userId, kind, value])
-  @@index([userId])
-  @@map("custom_options")
 }
 
 model Report {

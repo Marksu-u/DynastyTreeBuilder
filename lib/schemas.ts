@@ -35,10 +35,6 @@ export const DynastySettingSchema = z.enum([
 ]);
 export type DynastySetting = z.infer<typeof DynastySettingSchema>;
 
-export const NameStyleSchema = z.enum([
-  "FANTASY", "SCI_FI", "HISTORICAL", "MODERN", "HORROR", "OTHER",
-]);
-
 export const CharacterGenderSchema = z.enum([
   "MALE", "FEMALE", "NON_BINARY", "UNKNOWN",
 ]);
@@ -93,13 +89,6 @@ export const DynastySettingsSchema = z.object({
   setting: DynastySettingSchema.optional(),
   isPublic: z.boolean().optional(),
   crestSeed: CrestSeedSchema.optional(),
-});
-
-export const CustomNameInputSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(MAX_CHARACTER_NAME, "Name is too long"),
-  style: NameStyleSchema,
-  gender: CharacterGenderSchema,
-  note: z.string().trim().max(MAX_NOTE, "Note is too long").optional(),
 });
 
 // ─── Guest → account import schema ────────────────────────────────────────────
