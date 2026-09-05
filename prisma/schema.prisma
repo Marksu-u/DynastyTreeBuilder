@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["public", "manuscript"]
 }
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
@@ -19,6 +20,8 @@ enum DynastySetting {
   MODERN
   HORROR
   OTHER
+
+  @@schema("public")
 }
 
 enum CharacterGender {
@@ -26,10 +29,14 @@ enum CharacterGender {
   FEMALE
   NON_BINARY
   UNKNOWN
+
+  @@schema("public")
 }
 
 enum AppSource {
   DYNASTY_TREE_BUILDER
+
+  @@schema("public")
 }
 
 enum ReportReason {
@@ -37,12 +44,16 @@ enum ReportReason {
   HATE_SPEECH
   SPAM
   OTHER
+
+  @@schema("public")
 }
 
 enum ReportStatus {
   PENDING
   REVIEWED
   DISMISSED
+
+  @@schema("public")
 }
 
 // ─── Models ───────────────────────────────────────────────────────────────────
@@ -56,9 +67,12 @@ model User {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  dynasties Dynasty[]
+  dynasties   Dynasty[]
+  manuscripts Manuscript[]
+  assets      ManuscriptAsset[]
 
   @@map("users")
+  @@schema("public")
 }
 
 model Dynasty {
@@ -81,6 +95,7 @@ model Dynasty {
 
   @@index([ownerId])
   @@map("dynasties")
+  @@schema("public")
 }
 
 model Character {
@@ -105,6 +120,7 @@ model Character {
 
   @@index([dynastyId])
   @@map("characters")
+  @@schema("public")
 }
 
 model Relationship {
@@ -129,6 +145,7 @@ model Relationship {
   @@index([fromId])
   @@index([toId])
   @@map("relationships")
+  @@schema("public")
 }
 
 model Report {
@@ -143,4 +160,73 @@ model Report {
   @@index([source])
   @@index([status])
   @@map("reports")
+  @@schema("public")
+}
+
+// Retained for compatibility with deployed clients during the shared-account rollout.
+model LegacyManuscriptUser {
+  id         String   @id @default(cuid())
+  supabaseId String   @unique
+  email      String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("users")
+  @@schema("manuscript")
+}
+
+model Manuscript {
+  id         String   @id @default(cuid())
+  title      String
+  styleId    String   @default("royal")
+  pageFormat String   @default("A4")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  ownerId String
+  owner   User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  pages   ManuscriptPage[]
+  assets  ManuscriptAsset[]
+
+  @@index([ownerId])
+  @@map("manuscripts")
+  @@schema("manuscript")
+}
+
+model ManuscriptPage {
+  id        String   @id @default(cuid())
+  position  Int
+  content   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  manuscriptId String
+  manuscript   Manuscript @relation(fields: [manuscriptId], references: [id], onDelete: Cascade)
+
+  @@unique([manuscriptId, position])
+  @@index([manuscriptId])
+  @@map("pages")
+  @@schema("manuscript")
+}
+
+model ManuscriptAsset {
+  id          String   @id @default(cuid())
+  storagePath String   @unique
+  mimeType    String
+  fileName    String?
+  width       Int?
+  height      Int?
+  attribution String?
+  license     String?
+  createdAt   DateTime @default(now())
+
+  ownerId      String
+  owner        User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  manuscriptId String?
+  manuscript   Manuscript? @relation(fields: [manuscriptId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([manuscriptId])
+  @@map("assets")
+  @@schema("manuscript")
 }

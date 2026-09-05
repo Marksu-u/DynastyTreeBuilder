@@ -11,7 +11,10 @@
     "prisma": "npx prisma format && npx prisma generate",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:deploy": "prisma migrate deploy",
+    "db:status": "prisma migrate status",
+    "test:shared-database": "node scripts/check-shared-database.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

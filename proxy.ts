@@ -1,3 +1,4 @@
+import { cookieOptions } from "@/lib/supabase/cookie-options";
 import { createServerClient } from "@supabase/ssr";
 import { hasLocale } from "next-intl";
 import createIntlMiddleware from "next-intl/middleware";
@@ -37,10 +38,16 @@ export async function proxy(request: NextRequest) {
   // the final URL in hand.
   if (response.headers.has("location")) return response;
 
+  const redirectWithCookies = (url: URL) => {
+    const redirect = NextResponse.redirect(url);
+    response.cookies.getAll().forEach(cookie => redirect.cookies.set(cookie));
+    return redirect;
+  };
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
+      cookieOptions,
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -70,14 +77,14 @@ export async function proxy(request: NextRequest) {
   if (!user && rest.startsWith("/dashboard")) {
     const url = request.nextUrl.clone();
     url.pathname = localizedPath(locale, "/login");
-    return NextResponse.redirect(url);
+    return redirectWithCookies(url);
   }
 
   // Redirect logged-in users away from /login
-  if (user && rest === "/login") {
+  if (user && rest === "/login" && !request.nextUrl.searchParams.has("error")) {
     const url = request.nextUrl.clone();
     url.pathname = localizedPath(locale, "/dashboard");
-    return NextResponse.redirect(url);
+    return redirectWithCookies(url);
   }
 
   return response;

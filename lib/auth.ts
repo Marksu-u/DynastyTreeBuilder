@@ -54,7 +54,7 @@ export async function getAuthUser(): Promise<User> {
     const dbUser = await prisma.user.findUnique({
       where: { supabaseId: user.id },
     });
-    if (dbUser) return dbUser;
+    if (dbUser && (!user.email || dbUser.email === user.email)) return dbUser;
 
     // Valid session, no app row. Without an email there is nothing to create it
     // from, which is a broken identity rather than a missing session.
