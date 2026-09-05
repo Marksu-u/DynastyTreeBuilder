@@ -56,6 +56,7 @@ export default async function AccountPage({
         maxWidth="max-w-xl"
       >
         <form action={signOut}>
+          <input type="hidden" name="locale" value={locale} />
           <button
             type="submit"
             className="cursor-pointer text-xs text-zinc-500 transition-colors hover:text-zinc-300"

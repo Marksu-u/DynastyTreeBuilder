@@ -168,13 +168,13 @@ export default async function LandingPage({
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/tree"
-                  className="rounded-md bg-zinc-100 px-6 py-2.5 text-center text-sm font-medium text-zinc-900 transition-colors hover:bg-white"
+                  className="flex h-[42px] items-center justify-center rounded-md bg-zinc-100 px-6 text-center text-sm font-medium text-zinc-900 transition-colors hover:bg-white"
                 >
                   {t("hero.cta")}
                 </Link>
                 <Link
                   href="/dashboard"
-                  className="rounded-md border border-zinc-700 px-6 py-2.5 text-center text-sm font-medium text-zinc-400 transition-colors hover:border-zinc-500 hover:text-zinc-200"
+                  className="flex h-[42px] items-center justify-center rounded-md border border-zinc-700 px-6 text-center text-sm font-medium text-zinc-400 transition-colors hover:border-zinc-500 hover:text-zinc-200"
                 >
                   {t("hero.dashboard")}
                 </Link>

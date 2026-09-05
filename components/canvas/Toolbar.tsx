@@ -65,11 +65,12 @@ export function Toolbar({
   const showHistory = !!onUndo || !!onRedo;
 
   return (
-    <div className="absolute left-4 top-4 z-20 flex items-center gap-0.5 rounded-lg border border-zinc-700 bg-zinc-900/95 p-1 shadow-lg backdrop-blur-sm">
+    <div className="workspace-toolbar absolute left-4 top-4 z-20 flex items-center gap-0.5 rounded-lg border border-zinc-700 bg-zinc-900/95 p-1 shadow-lg backdrop-blur-sm">
       <button
         onClick={() => (onFitView ? onFitView() : fitView({ duration: 400, padding: 0.15 }))}
         className="cursor-pointer rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
         title={t("fit")}
+        aria-label={t("fit")}
       >
         <Maximize2 size={14} />
       </button>
@@ -83,6 +84,8 @@ export function Toolbar({
             : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300",
         ].join(" ")}
         title={t("grid")}
+        aria-label={t("grid")}
+        aria-pressed={gridVisible}
       >
         <Grid3X3 size={14} />
       </button>
@@ -96,6 +99,7 @@ export function Toolbar({
             disabled={!canUndo || !onUndo}
             className="cursor-pointer rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-30"
             title={t("undo")}
+            aria-label={t("undo")}
           >
             <Undo2 size={14} />
           </button>
@@ -105,6 +109,7 @@ export function Toolbar({
             disabled={!canRedo || !onRedo}
             className="cursor-pointer rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-30"
             title={t("redo")}
+            aria-label={t("redo")}
           >
             <Redo2 size={14} />
           </button>
@@ -121,6 +126,8 @@ export function Toolbar({
                 onClick={() => setExportOpen((v) => !v)}
                 className="flex items-center gap-1 rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
                 title={t("export")}
+                aria-label={t("export")}
+                aria-expanded={exportOpen}
               >
                 <Download size={14} />
                 <ChevronDown size={11} />
@@ -160,6 +167,7 @@ export function Toolbar({
               onClick={onExport}
               className="rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
               title={t("exportAsPng")}
+              aria-label={t("exportAsPng")}
             >
               <Download size={14} />
             </button>

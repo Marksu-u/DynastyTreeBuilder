@@ -295,7 +295,7 @@ export function Inspector({
   return (
     <aside
       aria-label={tr('aria', { title })}
-      className="absolute bottom-4 right-4 top-[74px] z-20 flex w-[292px] flex-col overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900/97 shadow-2xl backdrop-blur-sm"
+      className="workspace-inspector absolute bottom-4 right-4 top-[74px] z-20 flex w-[292px] flex-col overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900/97 shadow-2xl backdrop-blur-sm"
     >
       {/* The unsaved-changes guard. Inside the panel, not a modal over the
           canvas: the question is about this panel, and the canvas behind it is

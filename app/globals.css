@@ -255,9 +255,29 @@ html[data-inspector="open"] [data-sonner-toaster] {
   --offset-right: 324px;
 }
 
+/* Keep the three shared workspace slots readable when they no longer fit on
+   one row. This mirrors the BOH-1 responsive continuation used by Manuscript. */
+@media (max-width: 1100px) {
+  .workspace-identity { top: 58px; }
+  .workspace-example-notice { top: 108px; }
+  .workspace-inspector { top: 112px; }
+}
+
 /* Below the inspector's own breakpoint it goes full-width and the shift would
    push toasts off screen entirely. */
 @media (max-width: 640px) {
+  .workspace-settings-label,
+  .workspace-account-chip > span:not([aria-hidden="true"]) { display: none; }
+  .workspace-example-notice {
+    left: 16px; right: 16px; display: grid; max-width: none;
+    grid-template-columns: auto minmax(0,1fr) auto; gap: 8px;
+    padding: 10px 8px 8px 10px; translate: none; transform: none;
+  }
+  .workspace-example-icon { grid-column: 1; grid-row: 1; }
+  .workspace-example-copy { grid-column: 2; grid-row: 1; }
+  .workspace-example-close { grid-column: 3; grid-row: 1; }
+  .workspace-example-start { grid-column: 1 / -1; grid-row: 2; justify-self: stretch; }
+  .workspace-inspector { left: 16px; right: 16px; width: auto; }
   html[data-inspector="open"] [data-sonner-toaster] {
     --offset-right: 16px;
   }

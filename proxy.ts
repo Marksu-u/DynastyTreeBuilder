@@ -73,8 +73,8 @@ export async function proxy(request: NextRequest) {
 
   const { locale, rest } = splitLocale(request.nextUrl.pathname);
 
-  // Protect /dashboard routes, in whichever locale they were requested
-  if (!user && rest.startsWith("/dashboard")) {
+  // Protect private routes.
+  if (!user && (rest.startsWith("/dashboard") || rest.startsWith("/account"))) {
     const url = request.nextUrl.clone();
     url.pathname = localizedPath(locale, "/login");
     return redirectWithCookies(url);

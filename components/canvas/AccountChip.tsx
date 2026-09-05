@@ -25,7 +25,11 @@ export function AccountChip(
   const t = useTranslations("canvas.account");
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900/95 px-2.5 py-1.5 shadow-lg backdrop-blur-sm">
+    <div
+      className="workspace-account-chip flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900/95 px-2.5 py-1.5 shadow-lg backdrop-blur-sm"
+      role={props.mode === "account" && props.status === "error" ? "alert" : "status"}
+      aria-live="polite"
+    >
       {props.mode === "guest" ? (
         <>
           <span

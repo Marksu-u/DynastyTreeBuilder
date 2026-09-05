@@ -77,13 +77,13 @@ export function DynastySettingsDialog({ initial, showPublic = false, onSave }: P
           aria-label={t("trigger")}
         >
           <Settings className="h-3.5 w-3.5" />
-          {t("triggerLabel")}
+          <span className="workspace-settings-label">{t("triggerLabel")}</span>
         </button>
       </Dialog.Trigger>
 
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-xl focus:outline-none">
+        <Dialog.Overlay className="dialog-overlay fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
+        <Dialog.Content className="dialog-content fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-zinc-700 bg-zinc-900 p-6 shadow-xl focus:outline-none">
           <div className="mb-5 flex items-center justify-between">
             <Dialog.Title className="text-sm font-semibold text-zinc-100">
               {t("title")}

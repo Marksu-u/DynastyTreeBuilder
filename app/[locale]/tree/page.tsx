@@ -14,7 +14,7 @@ export default function TreePage() {
     // Losing the flex column also loses the min-h-0 hazard that came with it —
     // this div has a definite height on the first layout pass, so React Flow
     // never caches a 0×0 viewport and fitView() frames the tree correctly.
-    <div className="h-screen w-full overflow-hidden bg-background">
+    <div className="h-screen h-[100dvh] w-full overflow-hidden bg-background">
       <ReactFlowProvider>
         <TreeCanvas />
       </ReactFlowProvider>

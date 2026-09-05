@@ -624,7 +624,7 @@ export function DynastyCanvas({
         />
 
         {topRight && (
-          <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+          <div className="workspace-account-slot absolute right-4 top-4 z-20 flex items-center gap-2">
             {topRight}
           </div>
         )}

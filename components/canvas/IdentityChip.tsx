@@ -38,7 +38,7 @@ export function IdentityChip({
   );
 
   return (
-    <div className="pointer-events-auto absolute left-1/2 top-4 z-20 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2.5 rounded-lg border border-zinc-700 bg-zinc-900/95 py-1.5 pl-2.5 pr-2 shadow-lg backdrop-blur-sm">
+    <div className="workspace-identity pointer-events-auto absolute left-1/2 top-4 z-20 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2.5 rounded-lg border border-zinc-700 bg-zinc-900/95 py-1.5 pl-2.5 pr-2 shadow-lg backdrop-blur-sm">
       {backHref && (
         <>
           <Link

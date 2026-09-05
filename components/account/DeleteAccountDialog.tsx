@@ -63,8 +63,8 @@ export function DeleteAccountDialog({ email }: Props) {
       </Dialog.Trigger>
 
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-destructive/40 bg-background p-6 shadow-xl focus:outline-none">
+        <Dialog.Overlay className="dialog-overlay fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
+        <Dialog.Content className="dialog-content fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-destructive/40 bg-background p-6 shadow-xl focus:outline-none">
           <div className="mb-4 flex items-start justify-between">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />

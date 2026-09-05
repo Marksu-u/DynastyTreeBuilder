@@ -90,7 +90,7 @@ export function DynastyPageClient({
           (design.md §9). Everything that used to live in the docked bar now
           floats in one of the fixed slots — identity top-centre, account state
           and the accent action top-right, settings in the top-left toolbar. */}
-      <div className="h-screen w-full overflow-hidden bg-background">
+      <div className="h-screen h-[100dvh] w-full overflow-hidden bg-background">
         <DynastyCanvas
           dynastyId={dynastyId}
           dynastyName={dynastyName}

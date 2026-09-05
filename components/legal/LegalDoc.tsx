@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Footer } from "./Footer";
+import { FramedHeader } from "@/components/shell/FramedHeader";
 
 /**
  * Shell shared by the four legal documents. They differ only in their sections,
@@ -30,7 +31,8 @@ export async function LegalDoc({
 
   return (
     <main className="min-h-screen bg-background">
-      <div className="mx-auto max-w-2xl px-4 py-16 text-sm text-zinc-300">
+      <FramedHeader maxWidth="max-w-2xl" />
+      <div className="mx-auto max-w-2xl px-6 py-16 text-sm text-zinc-300">
         <div className="mb-6 flex items-center justify-between gap-4">
           <LanguageSwitcher />
         </div>
