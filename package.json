@@ -14,7 +14,8 @@
     "test": "vitest run",
     "db:deploy": "prisma migrate deploy",
     "db:status": "prisma migrate status",
-    "test:shared-database": "node scripts/check-shared-database.mjs"
+    "test:shared-database": "node scripts/check-shared-database.mjs",
+    "test:database": "node scripts/check-dynasty-database.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
